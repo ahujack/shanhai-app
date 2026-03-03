@@ -25,21 +25,72 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export interface UserProfile {
   id: string;
   name: string;
-  birthDate: string;
-  birthTime: string;
-  gender: 'male' | 'female' | 'other';
-  timezone: string;
+  birthDate?: string;
+  birthTime?: string;
+  gender?: 'male' | 'female' | 'other';
+  timezone?: string;
   location?: string;
+  phone?: string;
+  email?: string;
+  avatar?: string;
+  role: 'user' | 'admin';
+  membership: 'free' | 'premium' | 'vip';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateUserDto {
   name: string;
-  birthDate: string;
-  birthTime: string;
-  gender: 'male' | 'female' | 'other';
+  birthDate?: string;
+  birthTime?: string;
+  gender?: 'male' | 'female' | 'other';
   timezone?: string;
   location?: string;
 }
+
+// ========== Auth API ==========
+export interface AuthResponse {
+  success: boolean;
+  token?: string;
+  user?: UserProfile;
+  message?: string;
+}
+
+export const authApi = {
+  // 发送验证码
+  sendCode: (dto: { phone?: string; email?: string }) =>
+    request<{ success: boolean; message: string; code?: string }>('/auth/send-code', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+  
+  // 登录
+  login: (dto: { phone?: string; email?: string; code: string }) =>
+    request<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+  
+  // 第三方登录
+  socialLogin: (dto: { provider: 'google' | 'facebook'; idToken: string }) =>
+    request<AuthResponse>('/auth/social-login', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+  
+  // 刷新 Token
+  refresh: (token: string) =>
+    request<{ success: boolean; token?: string }>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+  
+  // 登出
+  logout: () =>
+    request<{ success: boolean }>('/auth/logout', {
+      method: 'POST',
+    }),
+};
 
 export const userApi = {
   create: (dto: CreateUserDto) =>

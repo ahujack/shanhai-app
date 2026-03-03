@@ -16,7 +16,7 @@ import { useUserStore } from '../src/store/user';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { createUser, isLoading } = useUserStore();
+  const { sendCode, loginWithCode, loginWithSocial, isLoading } = useUserStore();
   
   const [loginType, setLoginType] = useState<'phone' | 'email'>('phone');
   const [phone, setPhone] = useState('');
@@ -24,7 +24,7 @@ export default function LoginScreen() {
   const [code, setCode] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
 
-  const handleSendCode = () => {
+  const handleSendCode = async () => {
     if (loginType === 'phone' && !phone.trim()) {
       Alert.alert('提示', '请输入手机号');
       return;
@@ -34,9 +34,18 @@ export default function LoginScreen() {
       return;
     }
     
-    // 模拟发送验证码
-    Alert.alert('验证码已发送', '验证码: 123456 (测试用)');
-    setIsCodeSent(true);
+    // 调用后端 API 发送验证码
+    const success = await sendCode(
+      loginType === 'phone' ? phone : undefined,
+      loginType === 'email' ? email : undefined
+    );
+    
+    if (success) {
+      Alert.alert('验证码已发送', '请查收短信/邮箱');
+      setIsCodeSent(true);
+    } else {
+      Alert.alert('发送失败', '请重试');
+    }
   };
 
   const handleLogin = async () => {
@@ -45,18 +54,16 @@ export default function LoginScreen() {
       return;
     }
 
-    // 模拟登录 - 创建临时用户
-    try {
-      const loginId = loginType === 'phone' ? phone : email;
-      await createUser({
-        name: loginType === 'phone' ? `用户${phone.slice(-4)}` : email.split('@')[0],
-        birthDate: '1990-01-01',
-        birthTime: '00:00',
-        gender: 'male',
-      });
+    const success = await loginWithCode(
+      loginType === 'phone' ? phone : undefined,
+      loginType === 'email' ? email : undefined,
+      code
+    );
+    
+    if (success) {
       router.replace('/(tabs)');
-    } catch (error) {
-      Alert.alert('登录失败', '请重试');
+    } else {
+      Alert.alert('登录失败', '验证码错误或已过期');
     }
   };
 
@@ -64,12 +71,12 @@ export default function LoginScreen() {
     router.replace('/(tabs)');
   };
 
-  const handleGoogleLogin = () => {
-    Alert.alert('提示', '谷歌登录功能开发中');
+  const handleGoogleLogin = async () => {
+    Alert.alert('提示', '请使用 Google ID Token 进行测试');
   };
 
-  const handleFacebookLogin = () => {
-    Alert.alert('提示', 'Facebook 登录功能开发中');
+  const handleFacebookLogin = async () => {
+    Alert.alert('提示', '请使用 Facebook ID Token 进行测试');
   };
 
   return (
@@ -158,7 +165,7 @@ export default function LoginScreen() {
           disabled={isLoading}
         >
           <Text style={styles.loginButtonText}>
-            {isLoading ? '登录中...' : '登录'}
+            '登录中...' : '登录'}
           </Text>
         </TouchableOpacity>
 
