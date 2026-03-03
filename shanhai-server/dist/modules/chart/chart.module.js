@@ -10,11 +10,13 @@ exports.ChartModule = void 0;
 const common_1 = require("@nestjs/common");
 const chart_service_1 = require("./chart.service");
 const chart_controller_1 = require("./chart.controller");
+const user_module_1 = require("../user/user.module");
 let ChartModule = class ChartModule {
 };
 exports.ChartModule = ChartModule;
 exports.ChartModule = ChartModule = __decorate([
     (0, common_1.Module)({
+        imports: [user_module_1.UserModule],
         controllers: [chart_controller_1.ChartController],
         providers: [chart_service_1.ChartService],
         exports: [chart_service_1.ChartService],

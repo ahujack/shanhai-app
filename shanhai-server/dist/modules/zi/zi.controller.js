@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ZiController = exports.AnalyzeZiDto = void 0;
 const common_1 = require("@nestjs/common");
 const zi_service_1 = require("./zi.service");
+const ocr_service_1 = require("../ocr/ocr.service");
 class AnalyzeZiDto {
     zi;
     handwriting;
@@ -22,11 +23,33 @@ class AnalyzeZiDto {
 exports.AnalyzeZiDto = AnalyzeZiDto;
 let ZiController = class ZiController {
     ziService;
-    constructor(ziService) {
+    ocrService;
+    constructor(ziService, ocrService) {
         this.ziService = ziService;
+        this.ocrService = ocrService;
     }
     async analyze(dto) {
         return this.ziService.analyze(dto.zi, dto.handwriting);
+    }
+    async recognize(dto) {
+        const result = await this.ocrService.recognizeHandwriting(dto.image);
+        return result;
+    }
+    async analyzeHandwriting(dto) {
+        const ocrResult = await this.ocrService.recognizeHandwriting(dto.image);
+        if (ocrResult.zi) {
+            const ziResult = await this.ziService.analyze(ocrResult.zi);
+            return {
+                recognizedZi: ocrResult.zi,
+                confidence: ocrResult.confidence,
+                analysis: ziResult,
+            };
+        }
+        return {
+            recognizedZi: null,
+            confidence: ocrResult.confidence,
+            error: '未能识别出汉字',
+        };
     }
 };
 exports.ZiController = ZiController;
@@ -37,8 +60,23 @@ __decorate([
     __metadata("design:paramtypes", [AnalyzeZiDto]),
     __metadata("design:returntype", Promise)
 ], ZiController.prototype, "analyze", null);
+__decorate([
+    (0, common_1.Post)('recognize'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ZiController.prototype, "recognize", null);
+__decorate([
+    (0, common_1.Post)('analyze-handwriting'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ZiController.prototype, "analyzeHandwriting", null);
 exports.ZiController = ZiController = __decorate([
     (0, common_1.Controller)('zi'),
-    __metadata("design:paramtypes", [zi_service_1.ZiService])
+    __metadata("design:paramtypes", [zi_service_1.ZiService,
+        ocr_service_1.OcrService])
 ], ZiController);
 //# sourceMappingURL=zi.controller.js.map
