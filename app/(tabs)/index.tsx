@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
@@ -13,6 +14,7 @@ const colors = theme.dark;
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { active: persona, personas, setActive } = usePersonaStore();
   const { user, dailyFortune, loadDailyFortune } = useUserStore();
   const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
@@ -60,12 +62,18 @@ export default function HomeScreen() {
         {/* 顶部标题 */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-          <Text style={styles.title}>山海灵境</Text>
             <TouchableOpacity 
               style={styles.personaSwitchButton}
               onPress={() => setShowPersonaPicker(true)}
             >
-              <Text style={styles.personaSwitchText}>🎭 切换角色</Text>
+              <Text style={styles.personaSwitchText}>🎭 切换</Text>
+            </TouchableOpacity>
+            <Text style={styles.title}>山海灵境</Text>
+            <TouchableOpacity 
+              style={styles.loginButton}
+              onPress={() => router.push('/login')}
+            >
+              <Text style={styles.loginButtonText}>{user ? '👤' : '登录'}</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.subtitle}>{persona.name}</Text>
@@ -288,6 +296,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   personaSwitchText: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  loginButton: {
+    backgroundColor: '#2B2342',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  loginButtonText: {
     color: '#F8D05F',
     fontSize: 12,
     fontWeight: '600',
