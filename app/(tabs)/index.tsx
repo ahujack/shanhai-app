@@ -60,7 +60,7 @@ export default function HomeScreen() {
         {/* 顶部标题 */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <Text style={styles.title}>山海灵境</Text>
+          <Text style={styles.title}>山海灵境</Text>
             <TouchableOpacity 
               style={styles.personaSwitchButton}
               onPress={() => setShowPersonaPicker(true)}
