@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useColorScheme, View, ActivityIndicator } from 'react-native';
-import { useUserStore } from './src/store/user';
+import { useUserStore } from '../src/store/user';
 
 export {
   // Catch any errors thrown by the Layout component.
