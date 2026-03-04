@@ -50,9 +50,12 @@ export default function ZiScreen() {
 
   // 手写模式识别并测字
   const handleHandwritingRecognize = async (svgString: string) => {
+    console.log('开始手写识别，SVG长度:', svgString.length);
     setIsLoading(true);
     try {
+      console.log('调用 handwritingApi.analyze...');
       const data = await handwritingApi.analyze(svgString);
+      console.log('识别结果:', data);
       
       if (data.recognizedZi) {
         setInputZi(data.recognizedZi);
@@ -63,9 +66,9 @@ export default function ZiScreen() {
       } else {
         Alert.alert('😔 识别失败', data.error || '未能识别出汉字，请重新书写');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('手写识别失败:', error);
-      Alert.alert('错误', '手写识别失败，请稍后重试');
+      Alert.alert('错误', error?.message || '手写识别失败，请稍后重试');
     } finally {
       setIsLoading(false);
     }

@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CANVAS_SIZE = SCREEN_WIDTH - 60;
+// 减小画布尺寸，使用固定宽度而非屏幕宽度
+const CANVAS_SIZE = Math.min(SCREEN_WIDTH - 80, 280);
 
 interface Point {
   x: number;
