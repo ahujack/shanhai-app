@@ -10,18 +10,28 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { ziApi, ZiResult, handwritingApi } from '../../src/services/api';
+import { useChatStore } from '../../src/store/chat';
+import { usePersonaStore } from '../../src/store/persona';
+import { useUserStore } from '../../src/store/user';
 import HandwritingCanvas from '../../components/HandwritingCanvas';
 
 export default function ZiScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [inputZi, setInputZi] = useState('');
   const [result, setResult] = useState<ZiResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showColdReading, setShowColdReading] = useState(false);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
+  
+  // 聊天相关
+  const { sendMessage } = useChatStore();
+  const { active: persona } = usePersonaStore();
+  const { user } = useUserStore();
 
   // 打字模式测字
   const handleAnalyze = async () => {
@@ -87,6 +97,48 @@ export default function ZiScreen() {
 
   const getJixiongColor = (jixiong: string) => {
     return jixiong === '吉' ? '#4CAF50' : jixiong === '凶' ? '#F44336' : '#FF9800';
+  };
+  
+  // 点击后续问题，跳转到聊天界面继续对话
+  const handleFollowUpQuestion = async (question: string) => {
+    // 跳转到聊天界面
+    router.push('/');
+    
+    // 延迟发送消息，确保页面已切换
+    setTimeout(async () => {
+      await sendMessage(
+        question,
+        persona.id,
+        user?.id,
+        'calm'
+      );
+    }, 500);
+  };
+  
+  // 测字完成后，自动发送一个后续问题，开启对话
+  const autoSendFollowUpQuestion = async (zi: string) => {
+    const followUpQuestions = [
+      `你写的"${zi}"字，中间的部分你想表达什么？`,
+      `对于"${zi}"这个字，你首先想到的是什么？`,
+      `为什么选择写"${zi}"这个字？有什么特别的意义吗？`,
+      `写"${zi}"字的时候，你的心情是怎样的？`,
+      `如果让你用"${zi}"字来形容最近的生活，你会怎么解释？`,
+    ];
+    
+    // 随机选择一个
+    const randomQuestion = followUpQuestions[Math.floor(Math.random() * followUpQuestions.length)];
+    
+    // 跳转到聊天界面并发送问题
+    router.push('/');
+    
+    setTimeout(async () => {
+      await sendMessage(
+        randomQuestion,
+        persona.id,
+        user?.id,
+        'calm'
+      );
+    }, 500);
   };
 
   return (
@@ -364,15 +416,19 @@ export default function ZiScreen() {
               </View>
             </View>
 
-            {/* 后续问题 */}
+            {/* 后续问题 - 可点击跳转聊天 */}
             {result.followUpQuestions.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>🤔 想和你聊聊</Text>
                 <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                   {result.followUpQuestions.map((question, index) => (
-                    <Text key={index} style={styles.questionText}>
-                      • {question}
-                    </Text>
+                    <TouchableOpacity 
+                      key={index} 
+                      style={styles.questionButton}
+                      onPress={() => handleFollowUpQuestion(question)}
+                    >
+                      <Text style={styles.questionText}>💬 {question}</Text>
+                    </TouchableOpacity>
                   ))}
                 </View>
               </View>
@@ -648,6 +704,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     marginBottom: 5,
+  },
+  questionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
   },
   bottomPadding: {
     height: 40,
