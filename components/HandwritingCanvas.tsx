@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   Text,
   Alert,
   Animated,
+  ScrollView,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -16,6 +17,10 @@ const CANVAS_SIZE = SCREEN_WIDTH - 60;
 interface Point {
   x: number;
   y: number;
+}
+
+interface Stroke {
+  points: Point[];
 }
 
 interface HandwritingCanvasProps {
@@ -27,24 +32,47 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
   onRecognize, 
   isRecognizing = false 
 }) => {
-  const [strokes, setStrokes] = useState<Point[][]>([]);
-  const [currentStroke, setCurrentStroke] = useState<Point[]>([]);
-  const canvasRef = useRef<View>(null);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
+  const [canvasReady, setCanvasReady] = useState(false);
   
-  // 动画
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  // 淡入动画
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   
-  const clearCanvas = useCallback(() => {
-    setStrokes([]);
-    setCurrentStroke([]);
-    // 淡入效果
+  useEffect(() => {
+    // 组件挂载时淡入
     fadeAnim.setValue(0);
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
       useNativeDriver: true,
     }).start();
+    setCanvasReady(true);
   }, [fadeAnim]);
+
+  const clearCanvas = useCallback(() => {
+    setStrokes([]);
+    setCurrentPoints([]);
+  }, []);
+
+  // 计算两个点之间的所有点（用于绘制连续的线）
+  const getPointsBetween = (p1: Point, p2: Point): Point[] => {
+    const points: Point[] = [p1];
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const steps = Math.max(1, Math.floor(distance / 2)); // 每2像素一个点
+    
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      points.push({
+        x: p1.x + dx * t,
+        y: p1.y + dy * t,
+      });
+    }
+    
+    return points;
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -52,15 +80,29 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        setCurrentStroke([{ x: locationX, y: locationY }]);
+        setCurrentPoints([{ x: locationX, y: locationY }]);
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        setCurrentStroke((prev) => [...prev, { x: locationX, y: locationY }]);
+        setCurrentPoints(prev => {
+          if (prev.length === 0) return [{ x: locationX, y: locationY }];
+          
+          const lastPoint = prev[prev.length - 1];
+          const newPoints = getPointsBetween(lastPoint, { x: locationX, y: locationY });
+          return [...prev, ...newPoints.slice(1)];
+        });
       },
       onPanResponderRelease: () => {
-        setStrokes((prev) => [...prev, currentStroke]);
-        setCurrentStroke([]);
+        if (currentPoints.length > 0) {
+          setStrokes(prev => [...prev, { points: currentPoints }]);
+        }
+        setCurrentPoints([]);
+      },
+      onPanResponderTerminate: () => {
+        if (currentPoints.length > 0) {
+          setStrokes(prev => [...prev, { points: currentPoints }]);
+        }
+        setCurrentPoints([]);
       },
     }),
   ).current;
@@ -68,12 +110,12 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
   // 生成SVG字符串
   const generateSvgString = (): string => {
     let pathD = '';
-    const allStrokes = [...strokes, currentStroke];
+    const allStrokes = [...strokes, { points: currentPoints }];
     
     allStrokes.forEach((stroke) => {
-      if (stroke.length > 0) {
-        pathD += `M ${stroke[0].x} ${stroke[0].y} `;
-        stroke.slice(1).forEach((point) => {
+      if (stroke.points.length > 0) {
+        pathD += `M ${stroke.points[0].x} ${stroke.points[0].y} `;
+        stroke.points.slice(1).forEach((point) => {
           pathD += `L ${point.x} ${point.y} `;
         });
       }
@@ -81,14 +123,14 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
 
     const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" viewBox="0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}">
   <rect width="100%" height="100%" fill="white"/>
-  <path d="${pathD}" stroke="black" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="${pathD}" stroke="black" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
     
     return svgString;
   };
 
   const handleRecognize = () => {
-    if (strokes.length === 0 && currentStroke.length === 0) {
+    if (strokes.length === 0 && currentPoints.length === 0) {
       Alert.alert('提示', '请先写一个字');
       return;
     }
@@ -96,49 +138,51 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     onRecognize(svgString);
   };
 
-  // 渲染笔画路径 - 使用点连线方式
-  const renderStrokes = () => {
-    const allStrokes = [...strokes, currentStroke];
+  // 渲染笔画 - 使用点来模拟
+  const renderStroke = (points: Point[], isActive: boolean = false) => {
+    if (points.length < 2) return null;
     
-    return allStrokes.map((stroke, strokeIndex) => {
-      if (stroke.length < 2) return null;
-      
-      const isCurrent = strokeIndex === allStrokes.length - 1 && currentStroke.length > 0;
-      const strokeColor = isCurrent ? '#FFD700' : '#1a1a2e';
-      
-      // 使用多个小线段来模拟笔画
-      return stroke.slice(1).map((point, pointIndex) => {
-        const prevPoint = stroke[pointIndex];
-        const dx = point.x - prevPoint.x;
-        const dy = point.y - prevPoint.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-        
-        return (
-          <View
-            key={`${strokeIndex}-${pointIndex}`}
-            style={[
-              styles.line,
-              {
-                left: prevPoint.x,
-                top: prevPoint.y,
-                width: length,
-                transform: [{ rotate: `${angle}deg` }],
-                backgroundColor: strokeColor,
-              },
-            ]}
-          />
-        );
-      });
-    });
+    return points.map((point, index) => (
+      <View
+        key={index}
+        style={[
+          styles.dot,
+          {
+            left: point.x - 4,
+            top: point.y - 4,
+            backgroundColor: isActive ? '#FFD700' : '#1a1a2e',
+          },
+        ]}
+      />
+    ));
   };
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <View style={styles.canvasContainer} ref={canvasRef} {...panResponder.panHandlers}>
-        <View style={styles.canvas}>
-          {renderStrokes()}
+      <View 
+        style={styles.canvasContainer} 
+        {...panResponder.panHandlers}
+      >
+        {/* 背景 */}
+        <View style={styles.canvasBackground}>
+          {/* 田字格参考线 */}
+          <View style={[styles.gridLine, styles.gridVertical, { left: '50%' }]} />
+          <View style={[styles.gridLine, styles.gridHorizontal, { top: '50%' }]} />
         </View>
+        
+        {/* 渲染已完成的笔画 */}
+        {strokes.map((stroke, index) => (
+          <View key={index} style={styles.strokeContainer}>
+            {renderStroke(stroke.points)}
+          </View>
+        ))}
+        
+        {/* 渲染当前正在写的笔画 */}
+        {currentPoints.length > 0 && (
+          <View style={styles.strokeContainer}>
+            {renderStroke(currentPoints, true)}
+          </View>
+        )}
       </View>
       
       <View style={styles.buttonRow}>
@@ -177,19 +221,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#FFD700',
-  },
-  canvas: {
-    width: '100%',
-    height: '100%',
     position: 'relative',
   },
-  line: {
+  canvasBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  gridLine: {
     position: 'absolute',
-    height: 4,
-    borderRadius: 2,
-    transformOrigin: 'left center',
+    backgroundColor: '#f0f0f0',
+  },
+  gridVertical: {
+    width: 1,
+    height: '100%',
+    left: '50%',
+  },
+  gridHorizontal: {
+    width: '100%',
+    height: 1,
+    top: '50%',
+  },
+  strokeContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  dot: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   buttonRow: {
     flexDirection: 'row',

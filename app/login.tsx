@@ -165,7 +165,7 @@ export default function LoginScreen() {
           disabled={isLoading}
         >
           <Text style={styles.loginButtonText}>
-            '登录中...' : '登录'}
+            {isLoading ? '登录中...' : '登录'}
           </Text>
         </TouchableOpacity>
 
