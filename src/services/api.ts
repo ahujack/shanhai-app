@@ -1,7 +1,7 @@
 // API 配置
 // 开发环境使用 localhost，生产环境使用 Railway 提供的 URL
 // 可通过环境变量 NEXT_PUBLIC_API_URL 覆盖
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://shanhai-production.up.railway.app/api';
 
 // 通用请求函数
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
