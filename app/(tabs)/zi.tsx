@@ -27,6 +27,21 @@ export default function ZiScreen() {
   const [showColdReading, setShowColdReading] = useState(false);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
+  // 新增：用户选择的测字方面
+  const [selectedAspects, setSelectedAspects] = useState<string[]>([]);
+  const [customAspect, setCustomAspect] = useState('');
+  
+  // 可选的测字方面
+  const aspectOptions = ['事业', '财运', '婚姻', '学业', '健康', '人际关系'];
+  
+  // 切换方面选择
+  const toggleAspect = (aspect: string) => {
+    setSelectedAspects(prev => 
+      prev.includes(aspect) 
+        ? prev.filter(a => a !== aspect)
+        : [...prev, aspect]
+    );
+  };
   
   // 聊天相关
   const { messages, sendMessage } = useChatStore();
@@ -225,6 +240,37 @@ export default function ZiScreen() {
               : '根据《测字有术》，字如其人。心有所想，字有所现。'}
           </Text>
           
+          {/* 选择测字方面 */}
+          <View style={styles.aspectSection}>
+            <Text style={styles.aspectTitle}>💭 我想测：</Text>
+            <View style={styles.aspectTags}>
+              {aspectOptions.map((aspect) => (
+                <TouchableOpacity
+                  key={aspect}
+                  style={[
+                    styles.aspectTag,
+                    selectedAspects.includes(aspect) && styles.aspectTagSelected
+                  ]}
+                  onPress={() => toggleAspect(aspect)}
+                >
+                  <Text style={[
+                    styles.aspectTagText,
+                    selectedAspects.includes(aspect) && styles.aspectTagTextSelected
+                  ]}>
+                    {aspect}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={styles.customAspectInput}
+              value={customAspect}
+              onChangeText={setCustomAspect}
+              placeholder="或输入其他方面..."
+              placeholderTextColor="#666"
+            />
+          </View>
+          
           {isHandwritingMode ? (
             // 手写模式
             <View style={styles.handwritingSection}>
@@ -406,8 +452,8 @@ export default function ZiScreen() {
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                 <View style={styles.traitsRow}>
                   {result.handwriting.personalityInsights.map((trait, index) => (
-                    <View key={index} style={[styles.traitTag, { backgroundColor: theme.dark.tint + '30' }]}>
-                      <Text style={[styles.traitText, { color: theme.dark.tint }]}>{trait}</Text>
+                    <View key={index} style={[styles.traitTag, { backgroundColor: '#FFD700' }]}>
+                      <Text style={[styles.traitText, { color: '#1a1a2e' }]}>{trait}</Text>
                     </View>
                   ))}
                 </View>
@@ -518,6 +564,54 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     marginBottom: 20,
+  },
+  aspectSection: {
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+  },
+  aspectTitle: {
+    fontSize: 15,
+    color: '#FFD700',
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  aspectTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  aspectTag: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  aspectTagSelected: {
+    backgroundColor: '#FFD700',
+    borderColor: '#FFD700',
+  },
+  aspectTagText: {
+    color: '#999',
+    fontSize: 14,
+  },
+  aspectTagTextSelected: {
+    color: '#1a1a2e',
+    fontWeight: 'bold',
+  },
+  customAspectInput: {
+    height: 40,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    color: '#fff',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   handwritingSection: {
     alignItems: 'center',
