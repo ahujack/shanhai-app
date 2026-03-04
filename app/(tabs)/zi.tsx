@@ -50,6 +50,9 @@ export default function ZiScreen() {
     try {
       const data = await ziApi.analyze(zi);
       setResult(data);
+      
+      // 自动发送后续问题，开启对话
+      setTimeout(() => autoSendFollowUpQuestion(zi), 1000);
     } catch (error) {
       console.error('测字失败:', error);
       Alert.alert('错误', '测字失败，请稍后重试');
@@ -70,8 +73,16 @@ export default function ZiScreen() {
       if (data.recognizedZi) {
         setInputZi(data.recognizedZi);
         setResult(data.analysis || null);
-        Alert.alert('🎉 识别成功', `识别到汉字: ${data.recognizedZi}`, [
-          { text: '查看解读', onPress: () => {} }
+        
+        // 识别成功后显示结果，然后自动发送后续问题
+        Alert.alert('🎉 识别成功', `识别到汉字: ${data.recognizedZi}\n\n点击确定查看解读并开始对话`, [
+          { 
+            text: '查看解读', 
+            onPress: () => {
+              // 延迟发送后续问题，让用户先看到结果
+              setTimeout(() => autoSendFollowUpQuestion(data.recognizedZi), 1500);
+            }
+          }
         ]);
       } else {
         Alert.alert('😔 识别失败', data.error || '未能识别出汉字，请重新书写');
