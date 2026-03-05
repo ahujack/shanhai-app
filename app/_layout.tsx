@@ -47,14 +47,25 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { user, loadUser, isLoading } = useUserStore();
   const [isChecking, setIsChecking] = useState(true);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       await loadUser();
       setIsChecking(false);
+      setIsReady(true);
     };
     checkAuth();
   }, []);
+
+  // 等待初始化完成
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0A0716', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#F8D05F" />
+      </View>
+    );
+  }
 
   if (isChecking || isLoading) {
     return (
@@ -67,21 +78,32 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ 
-            headerShown: false,
-            // 如果未登录则重定向到登录页（暂时注释掉，允许游客模式）
-            // redirect: !user ? true : false
-          }} 
-        />
-        <Stack.Screen 
-          name="login" 
-          options={{ 
-            headerShown: false,
-            presentation: 'modal'
-          }} 
-        />
+        {/* 未登录时显示登录页 */}
+        {!user ? (
+          <>
+            <Stack.Screen 
+              name="login" 
+              options={{ 
+                headerShown: false,
+                animation: 'slide_from_right',
+              }} 
+            />
+            <Stack.Screen 
+              name="register" 
+              options={{ 
+                headerShown: false,
+                animation: 'slide_from_right',
+              }} 
+            />
+          </>
+        ) : (
+          <Stack.Screen 
+            name="(tabs)" 
+            options={{ 
+              headerShown: false,
+            }} 
+          />
+        )}
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
