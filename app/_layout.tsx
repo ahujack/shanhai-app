@@ -85,6 +85,13 @@ function RootLayoutNav() {
           }} 
         />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen 
+          name="oauth/google" 
+          options={{ 
+            headerShown: false,
+            presentation: 'modal'
+          }} 
+        />
       </Stack>
     </ThemeProvider>
   );
