@@ -71,15 +71,22 @@ export interface AuthResponse {
 }
 
 export const authApi = {
-  // 发送验证码
-  sendCode: (dto: { email?: string }) =>
+  // 发送验证码 (purpose: 'login' | 'register')
+  sendCode: (dto: { email?: string; purpose?: string }) =>
     request<{ success: boolean; message: string; code?: string }>('/auth/send-code', {
       method: 'POST',
       body: JSON.stringify(dto),
     }),
   
-  // 登录
-  login: (dto: { email: string; code: string }) =>
+  // 注册
+  register: (dto: { email: string; password: string; code: string; name?: string }) =>
+    request<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+  
+  // 登录（支持密码或验证码）
+  login: (dto: { email: string; password?: string; code?: string }) =>
     request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(dto),

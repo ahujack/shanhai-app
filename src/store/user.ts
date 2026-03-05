@@ -25,9 +25,11 @@ interface UserState {
   
   // Auth actions
   loadUser: () => Promise<void>;
+  register: (email: string, password: string, code: string, name?: string) => Promise<boolean>;
+  loginWithPassword: (email: string, password: string) => Promise<boolean>;
   loginWithCode: (email?: string, code?: string) => Promise<boolean>;
   loginWithSocial: (provider: 'google' | 'facebook', idToken: string) => Promise<boolean>;
-  sendCode: (email?: string) => Promise<boolean>;
+  sendCode: (email?: string, purpose?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   
   // User actions
@@ -80,13 +82,53 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
   
-  sendCode: async (email?: string) => {
+  sendCode: async (email?: string, purpose?: string) => {
     try {
-      const result = await authApi.sendCode({ email: email || undefined });
+      const result = await authApi.sendCode({ email: email || undefined, purpose });
       return result.success;
     } catch (e) {
       console.error('发送验证码失败:', e);
       return false;
+    }
+  },
+
+  // 注册
+  register: async (email: string, password: string, code: string, name?: string) => {
+    set({ isLoading: true });
+    try {
+      const result = await authApi.register({ email, password, code, name });
+      if (result.success && result.token && result.user) {
+        await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        set({ user: result.user, token: result.token });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('注册失败:', e);
+      return false;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  // 密码登录
+  loginWithPassword: async (email: string, password: string) => {
+    set({ isLoading: true });
+    try {
+      const result = await authApi.login({ email, password });
+      if (result.success && result.token && result.user) {
+        await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        set({ user: result.user, token: result.token });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('登录失败:', e);
+      return false;
+    } finally {
+      set({ isLoading: false });
     }
   },
   
