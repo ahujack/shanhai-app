@@ -49,6 +49,9 @@ export const useUserStore = create<UserState>((set, get) => ({
   isLoading: false,
   
   loadUser: async () => {
+    // 仅在浏览器环境执行
+    if (typeof window === 'undefined') return;
+    
     set({ isLoading: true });
     try {
       const userId = await AsyncStorage.getItem(USER_ID_KEY);
