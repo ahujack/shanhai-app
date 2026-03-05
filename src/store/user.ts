@@ -8,10 +8,12 @@ const AUTH_TOKEN_KEY = 'shanhai_auth_token';
 // 导出 token 供 API 服务使用
 export let globalAuthToken: string | null = null;
 
-// 初始化时加载 token
-AsyncStorage.getItem(AUTH_TOKEN_KEY).then(token => {
-  globalAuthToken = token;
-});
+// 初始化时加载 token（仅在浏览器环境）
+if (typeof window !== 'undefined') {
+  AsyncStorage.getItem(AUTH_TOKEN_KEY).then(token => {
+    globalAuthToken = token;
+  });
+}
 
 interface UserState {
   user: UserProfile | null;

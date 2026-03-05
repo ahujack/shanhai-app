@@ -8,13 +8,15 @@ const API_BASE_URL = 'https://shanhai-production.up.railway.app/api';
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  // 从 AsyncStorage 获取 token
+  // 从 AsyncStorage 获取 token（仅在浏览器环境）
   let token: string | null = null;
-  try {
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    token = await AsyncStorage.getItem('shanhai_auth_token');
-  } catch (e) {
-    // ignore
+  if (typeof window !== 'undefined') {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      token = await AsyncStorage.getItem('shanhai_auth_token');
+    } catch (e) {
+      // ignore
+    }
   }
   
   const response = await fetch(url, {
