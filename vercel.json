@@ -4,6 +4,7 @@
   "installCommand": "npm install",
   "rewrites": [
     { "source": "/symbolicate", "destination": "/" },
+    { "source": "/api/(.*)", "destination": "/" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
