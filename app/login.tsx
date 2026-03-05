@@ -143,9 +143,6 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Logo 和标题 */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-            <Text style={styles.registerButtonText}>注册</Text>
-          </TouchableOpacity>
           <Text style={styles.logo}>🏔️</Text>
           <Text style={styles.title}>山海灵境</Text>
           <Text style={styles.subtitle}>探索你的命运之旅</Text>
