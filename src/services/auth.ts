@@ -6,11 +6,22 @@ import { Alert, Linking, Platform } from 'react-native';
 WebBrowser.maybeCompleteAuthSession();
 
 // Google 配置
-const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
-const GOOGLE_REDIRECT_URI = AuthSession.makeRedirectUri({
-  scheme: 'shanhai',
-  path: 'oauth/google',
-});
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com';
+
+// 动态生成重定向 URI，根据平台不同使用不同的地址
+const getGoogleRedirectUri = () => {
+  // Web 平台使用 Vercel 部署的地址
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    return 'https://shanhai-app.vercel.app/oauth/google';
+  }
+  // 原生平台使用自定义 scheme
+  return AuthSession.makeRedirectUri({
+    scheme: 'shanhai',
+    path: 'oauth/google',
+  });
+};
+
+const GOOGLE_REDIRECT_URI = getGoogleRedirectUri();
 
 // Facebook 配置
 const FACEBOOK_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID';
