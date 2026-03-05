@@ -4,6 +4,12 @@
 // 注意：在 React Native 中，需要使用 expo 插件来读取环境变量
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://shanhai-production.up.railway.app/api';
 
+// 调试日志
+if (typeof window !== 'undefined') {
+  console.log('API_BASE_URL:', API_BASE_URL);
+  console.log('process.env:', process.env);
+}
+
 // 通用请求函数
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
