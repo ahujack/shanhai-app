@@ -5,6 +5,14 @@ import { UserProfile, BaziChart, FortuneSlip, userApi, chartApi, fortuneApi, Cre
 const USER_ID_KEY = 'shanhai_user_id';
 const AUTH_TOKEN_KEY = 'shanhai_auth_token';
 
+// 导出 token 供 API 服务使用
+export let globalAuthToken: string | null = null;
+
+// 初始化时加载 token
+AsyncStorage.getItem(AUTH_TOKEN_KEY).then(token => {
+  globalAuthToken = token;
+});
+
 interface UserState {
   user: UserProfile | null;
   token: string | null;
@@ -15,9 +23,9 @@ interface UserState {
   
   // Auth actions
   loadUser: () => Promise<void>;
-  loginWithCode: (phone?: string, email?: string, code?: string) => Promise<boolean>;
+  loginWithCode: (email?: string, code?: string) => Promise<boolean>;
   loginWithSocial: (provider: 'google' | 'facebook', idToken: string) => Promise<boolean>;
-  sendCode: (phone?: string, email?: string) => Promise<boolean>;
+  sendCode: (email?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   
   // User actions
@@ -70,9 +78,9 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
   
-  sendCode: async (phone, email) => {
+  sendCode: async (email?: string) => {
     try {
-      const result = await authApi.sendCode({ phone, email });
+      const result = await authApi.sendCode({ email: email || undefined });
       return result.success;
     } catch (e) {
       console.error('发送验证码失败:', e);
@@ -80,10 +88,10 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
   
-  loginWithCode: async (phone, email, code) => {
+  loginWithCode: async (email?: string, code?: string) => {
     set({ isLoading: true });
     try {
-      const result = await authApi.login({ phone, email, code: code || '' });
+      const result = await authApi.login({ email: email || '', code: code || '' });
       if (result.success && result.token && result.user) {
         await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
         await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);

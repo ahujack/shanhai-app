@@ -1,15 +1,27 @@
 // API 配置
 // 开发环境使用 localhost，生产环境使用 Railway 提供的 URL
 // 可通过环境变量 NEXT_PUBLIC_API_URL 覆盖
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://shanhai-production.up.railway.app/api';
+// 注意：在 React Native 中，需要使用 expo 插件来读取环境变量
+const API_BASE_URL = 'https://shanhai-production.up.railway.app/api';
 
 // 通用请求函数
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  
+  // 从 AsyncStorage 获取 token
+  let token: string | null = null;
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    token = await AsyncStorage.getItem('shanhai_auth_token');
+  } catch (e) {
+    // ignore
+  }
+  
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
@@ -58,14 +70,14 @@ export interface AuthResponse {
 
 export const authApi = {
   // 发送验证码
-  sendCode: (dto: { phone?: string; email?: string }) =>
+  sendCode: (dto: { email?: string }) =>
     request<{ success: boolean; message: string; code?: string }>('/auth/send-code', {
       method: 'POST',
       body: JSON.stringify(dto),
     }),
   
   // 登录
-  login: (dto: { phone?: string; email?: string; code: string }) =>
+  login: (dto: { email: string; code: string }) =>
     request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(dto),

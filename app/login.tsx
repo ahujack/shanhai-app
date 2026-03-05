@@ -9,40 +9,51 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUserStore } from '../src/store/user';
+import { signInWithGoogle, signInWithFacebook } from '../src/services/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { sendCode, loginWithCode, loginWithSocial, isLoading } = useUserStore();
-  
-  const [loginType, setLoginType] = useState<'phone' | 'email'>('phone');
-  const [phone, setPhone] = useState('');
+
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  // 倒计时
+  React.useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0 && isCodeSent) {
+      setIsCodeSent(false);
+    }
+  }, [countdown, isCodeSent]);
 
   const handleSendCode = async () => {
-    if (loginType === 'phone' && !phone.trim()) {
-      Alert.alert('提示', '请输入手机号');
+    if (!email.trim()) {
+      Alert.alert('提示', '请输入邮箱地址');
       return;
     }
-    if (loginType === 'email' && !email.trim()) {
-      Alert.alert('提示', '请输入邮箱');
+
+    // 验证邮箱格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('提示', '请输入有效的邮箱地址');
       return;
     }
-    
+
     // 调用后端 API 发送验证码
-    const success = await sendCode(
-      loginType === 'phone' ? phone : undefined,
-      loginType === 'email' ? email : undefined
-    );
-    
+    const success = await sendCode(email);
+
     if (success) {
-      Alert.alert('验证码已发送', '请查收短信/邮箱');
+      Alert.alert('验证码已发送到您的邮箱', '请查收邮件');
       setIsCodeSent(true);
+      setCountdown(60); // 开始60秒倒计时
     } else {
       Alert.alert('发送失败', '请重试');
     }
@@ -54,12 +65,8 @@ export default function LoginScreen() {
       return;
     }
 
-    const success = await loginWithCode(
-      loginType === 'phone' ? phone : undefined,
-      loginType === 'email' ? email : undefined,
-      code
-    );
-    
+    const success = await loginWithCode(email, code);
+
     if (success) {
       router.replace('/(tabs)');
     } else {
@@ -72,15 +79,42 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = async () => {
-    Alert.alert('提示', '请使用 Google ID Token 进行测试');
+    try {
+      const userInfo = await signInWithGoogle();
+      if (userInfo && userInfo.idToken) {
+        const success = await loginWithSocial('google', userInfo.idToken);
+        if (success) {
+          router.replace('/(tabs)');
+        } else {
+          Alert.alert('登录失败', '无法完成 Google 登录');
+        }
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      Alert.alert('登录失败', 'Google 登录出错，请重试');
+    }
   };
 
   const handleFacebookLogin = async () => {
-    Alert.alert('提示', '请使用 Facebook ID Token 进行测试');
+    try {
+      const userInfo = await signInWithFacebook();
+      if (userInfo && (userInfo.idToken || userInfo.accessToken)) {
+        const token = userInfo.idToken || userInfo.accessToken || '';
+        const success = await loginWithSocial('facebook', token);
+        if (success) {
+          router.replace('/(tabs)');
+        } else {
+          Alert.alert('登录失败', '无法完成 Facebook 登录');
+        }
+      }
+    } catch (error) {
+      console.error('Facebook login error:', error);
+      Alert.alert('登录失败', 'Facebook 登录出错，请重试');
+    }
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
@@ -92,50 +126,22 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>探索你的命运之旅</Text>
         </View>
 
-        {/* 登录方式切换 */}
-        <View style={styles.switchContainer}>
-          <TouchableOpacity 
-            style={[styles.switchButton, loginType === 'phone' && styles.switchButtonActive]}
-            onPress={() => setLoginType('phone')}
-          >
-            <Text style={[styles.switchText, loginType === 'phone' && styles.switchTextActive]}>
-              手机号登录
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.switchButton, loginType === 'email' && styles.switchButtonActive]}
-            onPress={() => setLoginType('email')}
-          >
-            <Text style={[styles.switchText, loginType === 'email' && styles.switchTextActive]}>
-              邮箱登录
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* 标题 */}
+        <Text style={styles.sectionTitle}>邮箱登录</Text>
 
         {/* 输入框 */}
         <View style={styles.inputContainer}>
-          {loginType === 'phone' ? (
-            <TextInput
-              style={styles.input}
-              placeholder="请输入手机号"
-              placeholderTextColor="#6F6287"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              maxLength={11}
-            />
-          ) : (
-            <TextInput
-              style={styles.input}
-              placeholder="请输入邮箱"
-              placeholderTextColor="#6F6287"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          )}
-          
+          <TextInput
+            style={styles.input}
+            placeholder="请输入邮箱"
+            placeholderTextColor="#6F6287"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!isLoading}
+          />
+
           <View style={styles.codeRow}>
             <TextInput
               style={[styles.input, styles.codeInput]}
@@ -145,28 +151,31 @@ export default function LoginScreen() {
               onChangeText={setCode}
               keyboardType="number-pad"
               maxLength={6}
+              editable={!isLoading}
             />
-            <TouchableOpacity 
-              style={[styles.codeButton, isCodeSent && styles.codeButtonDisabled]}
+            <TouchableOpacity
+              style={[styles.codeButton, (isCodeSent || countdown > 0) && styles.codeButtonDisabled]}
               onPress={handleSendCode}
-              disabled={isCodeSent}
+              disabled={isCodeSent || countdown > 0 || isLoading}
             >
               <Text style={styles.codeButtonText}>
-                {isCodeSent ? '已发送' : '获取验证码'}
+                {countdown > 0 ? `${countdown}s` : (isCodeSent ? '已发送' : '获取验证码')}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* 登录按钮 */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
           onPress={handleLogin}
           disabled={isLoading}
         >
-          <Text style={styles.loginButtonText}>
-            {isLoading ? '登录中...' : '登录'}
-          </Text>
+          {isLoading ? (
+            <ActivityIndicator color="#1A0A18" />
+          ) : (
+            <Text style={styles.loginButtonText}>登录</Text>
+          )}
         </TouchableOpacity>
 
         {/* 分割线 */}
@@ -178,12 +187,24 @@ export default function LoginScreen() {
 
         {/* 第三方登录 */}
         <View style={styles.socialContainer}>
-          <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-            <Text style={styles.socialIcon}>G</Text>
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
+          >
+            <View style={styles.socialIconContainer}>
+              <Text style={styles.socialIcon}>G</Text>
+            </View>
             <Text style={styles.socialText}>Google 登录</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
-            <Text style={styles.socialIcon}>f</Text>
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={handleFacebookLogin}
+            disabled={isLoading}
+          >
+            <View style={[styles.socialIconContainer, styles.facebookIconContainer]}>
+              <Text style={styles.socialIcon}>f</Text>
+            </View>
             <Text style={styles.socialText}>Facebook 登录</Text>
           </TouchableOpacity>
         </View>
@@ -217,7 +238,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   logo: {
     fontSize: 64,
@@ -234,29 +255,12 @@ const styles = StyleSheet.create({
     color: '#8D8DAA',
     marginTop: 8,
   },
-  switchContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#1A1328',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 24,
-  },
-  switchButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  switchButtonActive: {
-    backgroundColor: '#4C2F80',
-  },
-  switchText: {
-    color: '#8D8DAA',
-    fontSize: 14,
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: '600',
-  },
-  switchTextActive: {
-    color: '#F8D05F',
+    color: '#F7F6F0',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   inputContainer: {
     gap: 16,
@@ -283,6 +287,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 100,
   },
   codeButtonDisabled: {
     backgroundColor: '#3A3A5A',
@@ -334,13 +339,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#322243',
   },
+  socialIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#DB4437',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  facebookIconContainer: {
+    backgroundColor: '#4267B2',
+  },
   socialIcon: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
-    marginRight: 12,
-    width: 24,
-    textAlign: 'center',
   },
   socialText: {
     color: '#F7F6F0',
