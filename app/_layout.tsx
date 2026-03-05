@@ -45,29 +45,14 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { user, loadUser, isLoading } = useUserStore();
-  const [isChecking, setIsChecking] = useState(true);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      await loadUser();
-      setIsChecking(false);
-      setIsReady(true);
-    };
-    checkAuth();
+    // 延迟一下让 Zustand 初始化完成
+    setTimeout(() => setIsReady(true), 100);
   }, []);
 
-  // 等待初始化完成
   if (!isReady) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#0A0716', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#F8D05F" />
-      </View>
-    );
-  }
-
-  if (isChecking || isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0A0716', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#F8D05F" />
@@ -78,32 +63,27 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        {/* 未登录时显示登录页 */}
-        {!user ? (
-          <>
-            <Stack.Screen 
-              name="login" 
-              options={{ 
-                headerShown: false,
-                animation: 'slide_from_right',
-              }} 
-            />
-            <Stack.Screen 
-              name="register" 
-              options={{ 
-                headerShown: false,
-                animation: 'slide_from_right',
-              }} 
-            />
-          </>
-        ) : (
-          <Stack.Screen 
-            name="(tabs)" 
-            options={{ 
-              headerShown: false,
-            }} 
-          />
-        )}
+        {/* 所有页面都可以访问，登录是可选的 */}
+        <Stack.Screen 
+          name="(tabs)" 
+          options={{ 
+            headerShown: false,
+          }} 
+        />
+        <Stack.Screen 
+          name="login" 
+          options={{ 
+            headerShown: false,
+            presentation: 'modal'
+          }} 
+        />
+        <Stack.Screen 
+          name="register" 
+          options={{ 
+            headerShown: false,
+            presentation: 'modal'
+          }} 
+        />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
