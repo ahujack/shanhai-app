@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile, BaziChart, FortuneSlip, userApi, chartApi, fortuneApi, CreateUserDto, authApi } from '../services/api';
 
@@ -123,9 +124,11 @@ export const useUserStore = create<UserState>((set, get) => ({
         set({ user: result.user, token: result.token });
         return true;
       }
+      Alert.alert('登录失败', result.message || '邮箱或密码错误');
       return false;
-    } catch (e) {
+    } catch (e: any) {
       console.error('登录失败:', e);
+      Alert.alert('登录失败', e.message || '网络错误，请重试');
       return false;
     } finally {
       set({ isLoading: false });
@@ -142,9 +145,11 @@ export const useUserStore = create<UserState>((set, get) => ({
         set({ user: result.user, token: result.token });
         return true;
       }
+      Alert.alert('登录失败', result.message || '验证码错误或已过期');
       return false;
-    } catch (e) {
+    } catch (e: any) {
       console.error('登录失败:', e);
+      Alert.alert('登录失败', e.message || '网络错误，请重试');
       return false;
     } finally {
       set({ isLoading: false });
