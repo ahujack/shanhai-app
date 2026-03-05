@@ -2,7 +2,7 @@
 // 开发环境使用 localhost，生产环境使用 Railway 提供的 URL
 // 可通过环境变量 NEXT_PUBLIC_API_URL 覆盖
 // 注意：在 React Native 中，需要使用 expo 插件来读取环境变量
-const API_BASE_URL = 'https://shanhai-production.up.railway.app/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://shanhai-production.up.railway.app/api';
 
 // 通用请求函数
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
