@@ -28,7 +28,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     }
   }
   
-  const response = await fetch(url, {
+  const response = await fetch(fullUrl, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -291,7 +291,8 @@ export interface AgentResponse {
     reading?: DivinationResult;
     fortune?: FortuneSlip;
     chart?: BaziChart;
-    meditation?: any;
+    meditation?: Meditation;
+    zi?: ZiResult;
   };
   hasChart: boolean;
 }
