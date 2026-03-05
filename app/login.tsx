@@ -143,6 +143,9 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Logo 和标题 */}
         <View style={styles.header}>
+          <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+            <Text style={styles.registerButtonText}>注册</Text>
+          </TouchableOpacity>
           <Text style={styles.logo}>🏔️</Text>
           <Text style={styles.title}>山海灵境</Text>
           <Text style={styles.subtitle}>探索你的命运之旅</Text>
@@ -244,14 +247,6 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
 
-        {/* 注册链接 */}
-        <View style={styles.registerContainer}>
-          <Text style={styles.registerText}>还没有账号？</Text>
-          <TouchableOpacity onPress={handleRegister}>
-            <Text style={styles.registerLink}>立即注册</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* 分割线 */}
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
@@ -313,6 +308,21 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 32,
+    position: 'relative',
+  },
+  registerButton: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#4C2F80',
+    borderRadius: 8,
+  },
+  registerButtonText: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: '600',
   },
   logo: {
     fontSize: 64,
