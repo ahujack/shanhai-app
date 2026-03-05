@@ -12,7 +12,10 @@ if (typeof window !== 'undefined') {
 
 // 通用请求函数
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const fullUrl = `${API_BASE_URL}${endpoint}`;
+  
+  // 调试日志
+  console.log(`[API Request] ${options.method || 'GET'} ${fullUrl}`, options.body);
   
   // 从 AsyncStorage 获取 token（仅在浏览器环境）
   let token: string | null = null;
@@ -35,10 +38,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   });
   
   if (!response.ok) {
+    console.error(`[API Error] ${response.status} ${response.statusText}`, await response.text());
     throw new Error(`API Error: ${response.status}`);
   }
   
-  return response.json();
+  const data = await response.json();
+  console.log(`[API Response] ${response.status}`, data);
+  return data;
 }
 
 // ========== User API ==========
