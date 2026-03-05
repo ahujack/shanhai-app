@@ -9,19 +9,39 @@ WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com';
 
 // 动态生成重定向 URI，根据平台不同使用不同的地址
-const getGoogleRedirectUri = () => {
-  // Web 平台使用 Vercel 部署的地址
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    return 'https://shanhai-app.vercel.app/oauth/google';
+const getGoogleRedirectUri = (): string => {
+  // 首先尝试获取 scheme，如果失败则使用默认值
+  let scheme = 'shanhai';
+  
+  try {
+    // Web 平台使用 Vercel 部署的地址
+    if (typeof window !== 'undefined' && window.location && window.location.protocol === 'https:') {
+      return 'https://shanhai-app.vercel.app/oauth/google';
+    }
+  } catch (e) {
+    // 在 React Native 环境中 window 可能不可访问，忽略错误
   }
+  
   // 原生平台使用自定义 scheme
-  return AuthSession.makeRedirectUri({
-    scheme: 'shanhai',
-    path: 'oauth/google',
-  });
+  try {
+    const uri = AuthSession.makeRedirectUri({
+      scheme: scheme,
+      path: 'oauth/google',
+    });
+    
+    // 验证返回的 URI 是否有效
+    if (uri && uri.startsWith('http')) {
+      return uri;
+    }
+    
+    // 如果返回的不是有效的 URL，构建一个
+    return `${scheme}://oauth/google`;
+  } catch (error) {
+    console.error('Error creating redirect URI:', error);
+    // 提供一个 fallback
+    return `${scheme}://oauth/google`;
+  }
 };
-
-const GOOGLE_REDIRECT_URI = getGoogleRedirectUri();
 
 // Facebook 配置
 const FACEBOOK_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID';
@@ -44,9 +64,14 @@ export interface SocialUserInfo {
  */
 export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
   try {
-    // 检查是否有有效的重定向 URI
-    const redirectUri = GOOGLE_REDIRECT_URI;
+    // 动态获取重定向 URI
+    const redirectUri = getGoogleRedirectUri();
     console.log('Google Redirect URI:', redirectUri);
+
+    // 验证 redirectUri 是否有效
+    if (!redirectUri || redirectUri.trim() === '') {
+      throw new Error('Invalid redirect URI');
+    }
 
     const authRequest = new AuthSession.AuthRequest({
       clientId: GOOGLE_CLIENT_ID,
