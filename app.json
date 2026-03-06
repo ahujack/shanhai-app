@@ -32,25 +32,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      [
-        "expo-auth-session",
-        {
-          "google": {
-            "clientId": "737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com",
-            "ios": {
-              "clientId": "737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com"
-            },
-            "android": {
-              "clientId": "737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com"
-            },
-            "web": {
-              "clientId": "737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com",
-              "redirectUrl": "https://shanhai-app.vercel.app/oauth/google"
-            }
-          }
-        }
-      ]
+      "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
