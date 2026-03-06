@@ -13,13 +13,10 @@ const getGoogleRedirectUri = (): string => {
   // 首先尝试获取 scheme，如果失败则使用默认值
   let scheme = 'shanhai';
   
-  try {
-    // Web 平台使用 Vercel 部署的地址
-    if (typeof window !== 'undefined' && window.location && window.location.protocol === 'https:') {
-      return 'https://shanhai-app.vercel.app/oauth/google';
-    }
-  } catch (e) {
-    // 在 React Native 环境中 window 可能不可访问，忽略错误
+  // Web 平台使用 Vercel 部署的地址
+  if (typeof window !== 'undefined') {
+    // 在 Web 环境下，使用完整的 HTTPS URL
+    return 'https://shanhai-app.vercel.app/oauth/google';
   }
   
   // 原生平台使用自定义 scheme
@@ -34,12 +31,17 @@ const getGoogleRedirectUri = (): string => {
       return uri;
     }
     
-    // 如果返回的不是有效的 URL，构建一个
-    return `${scheme}://oauth/google`;
+    // 如果返回的不是有效的 URL，构建一个完整的自定义scheme URL
+    if (scheme && uri) {
+      return `${scheme}://oauth/google`;
+    }
+    
+    // 如果都失败了，提供一个 fallback
+    return 'shanhai://oauth/google';
   } catch (error) {
     console.error('Error creating redirect URI:', error);
     // 提供一个 fallback
-    return `${scheme}://oauth/google`;
+    return 'shanhai://oauth/google';
   }
 };
 

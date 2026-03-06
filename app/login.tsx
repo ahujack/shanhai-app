@@ -67,16 +67,16 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     console.log('[LoginScreen] handleLogin called, loginMethod:', loginMethod, 'agreedToTerms:', agreedToTerms, 'email:', email, 'password:', password ? '***' : 'empty');
     
-    if (!email.trim()) {
-      Alert.alert('提示', '请输入邮箱地址');
-      return;
-    }
-
-    // 首次登录需要勾选协议
+    // 首次登录需要勾选协议 - 放在最前面检查
     if (!agreedToTerms) {
       const msg = '请先阅读并同意用户协议和隐私政策';
       console.log('[LoginScreen] Login blocked: agreedToTerms is false');
       Alert.alert('提示', msg);
+      return;
+    }
+    
+    if (!email.trim()) {
+      Alert.alert('提示', '请输入邮箱地址');
       return;
     }
 
