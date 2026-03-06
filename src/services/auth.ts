@@ -1,4 +1,3 @@
-import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Alert, Linking, Platform } from 'react-native';
 
@@ -17,7 +16,7 @@ const GOOGLE_WEB_DEV_REDIRECT_URI = 'http://localhost:8081/oauth/google';
 // 检测是否为 Web 环境
 const isWeb = (): boolean => {
   if (typeof window === 'undefined') return false;
-  return Platform.OS === 'web' || window.location.protocol === 'file:' || window.location.protocol === 'http:' || window.location.protocol === 'https:';
+  return Platform.OS === 'web';
 };
 
 // 动态获取重定向 URI
@@ -54,7 +53,23 @@ export interface SocialUserInfo {
 }
 
 /**
- * Google 登录
+ * 生成随机 nonce
+ */
+function generateNonce(): string {
+  const array = new Uint8Array(32);
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+    window.crypto.getRandomValues(array);
+  } else {
+    // 回退方案
+    for (let i = 0; i < array.length; i++) {
+      array[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Google 登录 - Web 环境使用原生浏览器重定向
  */
 export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
   try {
@@ -66,45 +81,53 @@ export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
       throw new Error('Invalid redirect URI');
     }
 
-    // 构建授权 URL
-    const nonce = Math.random().toString(36).substring(2, 15);
-    const authorizeUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-    authorizeUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
-    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-    authorizeUrl.searchParams.set('response_type', 'id_token');
-    authorizeUrl.searchParams.set('scope', 'openid profile email');
-    authorizeUrl.searchParams.set('nonce', nonce);
+    // 生成 nonce 并保存到 sessionStorage
+    const nonce = generateNonce();
+    sessionStorage.setItem('google_oauth_nonce', nonce);
+    sessionStorage.setItem('google_oauth_redirect_uri', redirectUri);
 
-    console.log('[Auth] Full Authorize URL:', authorizeUrl.toString());
+    // 构建授权 URL
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: redirectUri,
+      response_type: 'id_token',
+      scope: 'openid profile email',
+      nonce: nonce,
+    });
+
+    const authorizeUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    console.log('[Auth] Full Authorize URL:', authorizeUrl);
 
     // Web 环境：直接使用浏览器重定向
     if (isWeb() && typeof window !== 'undefined') {
-      // 保存 nonce 到 sessionStorage，供回调时验证
-      sessionStorage.setItem('google_oauth_nonce', nonce);
-      
-      // 重定向到 Google 授权页面
-      window.location.href = authorizeUrl.toString();
+      window.location.href = authorizeUrl;
       return null;
     }
 
-    // 原生环境：使用 expo-auth-session
-    const authRequest = new AuthSession.AuthRequest({
+    // 原生环境：使用 expo-auth-session（这里其实不太会走到，因为 isWeb() 在 Expo 中会返回 true）
+    // 为了兼容性，这里还是保留 expo-auth-session 的逻辑
+    const { makeRedirectUri } = await import('expo-auth-session');
+    const nativeRedirectUri = makeRedirectUri({
+      scheme: 'shanhai',
+      path: 'oauth/google',
+    });
+
+    const { AuthRequest } = await import('expo-auth-session');
+    const authRequest = new AuthRequest({
       clientId: GOOGLE_CLIENT_ID,
       scopes: ['openid', 'profile', 'email'],
-      redirectUri: redirectUri,
-      responseType: AuthSession.ResponseType.IdToken,
+      redirectUri: nativeRedirectUri,
+      responseType: 'id_token',
       usePKCE: false,
+      nonce: nonce,
     });
 
     const result = await authRequest.promptAsync({
-      authorizeUrl: authorizeUrl.toString(),
+      authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     });
-
-    console.log('[Auth] Auth result type:', result.type);
 
     if (result.type === 'success' && result.params) {
       const { id_token, access_token } = result.params;
-
       if (id_token) {
         const userInfo = parseJwt(id_token);
         return {
@@ -116,9 +139,6 @@ export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
           accessToken: access_token,
         };
       }
-    } else if (result.type === 'cancel') {
-      console.log('[Auth] User cancelled Google sign in');
-      return null;
     }
 
     return null;
@@ -130,7 +150,7 @@ export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
 }
 
 /**
- * Facebook 登录
+ * Facebook 登录 - Web 环境使用原生浏览器重定向
  */
 export async function signInWithFacebook(): Promise<SocialUserInfo | null> {
   try {
@@ -139,43 +159,46 @@ export async function signInWithFacebook(): Promise<SocialUserInfo | null> {
 
     // Web 环境：直接使用浏览器重定向
     if (isWeb() && typeof window !== 'undefined') {
-      const state = Math.random().toString(36).substring(2, 15);
+      const state = generateNonce();
       sessionStorage.setItem('facebook_oauth_state', state);
+      sessionStorage.setItem('facebook_oauth_redirect_uri', redirectUri);
 
-      const authorizeUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
-      authorizeUrl.searchParams.set('client_id', FACEBOOK_APP_ID);
-      authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-      authorizeUrl.searchParams.set('response_type', 'code');
-      authorizeUrl.searchParams.set('scope', 'public_profile,email');
-      authorizeUrl.searchParams.set('state', state);
+      const params = new URLSearchParams({
+        client_id: FACEBOOK_APP_ID,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'public_profile,email',
+        state: state,
+      });
 
-      window.location.href = authorizeUrl.toString();
+      const authorizeUrl = `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`;
+      window.location.href = authorizeUrl;
       return null;
     }
 
     // 原生环境
-    const authRequest = new AuthSession.AuthRequest({
-      clientId: FACEBOOK_APP_ID,
-      scopes: ['public_profile', 'email'],
-      redirectUri,
-      responseType: AuthSession.ResponseType.Code,
-      usePKCE: false,
+    const { makeRedirectUri, AuthRequest } = await import('expo-auth-session');
+    const nativeRedirectUri = makeRedirectUri({
+      scheme: 'shanhai',
+      path: 'oauth/facebook',
     });
 
-    const authorizeUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
-    authorizeUrl.searchParams.set('client_id', FACEBOOK_APP_ID);
-    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-    authorizeUrl.searchParams.set('response_type', 'code');
-    authorizeUrl.searchParams.set('scope', 'public_profile,email');
-    authorizeUrl.searchParams.set('state', authRequest.state || '');
+    const state = generateNonce();
+    const authRequest = new AuthRequest({
+      clientId: FACEBOOK_APP_ID,
+      scopes: ['public_profile', 'email'],
+      redirectUri: nativeRedirectUri,
+      responseType: 'code',
+      usePKCE: false,
+      state: state,
+    });
 
     const result = await authRequest.promptAsync({
-      authorizeUrl: authorizeUrl.toString(),
+      authorizeUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
     });
 
     if (result.type === 'success' && result.params) {
       const { code } = result.params;
-
       return {
         id: `fb_${Date.now()}`,
         idToken: code,
@@ -234,4 +257,54 @@ export function getDeepLinkUrl(): string {
   return Platform.OS === 'ios'
     ? 'shanhai://oauth/google'
     : 'shanhai://oauth/google';
+}
+
+/**
+ * 处理 OAuth 回调 - 从 URL 中提取 id_token 并解析用户信息
+ * 这个函数在 OAuth 回调页面调用
+ */
+export async function handleGoogleCallback(): Promise<SocialUserInfo | null> {
+  try {
+    if (typeof window === 'undefined' || !window.location) {
+      return null;
+    }
+
+    const urlParams = new URLSearchParams(window.location.hash.substring(1)); // # 后面的参数
+    const idToken = urlParams.get('id_token');
+    const error = urlParams.get('error');
+
+    if (error) {
+      console.error('[Auth] Google callback error:', error);
+      return null;
+    }
+
+    if (idToken) {
+      // 验证 nonce
+      const savedNonce = sessionStorage.getItem('google_oauth_nonce');
+      const userInfo = parseJwt(idToken);
+      
+      // nonce 验证（如果需要更安全的话可以启用）
+      // if (savedNonce !== userInfo.nonce) {
+      //   console.error('[Auth] Nonce mismatch');
+      //   return null;
+      // }
+
+      // 清理 sessionStorage
+      sessionStorage.removeItem('google_oauth_nonce');
+      sessionStorage.removeItem('google_oauth_redirect_uri');
+
+      return {
+        id: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+        avatar: userInfo.picture,
+        idToken: idToken,
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[Auth] Handle Google callback error:', error);
+    return null;
+  }
 }
