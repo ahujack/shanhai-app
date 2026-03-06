@@ -16,7 +16,8 @@ const getGoogleRedirectUri = (): string => {
   try {
     // Web 平台使用 Vercel 部署的地址
     if (typeof window !== 'undefined' && window.location && window.location.protocol === 'https:') {
-      return 'https://shanhai-app.vercel.app/oauth/google';
+      // 使用 hash 模式，这对于 SPA 更可靠
+      return 'https://shanhai-app.vercel.app/#/oauth/google';
     }
   } catch (e) {
     // 在 React Native 环境中 window 可能不可访问，忽略错误
