@@ -378,12 +378,15 @@ export default function LoginScreen() {
         <View style={styles.termsContainer}>
           <TouchableOpacity
             style={styles.checkboxContainer}
-            onPress={() => setAgreedToTerms(!agreedToTerms)}
+            onPress={() => {
+              console.log('[LoginScreen] Checkbox clicked, current agreedToTerms:', agreedToTerms);
+              setAgreedToTerms(!agreedToTerms);
+            }}
           >
             <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
               {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
             </View>
-            <Text style={styles.termsText}>我已阅读并同意</Text>
+            <Text style={agreedToTerms ? styles.termsTextChecked : styles.termsText}>我已阅读并同意</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => openTerms('terms')}>
             <Text style={styles.termsLink}>《用户协议》</Text>
@@ -669,6 +672,11 @@ const styles = StyleSheet.create({
   termsText: {
     color: '#6F6287',
     fontSize: 12,
+  },
+  termsTextChecked: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   termsLink: {
     color: '#B2A0FF',
