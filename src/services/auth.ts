@@ -8,7 +8,7 @@ WebBrowser.maybeCompleteAuthSession();
 // Google 配置
 const GOOGLE_CLIENT_ID = '737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com';
 
-// Web 环境的重定向 URI (生产环境)
+// 生产环境 Web 重定向 URI
 const GOOGLE_WEB_REDIRECT_URI = 'https://shanhai-app.vercel.app/oauth/google';
 
 // 开发环境 Web 重定向 URI
@@ -17,22 +17,17 @@ const GOOGLE_WEB_DEV_REDIRECT_URI = 'http://localhost:8081/oauth/google';
 // 检测是否为 Web 环境
 const isWeb = (): boolean => {
   if (typeof window === 'undefined') return false;
-  return Platform.OS === 'web' || window.location.protocol === 'file:' || window.location.protocol === 'http:';
+  return Platform.OS === 'web' || window.location.protocol === 'file:' || window.location.protocol === 'http:' || window.location.protocol === 'https:';
 };
 
 // 动态获取重定向 URI
 const getGoogleRedirectUri = (): string => {
-  // Web 环境
   if (isWeb()) {
-    // 开发环境使用 localhost
     if (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost') {
       return GOOGLE_WEB_DEV_REDIRECT_URI;
     }
-    // 生产环境使用 Vercel URL
     return GOOGLE_WEB_REDIRECT_URI;
   }
-  
-  // 原生平台使用自定义 scheme
   return 'shanhai://oauth/google';
 };
 
@@ -63,52 +58,44 @@ export interface SocialUserInfo {
  */
 export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
   try {
-    // 获取重定向 URI
     const redirectUri = getGoogleRedirectUri();
     console.log('[Auth] Google Redirect URI:', redirectUri);
     console.log('[Auth] Platform.OS:', Platform.OS);
-    console.log('[Auth] Is Web:', isWeb());
 
-    // 验证 redirectUri 是否有效
-    if (!redirectUri || redirectUri.trim() === '') {
+    if (!redirectUri) {
       throw new Error('Invalid redirect URI');
     }
 
-    // 验证 redirectUri 是有效的 URL
-    try {
-      const testUrl = new URL(redirectUri);
-      console.log('[Auth] Redirect URI is valid URL, protocol:', testUrl.protocol);
-    } catch (e) {
-      console.error('[Auth] Invalid redirectUri:', redirectUri);
-      throw new Error(`Invalid redirect URI: ${redirectUri}`);
-    }
-
-    // 创建认证请求
-    const authRequest = new AuthSession.AuthRequest({
-      clientId: GOOGLE_CLIENT_ID,
-      scopes: ['openid', 'profile', 'email'],
-      redirectUri: redirectUri,
-      responseType: AuthSession.ResponseType.IdToken,
-      usePKCE: true,
-    });
-
     // 构建授权 URL
+    const nonce = Math.random().toString(36).substring(2, 15);
     const authorizeUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authorizeUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
     authorizeUrl.searchParams.set('redirect_uri', redirectUri);
     authorizeUrl.searchParams.set('response_type', 'id_token');
     authorizeUrl.searchParams.set('scope', 'openid profile email');
-    authorizeUrl.searchParams.set('nonce', authRequest.nonce || '');
-    
-    // 如果有 PKCE，使用 code_challenge
-    if (authRequest.codeChallenge) {
-      authorizeUrl.searchParams.set('code_challenge', authRequest.codeChallenge);
-      authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-    }
+    authorizeUrl.searchParams.set('nonce', nonce);
 
     console.log('[Auth] Full Authorize URL:', authorizeUrl.toString());
 
-    // 发起认证请求
+    // Web 环境：直接使用浏览器重定向
+    if (isWeb() && typeof window !== 'undefined') {
+      // 保存 nonce 到 sessionStorage，供回调时验证
+      sessionStorage.setItem('google_oauth_nonce', nonce);
+      
+      // 重定向到 Google 授权页面
+      window.location.href = authorizeUrl.toString();
+      return null;
+    }
+
+    // 原生环境：使用 expo-auth-session
+    const authRequest = new AuthSession.AuthRequest({
+      clientId: GOOGLE_CLIENT_ID,
+      scopes: ['openid', 'profile', 'email'],
+      redirectUri: redirectUri,
+      responseType: AuthSession.ResponseType.IdToken,
+      usePKCE: false,
+    });
+
     const result = await authRequest.promptAsync({
       authorizeUrl: authorizeUrl.toString(),
     });
@@ -119,7 +106,6 @@ export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
       const { id_token, access_token } = result.params;
 
       if (id_token) {
-        // 解析 JWT token 获取用户信息
         const userInfo = parseJwt(id_token);
         return {
           id: userInfo.sub,
@@ -151,28 +137,38 @@ export async function signInWithFacebook(): Promise<SocialUserInfo | null> {
     const redirectUri = getFacebookRedirectUri();
     console.log('[Auth] Facebook Redirect URI:', redirectUri);
 
+    // Web 环境：直接使用浏览器重定向
+    if (isWeb() && typeof window !== 'undefined') {
+      const state = Math.random().toString(36).substring(2, 15);
+      sessionStorage.setItem('facebook_oauth_state', state);
+
+      const authorizeUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
+      authorizeUrl.searchParams.set('client_id', FACEBOOK_APP_ID);
+      authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+      authorizeUrl.searchParams.set('response_type', 'code');
+      authorizeUrl.searchParams.set('scope', 'public_profile,email');
+      authorizeUrl.searchParams.set('state', state);
+
+      window.location.href = authorizeUrl.toString();
+      return null;
+    }
+
+    // 原生环境
     const authRequest = new AuthSession.AuthRequest({
       clientId: FACEBOOK_APP_ID,
       scopes: ['public_profile', 'email'],
       redirectUri,
       responseType: AuthSession.ResponseType.Code,
-      usePKCE: true,
+      usePKCE: false,
     });
 
-    // 构建授权 URL
     const authorizeUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
     authorizeUrl.searchParams.set('client_id', FACEBOOK_APP_ID);
     authorizeUrl.searchParams.set('redirect_uri', redirectUri);
     authorizeUrl.searchParams.set('response_type', 'code');
     authorizeUrl.searchParams.set('scope', 'public_profile,email');
     authorizeUrl.searchParams.set('state', authRequest.state || '');
-    
-    if (authRequest.codeChallenge) {
-      authorizeUrl.searchParams.set('code_challenge', authRequest.codeChallenge);
-      authorizeUrl.searchParams.set('code_challenge_method', 'S256');
-    }
 
-    // 发起认证请求
     const result = await authRequest.promptAsync({
       authorizeUrl: authorizeUrl.toString(),
     });
