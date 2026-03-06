@@ -118,19 +118,22 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   // 密码登录
   loginWithPassword: async (email: string, password: string) => {
+    console.log('[Login] Starting password login for:', email);
     set({ isLoading: true });
     try {
       const result = await authApi.login({ email, password });
+      console.log('[Login] Password login result:', result);
       if (result.success && result.token && result.user) {
         await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
         await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
+        console.log('[Login] Password login success, user:', result.user);
         return true;
       }
       Alert.alert('登录失败', result.message || '邮箱或密码错误');
       return false;
     } catch (e: any) {
-      console.error('登录失败:', e);
+      console.error('[Login] Password login error:', e);
       Alert.alert('登录失败', e.message || '网络错误，请重试');
       return false;
     } finally {
@@ -139,19 +142,22 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
   
   loginWithCode: async (email?: string, code?: string) => {
+    console.log('[Login] Starting code login for:', email, 'code:', code);
     set({ isLoading: true });
     try {
       const result = await authApi.login({ email: email || '', code: code || '' });
+      console.log('[Login] Code login result:', result);
       if (result.success && result.token && result.user) {
         await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
         await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
+        console.log('[Login] Code login success, user:', result.user);
         return true;
       }
       Alert.alert('登录失败', result.message || '验证码错误或已过期');
       return false;
     } catch (e: any) {
-      console.error('登录失败:', e);
+      console.error('[Login] Code login error:', e);
       Alert.alert('登录失败', e.message || '网络错误，请重试');
       return false;
     } finally {

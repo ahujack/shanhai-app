@@ -65,6 +65,7 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
+    console.log('[LoginScreen] handleLogin called, loginMethod:', loginMethod);
     if (!email.trim()) {
       Alert.alert('提示', '请输入邮箱地址');
       return;
@@ -82,7 +83,9 @@ export default function LoginScreen() {
         Alert.alert('提示', '请输入密码');
         return;
       }
+      console.log('[LoginScreen] Attempting password login for:', email);
       const success = await loginWithPassword(email, password);
+      console.log('[LoginScreen] Password login result:', success);
       if (success) {
         router.replace('/(tabs)');
       } else {
@@ -94,7 +97,9 @@ export default function LoginScreen() {
         Alert.alert('提示', '请输入验证码');
         return;
       }
+      console.log('[LoginScreen] Attempting code login for:', email);
       const success = await loginWithCode(email, code);
+      console.log('[LoginScreen] Code login result:', success);
       if (success) {
         router.replace('/(tabs)');
       } else {
@@ -117,6 +122,7 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = async () => {
+    console.log('[LoginScreen] handleGoogleLogin called');
     // 首次登录需要勾选协议
     if (!agreedToTerms) {
       Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
@@ -124,14 +130,20 @@ export default function LoginScreen() {
     }
 
     try {
+      console.log('[LoginScreen] Starting Google sign in...');
       const userInfo = await signInWithGoogle();
+      console.log('[LoginScreen] Google sign in result:', userInfo);
       if (userInfo && userInfo.idToken) {
+        console.log('[LoginScreen] Calling loginWithSocial with Google...');
         const success = await loginWithSocial('google', userInfo.idToken);
+        console.log('[LoginScreen] Social login result:', success);
         if (success) {
           router.replace('/(tabs)');
         } else {
           Alert.alert('登录失败', '无法完成 Google 登录');
         }
+      } else {
+        console.log('[LoginScreen] Google sign in returned null');
       }
     } catch (error) {
       console.error('Google login error:', error);

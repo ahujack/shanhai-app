@@ -27,24 +27,29 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       // ignore
     }
   }
-  
-  const response = await fetch(fullUrl, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-  
-  if (!response.ok) {
-    console.error(`[API Error] ${response.status} ${response.statusText}`, await response.text());
-    throw new Error(`API Error: ${response.status}`);
+
+  try {
+    const response = await fetch(fullUrl, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`[API Error] ${response.status} ${response.statusText}`, await response.text());
+      throw new Error(`API Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(`[API Response] ${response.status}`, data);
+    return data;
+  } catch (error) {
+    console.error(`[API Request Failed] ${fullUrl}:`, error);
+    throw error;
   }
-  
-  const data = await response.json();
-  console.log(`[API Response] ${response.status}`, data);
-  return data;
 }
 
 // ========== User API ==========
