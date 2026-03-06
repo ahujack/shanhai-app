@@ -6,51 +6,48 @@ import { Alert, Linking, Platform } from 'react-native';
 WebBrowser.maybeCompleteAuthSession();
 
 // Google 配置
-const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com';
 
-// 动态生成重定向 URI，根据平台不同使用不同的地址
+// Web 环境的重定向 URI (生产环境)
+const GOOGLE_WEB_REDIRECT_URI = 'https://shanhai-app.vercel.app/oauth/google';
+
+// 开发环境 Web 重定向 URI
+const GOOGLE_WEB_DEV_REDIRECT_URI = 'http://localhost:8081/oauth/google';
+
+// 检测是否为 Web 环境
+const isWeb = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return Platform.OS === 'web' || window.location.protocol === 'file:' || window.location.protocol === 'http:';
+};
+
+// 动态获取重定向 URI
 const getGoogleRedirectUri = (): string => {
-  // 首先尝试获取 scheme，如果失败则使用默认值
-  let scheme = 'shanhai';
-  
-  // Web 平台使用 Vercel 部署的地址
-  if (typeof window !== 'undefined') {
-    // 在 Web 环境下，使用完整的 HTTPS URL
-    return 'https://shanhai-app.vercel.app/oauth/google';
+  // Web 环境
+  if (isWeb()) {
+    // 开发环境使用 localhost
+    if (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost') {
+      return GOOGLE_WEB_DEV_REDIRECT_URI;
+    }
+    // 生产环境使用 Vercel URL
+    return GOOGLE_WEB_REDIRECT_URI;
   }
   
   // 原生平台使用自定义 scheme
-  try {
-    const uri = AuthSession.makeRedirectUri({
-      scheme: scheme,
-      path: 'oauth/google',
-    });
-    
-    // 验证返回的 URI 是否有效
-    if (uri && uri.startsWith('http')) {
-      return uri;
-    }
-    
-    // 如果返回的不是有效的 URL，构建一个完整的自定义scheme URL
-    if (scheme && uri) {
-      return `${scheme}://oauth/google`;
-    }
-    
-    // 如果都失败了，提供一个 fallback
-    return 'shanhai://oauth/google';
-  } catch (error) {
-    console.error('Error creating redirect URI:', error);
-    // 提供一个 fallback
-    return 'shanhai://oauth/google';
-  }
+  return 'shanhai://oauth/google';
 };
 
 // Facebook 配置
-const FACEBOOK_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID';
-const FACEBOOK_REDIRECT_URI = AuthSession.makeRedirectUri({
-  scheme: 'shanhai',
-  path: 'oauth/facebook',
-});
+const FACEBOOK_APP_ID = 'YOUR_FACEBOOK_APP_ID';
+
+const getFacebookRedirectUri = (): string => {
+  if (isWeb()) {
+    if (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost') {
+      return 'http://localhost:8081/oauth/facebook';
+    }
+    return 'https://shanhai-app.vercel.app/oauth/facebook';
+  }
+  return 'shanhai://oauth/facebook';
+};
 
 export interface SocialUserInfo {
   email?: string;
@@ -66,37 +63,61 @@ export interface SocialUserInfo {
  */
 export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
   try {
-    // 动态获取重定向 URI
+    // 获取重定向 URI
     const redirectUri = getGoogleRedirectUri();
-    console.log('Google Redirect URI:', redirectUri);
+    console.log('[Auth] Google Redirect URI:', redirectUri);
+    console.log('[Auth] Platform.OS:', Platform.OS);
+    console.log('[Auth] Is Web:', isWeb());
 
     // 验证 redirectUri 是否有效
     if (!redirectUri || redirectUri.trim() === '') {
       throw new Error('Invalid redirect URI');
     }
 
+    // 验证 redirectUri 是有效的 URL
+    try {
+      const testUrl = new URL(redirectUri);
+      console.log('[Auth] Redirect URI is valid URL, protocol:', testUrl.protocol);
+    } catch (e) {
+      console.error('[Auth] Invalid redirectUri:', redirectUri);
+      throw new Error(`Invalid redirect URI: ${redirectUri}`);
+    }
+
+    // 创建认证请求
     const authRequest = new AuthSession.AuthRequest({
       clientId: GOOGLE_CLIENT_ID,
       scopes: ['openid', 'profile', 'email'],
-      redirectUri,
+      redirectUri: redirectUri,
       responseType: AuthSession.ResponseType.IdToken,
       usePKCE: true,
     });
 
+    // 构建授权 URL
+    const authorizeUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    authorizeUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
+    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+    authorizeUrl.searchParams.set('response_type', 'id_token');
+    authorizeUrl.searchParams.set('scope', 'openid profile email');
+    authorizeUrl.searchParams.set('nonce', authRequest.nonce || '');
+    
+    // 如果有 PKCE，使用 code_challenge
+    if (authRequest.codeChallenge) {
+      authorizeUrl.searchParams.set('code_challenge', authRequest.codeChallenge);
+      authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+    }
+
+    console.log('[Auth] Full Authorize URL:', authorizeUrl.toString());
+
     // 发起认证请求
     const result = await authRequest.promptAsync({
-      authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-      // @ts-ignore - expo-auth-session 类型定义可能不完整
-      windowFeatures: {
-        width: 600,
-        height: 700,
-      },
+      authorizeUrl: authorizeUrl.toString(),
     });
+
+    console.log('[Auth] Auth result type:', result.type);
 
     if (result.type === 'success' && result.params) {
       const { id_token, access_token } = result.params;
 
-      // 获取用户信息
       if (id_token) {
         // 解析 JWT token 获取用户信息
         const userInfo = parseJwt(id_token);
@@ -109,11 +130,14 @@ export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
           accessToken: access_token,
         };
       }
+    } else if (result.type === 'cancel') {
+      console.log('[Auth] User cancelled Google sign in');
+      return null;
     }
 
     return null;
   } catch (error) {
-    console.error('Google Sign In Error:', error);
+    console.error('[Auth] Google Sign In Error:', error);
     Alert.alert('登录失败', '无法使用 Google 登录，请重试');
     return null;
   }
@@ -124,8 +148,8 @@ export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
  */
 export async function signInWithFacebook(): Promise<SocialUserInfo | null> {
   try {
-    const redirectUri = FACEBOOK_REDIRECT_URI;
-    console.log('Facebook Redirect URI:', redirectUri);
+    const redirectUri = getFacebookRedirectUri();
+    console.log('[Auth] Facebook Redirect URI:', redirectUri);
 
     const authRequest = new AuthSession.AuthRequest({
       clientId: FACEBOOK_APP_ID,
@@ -136,23 +160,26 @@ export async function signInWithFacebook(): Promise<SocialUserInfo | null> {
     });
 
     // 构建授权 URL
-    const authorizeUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=public_profile,email&state=${authRequest.state}`;
+    const authorizeUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
+    authorizeUrl.searchParams.set('client_id', FACEBOOK_APP_ID);
+    authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+    authorizeUrl.searchParams.set('response_type', 'code');
+    authorizeUrl.searchParams.set('scope', 'public_profile,email');
+    authorizeUrl.searchParams.set('state', authRequest.state || '');
+    
+    if (authRequest.codeChallenge) {
+      authorizeUrl.searchParams.set('code_challenge', authRequest.codeChallenge);
+      authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+    }
 
     // 发起认证请求
     const result = await authRequest.promptAsync({
-      authorizeUrl,
-      // @ts-ignore
-      windowFeatures: {
-        width: 600,
-        height: 700,
-      },
+      authorizeUrl: authorizeUrl.toString(),
     });
 
     if (result.type === 'success' && result.params) {
       const { code } = result.params;
 
-      // 使用 code 换取 access token（需要在后端完成，这里简化处理）
-      // 实际项目中应该将 code 发送到后端，由后端换取 access token
       return {
         id: `fb_${Date.now()}`,
         idToken: code,
@@ -162,7 +189,7 @@ export async function signInWithFacebook(): Promise<SocialUserInfo | null> {
 
     return null;
   } catch (error) {
-    console.error('Facebook Sign In Error:', error);
+    console.error('[Auth] Facebook Sign In Error:', error);
     Alert.alert('登录失败', '无法使用 Facebook 登录，请重试');
     return null;
   }
@@ -183,7 +210,7 @@ function parseJwt(token: string): any {
     );
     return JSON.parse(jsonPayload);
   } catch (error) {
-    console.error('Failed to parse JWT:', error);
+    console.error('[Auth] Failed to parse JWT:', error);
     return {};
   }
 }
@@ -200,7 +227,7 @@ export async function openExternalUrl(url: string): Promise<void> {
       Alert.alert('错误', '无法打开链接');
     }
   } catch (error) {
-    console.error('Failed to open URL:', error);
+    console.error('[Auth] Failed to open URL:', error);
   }
 }
 
