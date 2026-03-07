@@ -17,12 +17,18 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   // 调试日志
   console.log(`[API Request] ${options.method || 'GET'} ${fullUrl}`, options.body);
   
-  // 从 AsyncStorage 获取 token（仅在浏览器环境）
+  // 从存储中获取 token（支持 Web 和 React Native）
   let token: string | null = null;
   if (typeof window !== 'undefined') {
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      token = await AsyncStorage.getItem('shanhai_auth_token');
+      // Web环境使用localStorage
+      if (typeof window !== 'undefined' && window.localStorage) {
+        token = localStorage.getItem('shanhai_auth_token');
+      } else {
+        // React Native环境使用AsyncStorage
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        token = await AsyncStorage.getItem('shanhai_auth_token');
+      }
     } catch (e) {
       // ignore
     }

@@ -29,11 +29,25 @@ export default function ProfileScreen() {
   
   // 页面加载时获取用户信息
   React.useEffect(() => {
+    let isMounted = true;
+    
     const init = async () => {
-      await loadUser();
-      setIsInitializing(false);
+      try {
+        await loadUser();
+      } catch (e) {
+        console.error('加载用户失败:', e);
+      } finally {
+        if (isMounted) {
+          setIsInitializing(false);
+        }
+      }
     };
+    
     init();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   React.useEffect(() => {
