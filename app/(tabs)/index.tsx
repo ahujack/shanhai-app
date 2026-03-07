@@ -101,10 +101,6 @@ export default function HomeScreen() {
     );
   };
 
-  const handleQuickAction = (action: string) => {
-    setInputText(action);
-  };
-
   // 处理测字
   const handleZiAnalyze = () => {
     setShowZiModal(false);
@@ -178,28 +174,6 @@ export default function HomeScreen() {
               <Text style={styles.welcomeHint}>
                 你可以问我关于运势、占卜、命盘的问题，或者只是想聊聊。
               </Text>
-              
-              {/* 快捷操作 */}
-              <View style={styles.quickActions}>
-                <TouchableOpacity 
-                  style={styles.quickButton}
-                  onPress={() => handleQuickAction('今日运势')}
-                >
-                  <Text style={styles.quickButtonText}>📜 今日运势</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.quickButton}
-                  onPress={() => handleQuickAction('我想占卜')}
-                >
-                  <Text style={styles.quickButtonText}>🔮 占卜问卦</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.quickButton}
-                  onPress={() => handleQuickAction('我想静心')}
-                >
-                  <Text style={styles.quickButtonText}>🧘 静心冥想</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           )}
 
@@ -222,7 +196,7 @@ export default function HomeScreen() {
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="输入你的问题或心声...（输入单个汉字可测字）"
+              placeholder="输入你的问题或心声..."
               placeholderTextColor="#6F6287"
               value={inputText}
               onChangeText={setInputText}
@@ -242,27 +216,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           
-          {/* 快捷功能按钮 */}
-          <View style={styles.featureButtons}>
-            <TouchableOpacity 
-              style={styles.featureButton}
-              onPress={() => setShowDrawModal(true)}
-            >
-              <Text style={styles.featureButtonText}>🎯 抽签</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.featureButton}
-              onPress={() => router.push('/(tabs)/zi')}
-            >
-              <Text style={styles.featureButtonText}>✍️ 测字</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.featureButton}
-              onPress={() => setShowChartModal(true)}
-            >
-              <Text style={styles.featureButtonText}>📊 命盘</Text>
-            </TouchableOpacity>
-          </View>
+          {/* 快捷功能按钮 - 已移除，因为 Tab 栏已有 */}
         </View>
       </View>
 
@@ -622,24 +576,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
-  quickActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  quickButton: {
-    backgroundColor: '#2B1F3C',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#4C2F80',
-  },
-  quickButtonText: {
-    color: '#C8A6FF',
-    fontSize: 13,
-  },
   bubbleContainer: {
     marginBottom: 12,
   },
@@ -762,20 +698,6 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontWeight: 'bold',
     fontSize: 14,
-  },
-  featureButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    marginTop: 12,
-  },
-  featureButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  featureButtonText: {
-    color: '#B2A0FF',
-    fontSize: 13,
   },
   
   // Modal styles
