@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
-import { FortuneSlip } from '../../src/services/api';
+import { fortuneApi, FortuneSlip } from '../../src/services/api';
 import PersonaPicker from '../../components/PersonaPicker';
 
 // 主题颜色
@@ -16,15 +16,33 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { active: persona, personas, setActive } = usePersonaStore();
-  const { user, dailyFortune, loadDailyFortune } = useUserStore();
+  const { user, chart, hasChart, generateChart } = useUserStore();
   const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
+  
   const [inputText, setInputText] = useState('');
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+  const [showDrawModal, setShowDrawModal] = useState(false);
+  const [showZiModal, setShowZiModal] = useState(false);
+  const [showChartModal, setShowChartModal] = useState(false);
+  const [detectedZi, setDetectedZi] = useState('');
+  const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  
+  // 命盘信息
+  const [chartGender, setChartGender] = useState<'male' | 'female'>('male');
+  
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // 检查输入中是否包含汉字
   useEffect(() => {
-    loadDailyFortune();
-  }, []);
+    // 检测是否包含汉字
+    const ziMatch = inputText.match(/[\u4e00-\u9fa5]/);
+    if (ziMatch && ziMatch.length === 1 && ziMatch[0].length === 1) {
+      // 用户输入了一个汉字
+      setDetectedZi(ziMatch[0]);
+      setShowZiModal(true);
+    }
+  }, [inputText]);
 
   useEffect(() => {
     // 滚动到底部
@@ -34,6 +52,40 @@ export default function HomeScreen() {
       }, 100);
     }
   }, [messages]);
+
+  // 抽签
+  const handleDrawFortune = async () => {
+    if (!user?.id) {
+      Alert.alert('提示', '请先登录后再抽签');
+      return;
+    }
+    
+    setIsDrawing(true);
+    try {
+      const fortune = await fortuneApi.draw(user.id);
+      setDrawFortune(fortune);
+    } catch (error) {
+      Alert.alert('抽签失败', '请稍后重试');
+    } finally {
+      setIsDrawing(false);
+    }
+  };
+
+  // 创建命盘
+  const handleCreateChart = async () => {
+    if (!user?.id) {
+      Alert.alert('提示', '请先登录后再创建命盘');
+      return;
+    }
+    
+    try {
+      await generateChart(chartGender);
+      Alert.alert('成功', '命盘已创建');
+      setShowChartModal(false);
+    } catch (error) {
+      Alert.alert('创建失败', '请稍后重试');
+    }
+  };
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -51,6 +103,24 @@ export default function HomeScreen() {
 
   const handleQuickAction = (action: string) => {
     setInputText(action);
+  };
+
+  // 处理测字
+  const handleZiAnalyze = () => {
+    setShowZiModal(false);
+    setInputText(`帮我测字：${detectedZi}`);
+  };
+
+  // 跳转到测字页面
+  const goToZiPage = () => {
+    setShowZiModal(false);
+    router.push('/(tabs)/zi');
+  };
+
+  // 跳转到占卜页面
+  const goToReadingPage = () => {
+    setShowDrawModal(false);
+    router.push('/(tabs)/reading');
   };
 
   return (
@@ -98,11 +168,6 @@ export default function HomeScreen() {
           contentContainerStyle={styles.chatContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 每日一签卡片 */}
-          {dailyFortune && (
-            <FortuneCard fortune={dailyFortune} />
-          )}
-
           {/* 欢迎消息 */}
           {messages.length === 0 && (
             <View style={styles.welcomeCard}>
@@ -157,7 +222,7 @@ export default function HomeScreen() {
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="输入你的问题或心声..."
+              placeholder="输入你的问题或心声...（输入单个汉字可测字）"
               placeholderTextColor="#6F6287"
               value={inputText}
               onChangeText={setInputText}
@@ -176,37 +241,237 @@ export default function HomeScreen() {
               <Text style={styles.sendButtonText}>发送</Text>
             </TouchableOpacity>
           </View>
+          
+          {/* 快捷功能按钮 */}
+          <View style={styles.featureButtons}>
+            <TouchableOpacity 
+              style={styles.featureButton}
+              onPress={() => setShowDrawModal(true)}
+            >
+              <Text style={styles.featureButtonText}>🎯 抽签</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.featureButton}
+              onPress={() => router.push('/(tabs)/zi')}
+            >
+              <Text style={styles.featureButtonText}>✍️ 测字</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.featureButton}
+              onPress={() => setShowChartModal(true)}
+            >
+              <Text style={styles.featureButtonText}>📊 命盘</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </KeyboardAvoidingView>
-  );
-}
 
-// 每日运势卡片组件
-function FortuneCard({ fortune }: { fortune: FortuneSlip }) {
-  return (
-    <View style={[styles.fortuneCard, { backgroundColor: colors.surface }]}>
-      <View style={styles.fortuneHeader}>
-        <Text style={styles.fortuneLabel}>📜 今日灵签</Text>
-        <Text style={styles.fortunePoem}>{fortune.poem.title}</Text>
-      </View>
-      <Text style={styles.fortuneVerse}>{fortune.poem.line1}</Text>
-      <Text style={styles.fortuneVerse}>{fortune.poem.line2}</Text>
-      <View style={styles.fortuneFooter}>
-        <View style={styles.luckyItem}>
-          <Text style={styles.luckyLabel}>幸运数字</Text>
-          <Text style={styles.luckyValue}>{fortune.lucky.number}</Text>
+      {/* 抽签弹窗 */}
+      <Modal
+        visible={showDrawModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDrawModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>🎯 抽签</Text>
+              <TouchableOpacity onPress={() => setShowDrawModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalScroll}>
+              {drawFortune ? (
+                <View style={styles.fortuneResult}>
+                  <Text style={styles.fortunePoemTitle}>{drawFortune.poem.title}</Text>
+                  <Text style={styles.fortunePoemText}>{drawFortune.poem.line1}</Text>
+                  <Text style={styles.fortunePoemText}>{drawFortune.poem.line2}</Text>
+                  <Text style={styles.fortunePoemText}>{drawFortune.poem.line3}</Text>
+                  <Text style={styles.fortunePoemText}>{drawFortune.poem.line4}</Text>
+                  
+                  <View style={styles.fortuneDetail}>
+                    <Text style={styles.fortuneDetailTitle}>详解</Text>
+                    <Text style={styles.fortuneDetailText}>{drawFortune.interpretation}</Text>
+                  </View>
+                  
+                  <View style={styles.luckyInfo}>
+                    <View style={styles.luckyItem}>
+                      <Text style={styles.luckyLabel}>幸运数字</Text>
+                      <Text style={styles.luckyValue}>{drawFortune.lucky.number}</Text>
+                    </View>
+                    <View style={styles.luckyItem}>
+                      <Text style={styles.luckyLabel}>幸运颜色</Text>
+                      <Text style={styles.luckyValue}>{drawFortune.lucky.color}</Text>
+                    </View>
+                    <View style={styles.luckyItem}>
+                      <Text style={styles.luckyLabel}>幸运方向</Text>
+                      <Text style={styles.luckyValue}>{drawFortune.lucky.direction}</Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.drawPrompt}>
+                  <Text style={styles.drawPromptText}>
+                    诚心默念您的疑问
+                  </Text>
+                  <Text style={styles.drawPromptSubtext}>
+                    然后点击下方按钮抽取灵签
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+            
+            <View style={styles.modalButtons}>
+              {drawFortune ? (
+                <>
+                  <TouchableOpacity 
+                    style={styles.modalButton}
+                    onPress={() => {
+                      setDrawFortune(null);
+                    }}
+                  >
+                    <Text style={styles.modalButtonText}>再抽一次</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.modalButton, styles.modalButtonOutline]}
+                    onPress={goToReadingPage}
+                  >
+                    <Text style={[styles.modalButtonText, styles.modalButtonTextOutline]}>详细解卦</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.modalButton, isDrawing && styles.modalButtonDisabled]}
+                  onPress={handleDrawFortune}
+                  disabled={isDrawing}
+                >
+                  {isDrawing ? (
+                    <ActivityIndicator color="#1A0A18" />
+                  ) : (
+                    <Text style={styles.modalButtonText}>诚心抽签</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
         </View>
-        <View style={styles.luckyItem}>
-          <Text style={styles.luckyLabel}>幸运颜色</Text>
-          <Text style={styles.luckyValue}>{fortune.lucky.color}</Text>
+      </Modal>
+
+      {/* 测字检测弹窗 */}
+      <Modal
+        visible={showZiModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowZiModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.ziModalContent}>
+            <Text style={styles.ziModalTitle}>检测到汉字</Text>
+            <Text style={styles.ziModalZi}>{detectedZi}</Text>
+            <Text style={styles.ziModalHint}>是否对此字进行测字分析？</Text>
+            
+            <View style={styles.ziModalButtons}>
+              <TouchableOpacity 
+                style={styles.ziModalButton}
+                onPress={handleZiAnalyze}
+              >
+                <Text style={styles.ziModalButtonText}>在对话中测字</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.ziModalButton, styles.ziModalButtonSecondary]}
+                onPress={goToZiPage}
+              >
+                <Text style={[styles.ziModalButtonText, styles.ziModalButtonTextSecondary]}>进入测字页面</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.ziModalButton, styles.ziModalButtonCancel]}
+                onPress={() => setShowZiModal(false)}
+              >
+                <Text style={styles.ziModalButtonTextCancel}>取消</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-        <View style={styles.luckyItem}>
-          <Text style={styles.luckyLabel}>幸运方向</Text>
-          <Text style={styles.luckyValue}>{fortune.lucky.direction}</Text>
+      </Modal>
+
+      {/* 命盘创建弹窗 */}
+      <Modal
+        visible={showChartModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowChartModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📊 创建命盘</Text>
+              <TouchableOpacity onPress={() => setShowChartModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalScroll}>
+              {hasChart && chart ? (
+                <View style={styles.chartInfo}>
+                  <Text style={styles.chartInfoTitle}>您已有命盘</Text>
+                  <Text style={styles.chartInfoText}>
+                    性别：{chart.gender === 'male' ? '男' : '女'}
+                  </Text>
+                  <Text style={styles.chartInfoText}>
+                    出生：{chart.birthDate} {chart.birthTime}
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.chartInfoButton}
+                    onPress={() => router.push('/(tabs)/profile')}
+                  >
+                    <Text style={styles.chartInfoButtonText}>在"我的"中查看</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.chartCreate}>
+                  <Text style={styles.chartCreateTitle}>输入您的出生信息</Text>
+                  
+                  <Text style={styles.chartCreateLabel}>性别</Text>
+                  <View style={styles.genderSelector}>
+                    <TouchableOpacity 
+                      style={[styles.genderButton, chartGender === 'male' && styles.genderButtonActive]}
+                      onPress={() => setChartGender('male')}
+                    >
+                      <Text style={[styles.genderButtonText, chartGender === 'male' && styles.genderButtonTextActive]}>
+                        男
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.genderButton, chartGender === 'female' && styles.genderButtonActive]}
+                      onPress={() => setChartGender('female')}
+                    >
+                      <Text style={[styles.genderButtonText, chartGender === 'female' && styles.genderButtonTextActive]}>
+                        女
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <Text style={styles.chartCreateHint}>
+                    创建后可在"我的"页面查看详细命盘信息
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+            
+            {!hasChart && (
+              <TouchableOpacity 
+                style={styles.modalButton}
+                onPress={handleCreateChart}
+              >
+                <Text style={styles.modalButtonText}>创建命盘</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
-    </View>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -375,58 +640,6 @@ const styles = StyleSheet.create({
     color: '#C8A6FF',
     fontSize: 13,
   },
-  fortuneCard: {
-    backgroundColor: '#161126',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#F8D05F30',
-  },
-  fortuneHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  fortuneLabel: {
-    color: '#F8D05F',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  fortunePoem: {
-    color: '#F7F6F0',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  fortuneVerse: {
-    color: '#B2B4C8',
-    fontSize: 14,
-    lineHeight: 22,
-    textAlign: 'center',
-    marginVertical: 4,
-  },
-  fortuneFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#2F2342',
-  },
-  luckyItem: {
-    alignItems: 'center',
-  },
-  luckyLabel: {
-    color: '#8D8DAA',
-    fontSize: 11,
-  },
-  luckyValue: {
-    color: '#F8D05F',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
   bubbleContainer: {
     marginBottom: 12,
   },
@@ -549,5 +762,278 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  featureButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginTop: 12,
+  },
+  featureButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  featureButtonText: {
+    color: '#B2A0FF',
+    fontSize: 13,
+  },
+  
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#1A1328',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#322243',
+  },
+  modalTitle: {
+    color: '#F8D05F',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalClose: {
+    color: '#8D8DAA',
+    fontSize: 20,
+  },
+  modalScroll: {
+    padding: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    paddingTop: 0,
+  },
+  modalButton: {
+    backgroundColor: '#F8D05F',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    flex: 1,
+  },
+  modalButtonDisabled: {
+    backgroundColor: '#4A4A5A',
+  },
+  modalButtonOutline: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+  },
+  modalButtonText: {
+    color: '#1A0A18',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalButtonTextOutline: {
+    color: '#F8D05F',
+  },
+  
+  // Draw fortune styles
+  drawPrompt: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  drawPromptText: {
+    color: '#F8D05F',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  drawPromptSubtext: {
+    color: '#8D8DAA',
+    fontSize: 14,
+  },
+  fortuneResult: {
+    alignItems: 'center',
+  },
+  fortunePoemTitle: {
+    color: '#F8D05F',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  fortunePoemText: {
+    color: '#F7F6F0',
+    fontSize: 16,
+    lineHeight: 28,
+    textAlign: 'center',
+  },
+  fortuneDetail: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#161126',
+    borderRadius: 12,
+    width: '100%',
+  },
+  fortuneDetailTitle: {
+    color: '#F8D05F',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  fortuneDetailText: {
+    color: '#B2B4C8',
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  luckyInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 24,
+    width: '100%',
+  },
+  luckyItem: {
+    alignItems: 'center',
+  },
+  luckyLabel: {
+    color: '#8D8DAA',
+    fontSize: 12,
+  },
+  luckyValue: {
+    color: '#F8D05F',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  
+  // Zi detection modal
+  ziModalContent: {
+    backgroundColor: '#1A1328',
+    borderRadius: 20,
+    padding: 24,
+    margin: 40,
+    alignItems: 'center',
+  },
+  ziModalTitle: {
+    color: '#F8D05F',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  ziModalZi: {
+    fontSize: 64,
+    color: '#F8D05F',
+    marginBottom: 16,
+  },
+  ziModalHint: {
+    color: '#8D8DAA',
+    fontSize: 14,
+    marginBottom: 24,
+  },
+  ziModalButtons: {
+    width: '100%',
+    gap: 12,
+  },
+  ziModalButton: {
+    backgroundColor: '#F8D05F',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  ziModalButtonSecondary: {
+    backgroundColor: '#4C2F80',
+  },
+  ziModalButtonCancel: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#4C4A5A',
+  },
+  ziModalButtonText: {
+    color: '#1A0A18',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  ziModalButtonTextSecondary: {
+    color: '#F8D05F',
+  },
+  ziModalButtonTextCancel: {
+    color: '#8D8DAA',
+    fontSize: 15,
+  },
+  
+  // Chart modal
+  chartInfo: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  chartInfoTitle: {
+    color: '#F8D05F',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  chartInfoText: {
+    color: '#B2B4C8',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  chartInfoButton: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#4C2F80',
+    borderRadius: 20,
+  },
+  chartInfoButtonText: {
+    color: '#F8D05F',
+    fontSize: 14,
+  },
+  chartCreate: {
+    padding: 20,
+  },
+  chartCreateTitle: {
+    color: '#F8D05F',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  chartCreateLabel: {
+    color: '#8D8DAA',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  genderSelector: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  genderButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: '#161126',
+    borderWidth: 1,
+    borderColor: '#322243',
+  },
+  genderButtonActive: {
+    backgroundColor: '#4C2F80',
+    borderColor: '#F8D05F',
+  },
+  genderButtonText: {
+    color: '#8D8DAA',
+    fontSize: 16,
+  },
+  genderButtonTextActive: {
+    color: '#F8D05F',
+    fontWeight: 'bold',
+  },
+  chartCreateHint: {
+    color: '#6F6287',
+    fontSize: 13,
+    textAlign: 'center',
   },
 });

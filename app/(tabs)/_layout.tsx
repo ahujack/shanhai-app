@@ -35,17 +35,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="two"
-        options={{
-          title: '冥想',
-          tabBarIcon: ({ color, size }) => <Ionicons name="leaf-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="reading"
         options={{
           title: '占卜',
           tabBarIcon: ({ color, size }) => <Ionicons name="eye-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="two"
+        options={{
+          title: '冥想',
+          tabBarIcon: ({ color, size }) => <Ionicons name="leaf-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
