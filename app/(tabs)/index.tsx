@@ -34,6 +34,46 @@ export default function HomeScreen() {
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  
+  // 神秘特效动画
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  
+  // 启动神秘特效
+  const startMysticAnimation = () => {
+    rotateAnim.setValue(0);
+    glowAnim.setValue(0);
+    Animated.parallel([
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+          easing: Easing.linear,
+        })
+      ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: false,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0,
+            duration: 1500,
+            useNativeDriver: false,
+          }),
+        ])
+      ),
+    ]).start();
+  };
+  
+  // 停止神秘特效
+  const stopMysticAnimation = () => {
+    rotateAnim.stopAnimation();
+    glowAnim.stopAnimation();
+  };
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' }>({ visible: false, message: '', type: 'info' });
   
   // Toast显示函数
@@ -137,11 +177,14 @@ export default function HomeScreen() {
 
   // 签到
   const handleCheckIn = async () => {
+    console.log('[签到] user:', user, 'checkInStatus:', checkInStatus);
     if (!user?.id) {
       showToast('请先登录后签到', 'error');
       return;
     }
+    console.log('[签到] 开始签到');
     const result = await checkIn();
+    console.log('[签到] 结果:', result);
     if (result?.success) {
       showToast(`🎉 签到成功！+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`, 'success');
     } else {
@@ -202,6 +245,7 @@ export default function HomeScreen() {
                 <TouchableOpacity 
                   style={styles.checkInButton}
                   onPress={handleCheckIn}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.checkInButtonText}>
                     {checkInStatus?.todayCheckedIn ? '✓ 已签到' : '📝 签到'}
@@ -935,9 +979,10 @@ const styles = StyleSheet.create({
   },
   checkInButton: {
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 12,
+    zIndex: 100,
   },
   checkInButtonText: {
     color: '#fff',
@@ -1167,32 +1212,38 @@ const styles = StyleSheet.create({
   // Toast提示样式
   toastContainer: {
     position: 'absolute',
-    top: 60,
+    top: 50,
     left: 20,
     right: 20,
-    backgroundColor: '#4C2F80',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    backgroundColor: 'rgba(76, 47, 128, 0.95)',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 1000,
+    justifyContent: 'center',
+    shadowColor: '#B2A0FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 12,
+    zIndex: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(178, 160, 255, 0.3)',
   },
   toastError: {
-    backgroundColor: '#D32F2F',
+    backgroundColor: 'rgba(211, 47, 47, 0.95)',
+    borderColor: 'rgba(255, 118, 118, 0.3)',
   },
   toastSuccess: {
-    backgroundColor: '#388E3C',
+    backgroundColor: 'rgba(56, 142, 60, 0.95)',
+    borderColor: 'rgba(102, 187, 106, 0.3)',
   },
   toastText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   
   // ========== 抽签动画样式 ==========

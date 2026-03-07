@@ -18,26 +18,41 @@ export default function ProfileScreen() {
   const [birthDate, setBirthDate] = useState(user?.birthDate || '');
   const [birthTime, setBirthTime] = useState(user?.birthTime || '');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>(user?.gender || 'male');
-  const [step, setStep] = useState<'input' | 'chart'>('input');
+  const [step, setStep] = useState<'input' | 'chart'>(() => {
+    // 根据是否有命盘直接初始化正确的step，避免闪烁
+    return hasChart ? 'chart' : 'input';
+  });
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // 检查用户是否已登录
+  // 检查用户是否登录
   const isLoggedIn = !!user;
+  
+  // 加载完成前显示空状态，避免闪烁
+  if (isInitializing) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={styles.loadingText}>加载中...</Text>
+      </View>
+    );
+  }
 
   React.useEffect(() => {
-    loadUser();
+    loadUser().finally(() => setIsInitializing(false));
   }, []);
 
   React.useEffect(() => {
-    if (user) {
+    if (user && !isInitializing) {
       setName(user.name);
       setBirthDate(user.birthDate || '');
       setBirthTime(user.birthTime || '');
       setGender(user.gender || 'male');
       if (hasChart) {
         setStep('chart');
+      } else {
+        setStep('input');
       }
     }
-  }, [user, hasChart]);
+  }, [user, hasChart, isInitializing]);
 
   // 处理登出
   const handleLogout = async () => {
@@ -95,6 +110,15 @@ export default function ProfileScreen() {
       Alert.alert('错误', '生成命盘失败');
     }
   };
+
+  // 初始加载状态
+  if (isInitializing) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: colors.textSecondary, fontSize: 16 }}>加载中...</Text>
+      </View>
+    );
+  }
 
   // 渲染命盘信息
   if (step === 'chart' && chart) {
@@ -362,6 +386,10 @@ function getWuxingColor(key: string): string {
 }
 
 const styles = StyleSheet.create({
+  loadingText: {
+    color: '#888',
+    fontSize: 16,
+  },
   container: {
     flex: 1,
   },
