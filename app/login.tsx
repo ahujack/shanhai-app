@@ -124,7 +124,7 @@ export default function LoginScreen() {
       
       const success = await loginWithPassword(email, password);
       if (success) {
-        router.replace('/(tabs)');
+        router.replace('/(tabs)/profile');
       }
       // 登录失败的提示已经在 store 中处理
     } else {
@@ -135,13 +135,13 @@ export default function LoginScreen() {
       
       const success = await loginWithCode(email, code);
       if (success) {
-        router.replace('/(tabs)');
+        router.replace('/(tabs)/profile');
       }
     }
   };
 
   const handleGuestMode = () => {
-    router.replace('/(tabs)');
+    router.replace('/(tabs)/profile');
   };
 
   const handleRegister = () => {
@@ -170,7 +170,7 @@ export default function LoginScreen() {
       if (userInfo && userInfo.idToken) {
         const success = await loginWithSocial('google', userInfo.idToken);
         if (success) {
-          router.replace('/(tabs)');
+          router.replace('/(tabs)/profile');
         } else {
           Alert.alert('登录失败', '无法完成 Google 登录，请重试');
         }

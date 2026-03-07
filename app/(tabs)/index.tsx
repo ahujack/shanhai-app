@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
@@ -174,6 +174,50 @@ export default function HomeScreen() {
               <Text style={styles.welcomeHint}>
                 你可以问我关于运势、占卜、命盘的问题，或者只是想聊聊。
               </Text>
+              
+              {/* 快捷功能按钮 - 放在欢迎词里面 */}
+              <View style={styles.quickActions}>
+                <TouchableOpacity 
+                  style={styles.quickActionButton}
+                  onPress={() => {
+                    if (!user?.id) {
+                      Alert.alert('提示', '请先登录后使用此功能');
+                      return;
+                    }
+                    setShowDrawModal(true);
+                  }}
+                >
+                  <Text style={styles.quickActionIcon}>🎯</Text>
+                  <Text style={styles.quickActionText}>抽签</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.quickActionButton}
+                  onPress={() => router.push('/(tabs)/zi')}
+                >
+                  <Text style={styles.quickActionIcon}>✍️</Text>
+                  <Text style={styles.quickActionText}>测字</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.quickActionButton}
+                  onPress={() => router.push('/(tabs)/reading')}
+                >
+                  <Text style={styles.quickActionIcon}>🔮</Text>
+                  <Text style={styles.quickActionText}>占卜</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.quickActionButton}
+                  onPress={() => {
+                    if (!user?.id) {
+                      Alert.alert('提示', '请先登录后使用此功能');
+                      return;
+                    }
+                    setShowChartModal(true);
+                  }}
+                >
+                  <Text style={styles.quickActionIcon}>📊</Text>
+                  <Text style={styles.quickActionText}>命盘</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -215,51 +259,17 @@ export default function HomeScreen() {
               <Text style={styles.sendButtonText}>发送</Text>
             </TouchableOpacity>
           </View>
-          
-          {/* 快捷功能按钮 */}
-          <View style={styles.quickActions}>
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => {
-                if (!user?.id) {
-                  Alert.alert('提示', '请先登录后使用此功能');
-                  return;
-                }
-                setShowDrawModal(true);
-              }}
-            >
-              <Text style={styles.quickActionIcon}>🎯</Text>
-              <Text style={styles.quickActionText}>抽签</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => router.push('/(tabs)/zi')}
-            >
-              <Text style={styles.quickActionIcon}>✍️</Text>
-              <Text style={styles.quickActionText}>测字</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => router.push('/(tabs)/reading')}
-            >
-              <Text style={styles.quickActionIcon}>🔮</Text>
-              <Text style={styles.quickActionText}>占卜</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.quickActionButton}
-              onPress={() => {
-                if (!user?.id) {
-                  Alert.alert('提示', '请先登录后使用此功能');
-                  return;
-                }
-                setShowChartModal(true);
-              }}
-            >
-              <Text style={styles.quickActionIcon}>📊</Text>
-              <Text style={styles.quickActionText}>命盘</Text>
-            </TouchableOpacity>
-          </View>
         </View>
+
+        {/* 悬浮抽签按钮 - 固定在右下角 */}
+        {user?.id && (
+          <TouchableOpacity 
+            style={styles.floatingDrawButton}
+            onPress={() => setShowDrawModal(true)}
+          >
+            <Text style={styles.floatingDrawIcon}>🎯</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* 抽签弹窗 */}
@@ -280,7 +290,7 @@ export default function HomeScreen() {
             
             <ScrollView style={styles.modalScroll}>
               {drawFortune ? (
-                <View style={styles.fortuneResult}>
+                <FortuneResultAnimation>
                   <Text style={styles.fortunePoemTitle}>{drawFortune.poem.title}</Text>
                   <Text style={styles.fortunePoemText}>{drawFortune.poem.line1}</Text>
                   <Text style={styles.fortunePoemText}>{drawFortune.poem.line2}</Text>
@@ -306,15 +316,22 @@ export default function HomeScreen() {
                       <Text style={styles.luckyValue}>{drawFortune.lucky.direction}</Text>
                     </View>
                   </View>
-                </View>
+                </FortuneResultAnimation>
               ) : (
                 <View style={styles.drawPrompt}>
-                  <Text style={styles.drawPromptText}>
-                    诚心默念您的疑问
-                  </Text>
-                  <Text style={styles.drawPromptSubtext}>
-                    然后点击下方按钮抽取灵签
-                  </Text>
+                  {/* 抽签动画 */}
+                  <DrawAnimation visible={isDrawing} />
+                  
+                  {!isDrawing && (
+                    <>
+                      <Text style={styles.drawPromptText}>
+                        诚心默念您的疑问
+                      </Text>
+                      <Text style={styles.drawPromptSubtext}>
+                        然后点击下方按钮抽取灵签
+                      </Text>
+                    </>
+                  )}
                 </View>
               )}
             </ScrollView>
@@ -337,17 +354,19 @@ export default function HomeScreen() {
                     <Text style={[styles.modalButtonText, styles.modalButtonTextOutline]}>详细解卦</Text>
                   </TouchableOpacity>
                 </>
+              ) : isDrawing ? (
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.modalButtonDisabled]}
+                  disabled={true}
+                >
+                  <Text style={styles.modalButtonText}>感应中...</Text>
+                </TouchableOpacity>
               ) : (
                 <TouchableOpacity 
-                  style={[styles.modalButton, isDrawing && styles.modalButtonDisabled]}
+                  style={styles.modalButton}
                   onPress={handleDrawFortune}
-                  disabled={isDrawing}
                 >
-                  {isDrawing ? (
-                    <ActivityIndicator color="#1A0A18" />
-                  ) : (
-                    <Text style={styles.modalButtonText}>诚心抽签</Text>
-                  )}
+                  <Text style={styles.modalButtonText}>诚心抽签</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -531,6 +550,276 @@ function ChatBubble({ message }: { message: ChatMessage }) {
         )}
       </View>
     </View>
+  );
+}
+
+// ========== 抽签动画组件 ==========
+function DrawAnimation({ visible, onComplete }: { visible: boolean; onComplete?: () => void }) {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  
+  // 粒子动画值
+  const particle1Anim = useRef(new Animated.Value(0)).current;
+  const particle2Anim = useRef(new Animated.Value(0)).current;
+  const particle3Anim = useRef(new Animated.Value(0)).current;
+  const particle4Anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      // 中心旋转动画
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(rotateAnim, {
+            toValue: 1,
+            duration: 3000,
+            easing: Easing.linear,
+            useNativeDriver: true,
+          }),
+          Animated.timing(rotateAnim, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // 中心缩放动画
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.out(Easing.back(1.5)),
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]),
+        // 脉冲效果
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(glowAnim, {
+              toValue: 1,
+              duration: 1500,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(glowAnim, {
+              toValue: 0,
+              duration: 1500,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+          ])
+        ),
+      ]).start();
+
+      // 粒子旋转动画
+      const particleAnims = [particle1Anim, particle2Anim, particle3Anim, particle4Anim];
+      particleAnims.forEach((anim, index) => {
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim, {
+              toValue: 1,
+              duration: 2000 + index * 500,
+              easing: Easing.linear,
+              useNativeDriver: true,
+            }),
+            Animated.timing(anim, {
+              toValue: 0,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ])
+        ).start();
+      });
+    } else {
+      rotateAnim.setValue(0);
+      scaleAnim.setValue(0.5);
+      opacityAnim.setValue(0);
+      glowAnim.setValue(0);
+      particle1Anim.setValue(0);
+      particle2Anim.setValue(0);
+      particle3Anim.setValue(0);
+      particle4Anim.setValue(0);
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const glow = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 1],
+  });
+
+  // 粒子位置计算
+  const getParticlePosition = (anim: Animated.Value, angleOffset: number) => {
+    return {
+      transform: [
+        {
+          rotate: anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [`${angleOffset}deg`, `${angleOffset + 360}deg`],
+          }),
+        },
+        {
+          translateY: anim.interpolate({
+            inputRange: [0, 0.5, 1],
+            outputRange: [-60, -100, -60],
+          }),
+        },
+      ],
+      opacity: anim.interpolate({
+        inputRange: [0, 0.3, 0.7, 1],
+        outputRange: [0, 1, 1, 0],
+      }),
+    };
+  };
+
+  return (
+    <View style={styles.animationContainer}>
+      {/* 背景光晕 */}
+      <Animated.View 
+        style={[
+          styles.glowCircle,
+          { opacity: glow }
+        ]} 
+      />
+      
+      {/* 外圈粒子 */}
+      <Animated.View style={[styles.particle, getParticlePosition(particle1Anim, 0)]}>
+        <Text style={styles.particleText}>✦</Text>
+      </Animated.View>
+      <Animated.View style={[styles.particle, getParticlePosition(particle2Anim, 90)]}>
+        <Text style={styles.particleText}>✧</Text>
+      </Animated.View>
+      <Animated.View style={[styles.particle, getParticlePosition(particle3Anim, 180)]}>
+        <Text style={styles.particleText}>✦</Text>
+      </Animated.View>
+      <Animated.View style={[styles.particle, getParticlePosition(particle4Anim, 270)]}>
+        <Text style={styles.particleText}>✧</Text>
+      </Animated.View>
+
+      {/* 中心八卦 */}
+      <Animated.View 
+        style={[
+          styles.baguaContainer,
+          { 
+            transform: [
+              { rotate: spin },
+              { scale: scaleAnim },
+            ],
+            opacity: opacityAnim,
+          }
+        ]}
+      >
+        <Text style={styles.baguaText}>☯</Text>
+      </Animated.View>
+
+      {/* 内圈符文 */}
+      <Animated.View 
+        style={[
+          styles.innerCircle,
+          { 
+            transform: [{ rotate: spin }],
+            opacity: opacityAnim,
+          }
+        ]}
+      >
+        <Text style={styles.runeText}>⚶</Text>
+      </Animated.View>
+
+      {/* 提示文字 */}
+      <Animated.View style={[styles.loadingTextContainer, { opacity: opacityAnim }]}>
+        <Text style={styles.loadingText}>正在感应天地...</Text>
+      </Animated.View>
+    </View>
+  );
+}
+
+// ========== 抽签结果动画组件 ==========
+function FortuneResultAnimation({ children }: { children: React.ReactNode }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // 入场动画
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        easing: Easing.out(Easing.back(1.5)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // 循环发光效果
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const borderGlow = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.fortuneResult,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        },
+      ]}
+    >
+      {/* 结果光晕边框 */}
+      <Animated.View style={styles.fortuneGlowBorder}>
+        <Animated.View 
+          style={[
+            styles.fortuneGlowInner,
+            {
+              borderColor: glowAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['#322243', '#F8D05F'],
+              }),
+            }
+          ]}
+        />
+      </Animated.View>
+      {children}
+    </Animated.View>
   );
 }
 
@@ -765,6 +1054,118 @@ const styles = StyleSheet.create({
   quickActionText: {
     color: '#8D8DAA',
     fontSize: 12,
+  },
+  
+  // 悬浮抽签按钮
+  floatingDrawButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#F8D05F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#F8D05F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  floatingDrawIcon: {
+    fontSize: 28,
+  },
+  
+  // ========== 抽签动画样式 ==========
+  animationContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+    marginBottom: 20,
+  },
+  glowCircle: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: '#F8D05F',
+    shadowColor: '#F8D05F',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+  },
+  baguaContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#1A1328',
+    borderWidth: 3,
+    borderColor: '#F8D05F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#F8D05F',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+  },
+  baguaText: {
+    fontSize: 48,
+    color: '#F8D05F',
+  },
+  innerCircle: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: '#B2A0FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  runeText: {
+    fontSize: 24,
+    color: '#B2A0FF',
+  },
+  particle: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  particleText: {
+    fontSize: 16,
+    color: '#F8D05F',
+    textShadowColor: '#F8D05F',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  loadingTextContainer: {
+    position: 'absolute',
+    bottom: 0,
+  },
+  loadingText: {
+    color: '#B2A0FF',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  
+  // 结果发光边框
+  fortuneGlowBorder: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  fortuneGlowInner: {
+    flex: 1,
+    borderWidth: 2,
+    borderRadius: 18,
+    opacity: 0.5,
   },
   
   // Modal styles
