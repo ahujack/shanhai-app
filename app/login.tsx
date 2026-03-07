@@ -30,6 +30,11 @@ export default function LoginScreen() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
+  
+  // 输入错误状态
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [codeError, setCodeError] = useState('');
 
   // 倒计时
   React.useEffect(() => {
@@ -39,16 +44,51 @@ export default function LoginScreen() {
     }
   }, [countdown, isCodeSent]);
 
-  const handleSendCode = async () => {
-    if (!email.trim()) {
-      Alert.alert('提示', '请输入邮箱地址');
-      return;
-    }
-
-    // 验证邮箱格式
+  // 邮箱验证
+  const validateEmail = (value: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('提示', '请输入有效的邮箱地址');
+    if (!value.trim()) {
+      setEmailError('请输入邮箱地址');
+      return false;
+    }
+    if (!emailRegex.test(value)) {
+      setEmailError('请输入有效的邮箱地址');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
+
+  // 密码验证
+  const validatePassword = (value: string): boolean => {
+    if (!value.trim()) {
+      setPasswordError('请输入密码');
+      return false;
+    }
+    if (value.length < 6) {
+      setPasswordError('密码至少需要6位');
+      return false;
+    }
+    setPasswordError('');
+    return true;
+  };
+
+  // 验证码验证
+  const validateCode = (value: string): boolean => {
+    if (!value.trim()) {
+      setCodeError('请输入验证码');
+      return false;
+    }
+    if (value.length !== 6) {
+      setCodeError('验证码为6位数字');
+      return false;
+    }
+    setCodeError('');
+    return true;
+  };
+
+  const handleSendCode = async () => {
+    if (!validateEmail(email)) {
       return;
     }
 
@@ -60,53 +100,42 @@ export default function LoginScreen() {
       setIsCodeSent(true);
       setCountdown(60); // 开始60秒倒计时
     } else {
-      Alert.alert('发送失败', '请重试');
+      Alert.alert('发送失败', '请检查邮箱是否已注册，或稍后重试');
     }
   };
 
   const handleLogin = async () => {
-    console.log('[LoginScreen] handleLogin called, loginMethod:', loginMethod, 'agreedToTerms:', agreedToTerms, 'email:', email, 'password:', password ? '***' : 'empty');
-    
     // 首次登录需要勾选协议 - 放在最前面检查
     if (!agreedToTerms) {
-      const msg = '请先阅读并同意用户协议和隐私政策';
-      console.log('[LoginScreen] Login blocked: agreedToTerms is false');
-      Alert.alert('提示', msg);
+      Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
       return;
     }
     
-    if (!email.trim()) {
-      Alert.alert('提示', '请输入邮箱地址');
+    // 验证邮箱
+    if (!validateEmail(email)) {
       return;
     }
 
     if (loginMethod === 'password') {
       // 密码登录
-      if (!password.trim()) {
-        Alert.alert('提示', '请输入密码');
+      if (!validatePassword(password)) {
         return;
       }
-      console.log('[LoginScreen] Attempting password login for:', email);
+      
       const success = await loginWithPassword(email, password);
-      console.log('[LoginScreen] Password login result:', success);
       if (success) {
         router.replace('/(tabs)');
-      } else {
-        Alert.alert('登录失败', '邮箱或密码错误');
       }
+      // 登录失败的提示已经在 store 中处理
     } else {
       // 验证码登录
-      if (!code.trim()) {
-        Alert.alert('提示', '请输入验证码');
+      if (!validateCode(code)) {
         return;
       }
-      console.log('[LoginScreen] Attempting code login for:', email);
+      
       const success = await loginWithCode(email, code);
-      console.log('[LoginScreen] Code login result:', success);
       if (success) {
         router.replace('/(tabs)');
-      } else {
-        Alert.alert('登录失败', '验证码错误或已过期');
       }
     }
   };
@@ -130,7 +159,6 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = async () => {
-    console.log('[LoginScreen] handleGoogleLogin called');
     // 首次登录需要勾选协议
     if (!agreedToTerms) {
       Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
@@ -138,20 +166,14 @@ export default function LoginScreen() {
     }
 
     try {
-      console.log('[LoginScreen] Starting Google sign in...');
       const userInfo = await signInWithGoogle();
-      console.log('[LoginScreen] Google sign in result:', userInfo);
       if (userInfo && userInfo.idToken) {
-        console.log('[LoginScreen] Calling loginWithSocial with Google...');
         const success = await loginWithSocial('google', userInfo.idToken);
-        console.log('[LoginScreen] Social login result:', success);
         if (success) {
           router.replace('/(tabs)');
         } else {
-          Alert.alert('登录失败', '无法完成 Google 登录');
+          Alert.alert('登录失败', '无法完成 Google 登录，请重试');
         }
-      } else {
-        console.log('[LoginScreen] Google sign in returned null');
       }
     } catch (error) {
       console.error('Google login error:', error);
@@ -248,7 +270,7 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Logo 和标题 */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
@@ -259,14 +281,16 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>探索你的命运之旅</Text>
         </View>
 
-        {/* 标题 */}
-        <Text style={styles.sectionTitle}>登录</Text>
-
         {/* 登录方式切换 */}
         <View style={styles.methodToggle}>
           <TouchableOpacity
             style={[styles.methodButton, loginMethod === 'password' && styles.methodButtonActive]}
-            onPress={() => setLoginMethod('password')}
+            onPress={() => {
+              setLoginMethod('password');
+              setEmailError('');
+              setPasswordError('');
+              setCodeError('');
+            }}
           >
             <Text style={[styles.methodButtonText, loginMethod === 'password' && styles.methodButtonTextActive]}>
               密码登录
@@ -274,7 +298,12 @@ export default function LoginScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.methodButton, loginMethod === 'code' && styles.methodButtonActive]}
-            onPress={() => setLoginMethod('code')}
+            onPress={() => {
+              setLoginMethod('code');
+              setEmailError('');
+              setPasswordError('');
+              setCodeError('');
+            }}
           >
             <Text style={[styles.methodButtonText, loginMethod === 'code' && styles.methodButtonTextActive]}>
               验证码登录
@@ -282,63 +311,89 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 输入框 */}
+        {/* 输入框区域 */}
         <View style={styles.inputContainer}>
-          {/* 邮箱 */}
-          <TextInput
-            style={styles.input}
-            placeholder="请输入邮箱"
-            placeholderTextColor="#6F6287"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!isLoading}
-          />
+          {/* 邮箱输入 */}
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>邮箱</Text>
+            <TextInput
+              style={[styles.input, emailError ? styles.inputError : null]}
+              placeholder="请输入邮箱地址"
+              placeholderTextColor="#6F6287"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) validateEmail(text);
+              }}
+              onBlur={() => email && validateEmail(email)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isLoading}
+            />
+            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+          </View>
 
           {/* 密码登录 */}
           {loginMethod === 'password' && (
-            <TextInput
-              style={styles.input}
-              placeholder="请输入密码"
-              placeholderTextColor="#6F6287"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!isLoading}
-            />
-          )}
-
-          {/* 验证码登录 */}
-          {loginMethod === 'code' && (
-            <View style={styles.codeRow}>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>密码</Text>
               <TextInput
-                style={[styles.input, styles.codeInput]}
-                placeholder="请输入验证码"
+                style={[styles.input, passwordError ? styles.inputError : null]}
+                placeholder="请输入密码（至少6位）"
                 placeholderTextColor="#6F6287"
-                value={code}
-                onChangeText={setCode}
-                keyboardType="number-pad"
-                maxLength={6}
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (passwordError) validatePassword(text);
+                }}
+                onBlur={() => password && validatePassword(password)}
+                secureTextEntry
                 editable={!isLoading}
               />
-              <TouchableOpacity
-                style={[styles.codeButton, (isCodeSent || countdown > 0) && styles.codeButtonDisabled]}
-                onPress={handleSendCode}
-                disabled={isCodeSent || countdown > 0 || isLoading}
-              >
-                <Text style={styles.codeButtonText}>
-                  {countdown > 0 ? `${countdown}s` : (isCodeSent ? '已发送' : '获取验证码')}
-                </Text>
+              {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+              
+              {/* 忘记密码 */}
+              <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
+                <Text style={styles.forgotPasswordText}>忘记密码？</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* 忘记密码 */}
-          {loginMethod === 'password' && (
-            <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
-              <Text style={styles.forgotPasswordText}>忘记密码？</Text>
-            </TouchableOpacity>
+          {/* 验证码登录 */}
+          {loginMethod === 'code' && (
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>验证码</Text>
+              <View style={styles.codeRow}>
+                <TextInput
+                  style={[styles.input, styles.codeInput, codeError ? styles.inputError : null]}
+                  placeholder="请输入6位验证码"
+                  placeholderTextColor="#6F6287"
+                  value={code}
+                  onChangeText={(text) => {
+                    setCode(text.replace(/[^0-9]/g, '').slice(0, 6));
+                    if (codeError) validateCode(text);
+                  }}
+                  onBlur={() => code && validateCode(code)}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  style={[styles.codeButton, (isCodeSent || countdown > 0) && styles.codeButtonDisabled]}
+                  onPress={handleSendCode}
+                  disabled={isCodeSent || countdown > 0 || isLoading}
+                >
+                  <Text style={styles.codeButtonText}>
+                    {countdown > 0 ? `${countdown}s` : (isCodeSent ? '已发送' : '获取验证码')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {codeError ? <Text style={styles.errorText}>{codeError}</Text> : null}
+              {!isCodeSent && !countdown && (
+                <Text style={styles.hintText}>未收到验证码？请检查邮箱或稍后重试</Text>
+              )}
+            </View>
           )}
         </View>
 
@@ -363,18 +418,16 @@ export default function LoginScreen() {
         </View>
 
         {/* 第三方登录 */}
-        <View style={styles.socialContainer}>
-          <TouchableOpacity
-            style={styles.socialButton}
-            onPress={handleGoogleLogin}
-            disabled={isLoading}
-          >
-            <View style={styles.socialIconContainer}>
-              <Text style={styles.socialIcon}>G</Text>
-            </View>
-            <Text style={styles.socialText}>Google 登录</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.socialButton}
+          onPress={handleGoogleLogin}
+          disabled={isLoading}
+        >
+          <View style={styles.socialIconContainer}>
+            <Text style={styles.socialIcon}>G</Text>
+          </View>
+          <Text style={styles.socialText}>Google 登录</Text>
+        </TouchableOpacity>
 
         {/* 游客模式 */}
         <TouchableOpacity style={styles.guestButton} onPress={handleGuestMode}>
@@ -385,10 +438,7 @@ export default function LoginScreen() {
         <View style={styles.termsContainer}>
           <TouchableOpacity
             style={styles.checkboxContainer}
-            onPress={() => {
-              console.log('[LoginScreen] Checkbox clicked, current agreedToTerms:', agreedToTerms);
-              setAgreedToTerms(!agreedToTerms);
-            }}
+            onPress={() => setAgreedToTerms(!agreedToTerms)}
           >
             <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
               {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
@@ -455,7 +505,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
     position: 'relative',
   },
   registerButton: {
@@ -487,23 +537,16 @@ const styles = StyleSheet.create({
     color: '#8D8DAA',
     marginTop: 8,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#F7F6F0',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
   methodToggle: {
     flexDirection: 'row',
     backgroundColor: '#1A1328',
     borderRadius: 12,
     padding: 4,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   methodButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -519,10 +562,16 @@ const styles = StyleSheet.create({
     color: '#F8D05F',
   },
   inputContainer: {
-    gap: 12,
-    maxWidth: 400,
-    width: '100%',
-    alignSelf: 'center',
+    gap: 8,
+  },
+  inputWrapper: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    color: '#8D8DAA',
+    fontSize: 14,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   input: {
     backgroundColor: '#1A1328',
@@ -532,6 +581,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#322243',
+  },
+  inputError: {
+    borderColor: '#FF6B6B',
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    marginTop: 6,
+    marginLeft: 4,
+  },
+  hintText: {
+    color: '#6F6287',
+    fontSize: 12,
+    marginTop: 6,
+    marginLeft: 4,
   },
   codeRow: {
     flexDirection: 'row',
@@ -546,18 +610,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 100,
+    minWidth: 110,
   },
   codeButtonDisabled: {
     backgroundColor: '#3A3A5A',
   },
   codeButtonText: {
     color: '#F8D05F',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   forgotPassword: {
     alignSelf: 'flex-end',
+    marginTop: 8,
   },
   forgotPasswordText: {
     color: '#B2A0FF',
@@ -568,7 +633,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 8,
   },
   loginButtonDisabled: {
     backgroundColor: '#4A4A5A',
@@ -577,21 +642,6 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 16,
-  },
-  registerText: {
-    color: '#8D8DAA',
-    fontSize: 14,
-  },
-  registerLink: {
-    color: '#F8D05F',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
   },
   divider: {
     flexDirection: 'row',
@@ -606,9 +656,6 @@ const styles = StyleSheet.create({
   dividerText: {
     color: '#6F6287',
     paddingHorizontal: 16,
-  },
-  socialContainer: {
-    gap: 12,
   },
   socialButton: {
     backgroundColor: '#1A1328',
@@ -628,9 +675,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  facebookIconContainer: {
-    backgroundColor: '#4267B2',
   },
   socialIcon: {
     fontSize: 18,
