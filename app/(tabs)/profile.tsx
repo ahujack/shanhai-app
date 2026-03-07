@@ -11,14 +11,17 @@ const colors = theme.dark;
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, chart, hasChart, isLoading, createUser, generateChart, loadUser, clearUser } = useUserStore();
+  const { user, chart, hasChart, isLoading, createUser, generateChart, loadUser, clearUser, logout } = useUserStore();
   const { personas, active: currentPersona, setActive } = usePersonaStore();
-  
+
   const [name, setName] = useState(user?.name || '');
   const [birthDate, setBirthDate] = useState(user?.birthDate || '');
   const [birthTime, setBirthTime] = useState(user?.birthTime || '');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>(user?.gender || 'male');
   const [step, setStep] = useState<'input' | 'chart'>('input');
+
+  // 检查用户是否已登录
+  const isLoggedIn = !!user;
 
   React.useEffect(() => {
     loadUser();
@@ -27,14 +30,38 @@ export default function ProfileScreen() {
   React.useEffect(() => {
     if (user) {
       setName(user.name);
-      setBirthDate(user.birthDate);
-      setBirthTime(user.birthTime);
-      setGender(user.gender);
+      setBirthDate(user.birthDate || '');
+      setBirthTime(user.birthTime || '');
+      setGender(user.gender || 'male');
       if (hasChart) {
         setStep('chart');
       }
     }
   }, [user, hasChart]);
+
+  // 处理登出
+  const handleLogout = async () => {
+    Alert.alert(
+      '确认退出',
+      '确定要退出登录吗？',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '退出',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            // 重置表单状态
+            setName('');
+            setBirthDate('');
+            setBirthTime('');
+            setGender('male');
+            setStep('input');
+          },
+        },
+      ]
+    );
+  };
 
   const handleSave = async () => {
     if (!name.trim() || !birthDate.trim() || !birthTime.trim()) {
@@ -172,20 +199,55 @@ export default function ProfileScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
     >
-      {/* 登录入口 */}
-      <View style={[styles.loginPrompt, { backgroundColor: colors.surface }]}>
-        <Text style={styles.loginTitle}>🔮 开启你的命运之旅</Text>
-        <Text style={styles.loginDesc}>登录后可保存命盘、查看历史记录、享受个性化服务</Text>
-        <TouchableOpacity 
-          style={styles.loginButton}
-          onPress={() => router.push('/login')}
-        >
-          <Text style={styles.loginButtonText}>立即登录 / 注册</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.guestLink} onPress={() => {}}>
-          <Text style={styles.guestLinkText}>暂不登录，先逛逛</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 已登录用户信息展示 */}
+      {isLoggedIn && user && (
+        <View style={[styles.userInfoCard, { backgroundColor: colors.surface }]}>
+          <View style={styles.userInfoHeader}>
+            <View style={styles.avatarContainer}>
+              {user.avatar ? (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>头像</Text>
+                </View>
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarPlaceholderText}>
+                    {user.name?.charAt(0)?.toUpperCase() || '?'}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.userInfoContent}>
+              <Text style={styles.userName}>{user.name}</Text>
+              <Text style={styles.userEmail}>{user.email}</Text>
+              <View style={styles.membershipBadge}>
+                <Text style={styles.membershipText}>
+                  {user.membership === 'vip' ? 'VIP会员' : user.membership === 'premium' ? '高级会员' : '免费用户'}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>退出登录</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 未登录提示 */}
+      {!isLoggedIn && (
+        <View style={[styles.loginPrompt, { backgroundColor: colors.surface }]}>
+          <Text style={styles.loginTitle}>🔮 开启你的命运之旅</Text>
+          <Text style={styles.loginDesc}>登录后可保存命盘、查看历史记录、享受个性化服务</Text>
+          <TouchableOpacity 
+            style={styles.loginButton}
+            onPress={() => router.push('/login')}
+          >
+            <Text style={styles.loginButtonText}>立即登录 / 注册</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.guestLink} onPress={() => {}}>
+            <Text style={styles.guestLinkText}>暂不登录，先逛逛</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <Text style={styles.sectionTitle}>👤 个人资料</Text>
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -288,6 +350,85 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 40,
+  },
+  // 用户信息卡片样式
+  userInfoCard: {
+    backgroundColor: '#161126',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+  },
+  userInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    marginRight: 16,
+  },
+  avatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#4C2F80',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#F8D05F',
+    fontSize: 14,
+  },
+  avatarPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#4C2F80',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarPlaceholderText: {
+    color: '#F8D05F',
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  userInfoContent: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#F7F6F0',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#8D8DAA',
+    marginBottom: 8,
+  },
+  membershipBadge: {
+    backgroundColor: '#F8D05F',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  membershipText: {
+    color: '#1A0A18',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  logoutButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#2F2342',
+  },
+  logoutButtonText: {
+    color: '#FF6B6B',
+    fontSize: 15,
+    fontWeight: '600',
   },
   loginPrompt: {
     backgroundColor: '#161126',

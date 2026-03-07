@@ -119,6 +119,11 @@ export default function LoginScreen() {
     router.push('/register');
   };
 
+  // 忘记密码
+  const handleForgotPassword = () => {
+    router.push('/forgot-password');
+  };
+
   const openTerms = (type: 'terms' | 'privacy') => {
     setTermsType(type);
     setShowTermsModal(true);
@@ -331,7 +336,7 @@ export default function LoginScreen() {
 
           {/* 忘记密码 */}
           {loginMethod === 'password' && (
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
               <Text style={styles.forgotPasswordText}>忘记密码？</Text>
             </TouchableOpacity>
           )}
@@ -445,12 +450,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
-    paddingTop: 60,
+    padding: 20,
+    paddingTop: 50,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
     position: 'relative',
   },
   registerButton: {
@@ -514,12 +519,15 @@ const styles = StyleSheet.create({
     color: '#F8D05F',
   },
   inputContainer: {
-    gap: 16,
+    gap: 12,
+    maxWidth: 400,
+    width: '100%',
+    alignSelf: 'center',
   },
   input: {
     backgroundColor: '#1A1328',
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     color: '#F7F6F0',
     fontSize: 16,
     borderWidth: 1,

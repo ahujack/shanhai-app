@@ -128,6 +128,13 @@ export const authApi = {
     request<{ success: boolean }>('/auth/logout', {
       method: 'POST',
     }),
+  
+  // 重置密码
+  resetPassword: (dto: { email: string; code: string; newPassword: string }) =>
+    request<AuthResponse>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
 };
 
 export const userApi = {
