@@ -183,12 +183,17 @@ export default function HomeScreen() {
       return;
     }
     console.log('[签到] 开始签到');
-    const result = await checkIn();
-    console.log('[签到] 结果:', result);
-    if (result?.success) {
-      showToast(`🎉 签到成功！+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`, 'success');
-    } else {
-      showToast(result?.message || '签到失败', 'error');
+    try {
+      const result = await checkIn();
+      console.log('[签到] 结果:', result);
+      if (result?.success) {
+        showToast(`🎉 签到成功！+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`, 'success');
+      } else {
+        showToast(result?.message || '签到失败', 'error');
+      }
+    } catch (error) {
+      console.error('[签到] 错误:', error);
+      showToast('签到失败，请稍后重试', 'error');
     }
   };
 
