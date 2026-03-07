@@ -34,6 +34,15 @@ export default function HomeScreen() {
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' }>({ visible: false, message: '', type: 'info' });
+  
+  // Toast显示函数
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: '', type: 'info' });
+    }, 2500);
+  };
   
   // 命盘信息
   const [chartGender, setChartGender] = useState<'male' | 'female'>('male');
@@ -290,11 +299,7 @@ export default function HomeScreen() {
           onPress={() => {
             console.log('[抽签按钮] 点击了, user:', user?.id);
             if (!user?.id) {
-              console.log('[抽签按钮] 未登录，提示登录');
-              Alert.alert('提示', '请先登录后再抽签', [
-                { text: '取消', style: 'cancel' },
-                { text: '去登录', onPress: () => router.push('/login') }
-              ]);
+              showToast('请先登录后再抽签', 'error');
               return;
             }
             console.log('[抽签按钮] 已登录，打开抽签弹窗');
@@ -305,6 +310,13 @@ export default function HomeScreen() {
           <Text style={styles.floatingDrawText}>抽签</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Toast提示 */}
+      {toast.visible && (
+        <View style={[styles.toastContainer, toast.type === 'error' && styles.toastError, toast.type === 'success' && styles.toastSuccess]}>
+          <Text style={styles.toastText}>{toast.message}</Text>
+        </View>
+      )}
 
       {/* 抽签弹窗 */}
       <Modal
@@ -1145,6 +1157,37 @@ const styles = StyleSheet.create({
     color: '#1A1328',
     fontWeight: 'bold',
     marginTop: 2,
+  },
+  
+  // Toast提示样式
+  toastContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    backgroundColor: '#4C2F80',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  toastError: {
+    backgroundColor: '#D32F2F',
+  },
+  toastSuccess: {
+    backgroundColor: '#388E3C',
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   
   // ========== 抽签动画样式 ==========
