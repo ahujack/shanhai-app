@@ -28,6 +28,15 @@ export default function LoginScreen() {
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' }>({ visible: false, message: '', type: 'info' });
+  
+  // Toast显示函数
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: '', type: 'info' });
+    }, 2500);
+  };
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
   
@@ -96,18 +105,18 @@ export default function LoginScreen() {
     const result = await sendCode(email, 'login');
 
     if (result?.success) {
-      Alert.alert('验证码已发送到您的邮箱', '请查收邮件');
+      showToast('验证码已发送到您的邮箱，请查收邮件', 'success');
       setIsCodeSent(true);
       setCountdown(60); // 开始60秒倒计时
     } else {
-      Alert.alert('发送失败', result?.message || '请检查邮箱是否已注册，或稍后重试');
+      showToast(result?.message || '发送失败，请检查邮箱是否已注册，或稍后重试', 'error');
     }
   };
 
   const handleLogin = async () => {
     // 首次登录需要勾选协议 - 必须首先检查
     if (!agreedToTerms) {
-      Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
+      showToast('请先阅读并同意用户协议和隐私政策', 'error');
       return;
     }
     
@@ -124,9 +133,10 @@ export default function LoginScreen() {
       
       const result = await loginWithPassword(email, password);
       if (result.success) {
-        Alert.alert('登录成功', '欢迎回来！', [{ text: '确定', onPress: () => router.replace('/(tabs)/profile') }]);
+        showToast('登录成功，欢迎回来！', 'success');
+      setTimeout(() => router.replace('/(tabs)/profile'), 500);
       } else {
-        Alert.alert('登录失败', result.message);
+              showToast(result.message || '登录失败', 'error');
       }
     } else {
       // 验证码登录
@@ -136,9 +146,10 @@ export default function LoginScreen() {
       
       const result = await loginWithCode(email, code);
       if (result.success) {
-        Alert.alert('登录成功', '欢迎回来！', [{ text: '确定', onPress: () => router.replace('/(tabs)/profile') }]);
+        showToast('登录成功，欢迎回来！', 'success');
+      setTimeout(() => router.replace('/(tabs)/profile'), 500);
       } else {
-        Alert.alert('登录失败', result.message);
+              showToast(result.message || '登录失败', 'error');
       }
     }
   };
@@ -164,7 +175,7 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     // 首次登录需要勾选协议
     if (!agreedToTerms) {
-      Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
+      showToast('请先阅读并同意用户协议和隐私政策', 'error');
       return;
     }
 
@@ -173,14 +184,15 @@ export default function LoginScreen() {
       if (userInfo && userInfo.idToken) {
         const result = await loginWithSocial('google', userInfo.idToken);
         if (result.success) {
-          Alert.alert('登录成功', '欢迎回来！', [{ text: '确定', onPress: () => router.replace('/(tabs)/profile') }]);
+          showToast('登录成功，欢迎回来！', 'success');
+      setTimeout(() => router.replace('/(tabs)/profile'), 500);
         } else {
-          Alert.alert('登录失败', result.message);
+                showToast(result.message || '登录失败', 'error');
         }
       }
     } catch (error) {
       console.error('Google login error:', error);
-      Alert.alert('登录失败', 'Google 登录出错，请重试');
+      showToast('Google 登录出错，请重试', 'error');
     }
   };
 
@@ -273,6 +285,13 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {/* Toast提示 */}
+      {toast.visible && (
+        <View style={[styles.toastContainer, toast.type === 'error' && styles.toastError, toast.type === 'success' && styles.toastSuccess]}>
+          <Text style={styles.toastText}>{toast.message}</Text>
+        </View>
+      )}
+      
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Logo 和标题 */}
         <View style={styles.header}>
@@ -497,6 +516,36 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Toast提示样式
+  toastContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    backgroundColor: '#4C2F80',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  toastError: {
+    backgroundColor: '#D32F2F',
+  },
+  toastSuccess: {
+    backgroundColor: '#388E3C',
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: '#0A0716',
