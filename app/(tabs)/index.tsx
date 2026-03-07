@@ -241,50 +241,6 @@ export default function HomeScreen() {
               <Text style={styles.welcomeHint}>
                 你可以问我关于运势、占卜、命盘的问题，或者只是想聊聊。
               </Text>
-              
-              {/* 快捷功能按钮 - 放在欢迎词里面 */}
-              <View style={styles.quickActions}>
-                <TouchableOpacity 
-                  style={styles.quickActionButton}
-                  onPress={() => {
-                    if (!user?.id) {
-                      Alert.alert('提示', '请先登录后使用此功能');
-                      return;
-                    }
-                    setShowDrawModal(true);
-                  }}
-                >
-                  <Text style={styles.quickActionIcon}>🎯</Text>
-                  <Text style={styles.quickActionText}>抽签</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.quickActionButton}
-                  onPress={() => router.push('/(tabs)/zi')}
-                >
-                  <Text style={styles.quickActionIcon}>✍️</Text>
-                  <Text style={styles.quickActionText}>测字</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.quickActionButton}
-                  onPress={() => router.push('/(tabs)/reading')}
-                >
-                  <Text style={styles.quickActionIcon}>🔮</Text>
-                  <Text style={styles.quickActionText}>占卜</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.quickActionButton}
-                  onPress={() => {
-                    if (!user?.id) {
-                      Alert.alert('提示', '请先登录后使用此功能');
-                      return;
-                    }
-                    setShowChartModal(true);
-                  }}
-                >
-                  <Text style={styles.quickActionIcon}>📊</Text>
-                  <Text style={styles.quickActionText}>命盘</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           )}
 
@@ -329,14 +285,22 @@ export default function HomeScreen() {
         </View>
 
         {/* 悬浮抽签按钮 - 固定在右下角 */}
-        {user?.id && (
-          <TouchableOpacity 
-            style={styles.floatingDrawButton}
-            onPress={() => setShowDrawModal(true)}
-          >
-            <Text style={styles.floatingDrawIcon}>🎯</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity 
+          style={styles.floatingDrawButton}
+          onPress={() => {
+            if (!user?.id) {
+              Alert.alert('提示', '请先登录后再抽签', [
+                { text: '取消', style: 'cancel' },
+                { text: '去登录', onPress: () => router.push('/login') }
+              ]);
+              return;
+            }
+            setShowDrawModal(true);
+          }}
+        >
+          <Text style={styles.floatingDrawIcon}>🎯</Text>
+          <Text style={styles.floatingDrawText}>抽签</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 抽签弹窗 */}
@@ -1156,11 +1120,11 @@ const styles = StyleSheet.create({
   // 悬浮抽签按钮
   floatingDrawButton: {
     position: 'absolute',
-    right: 20,
+    right: 16,
     bottom: 100,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 25,
     backgroundColor: '#F8D05F',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1171,7 +1135,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   floatingDrawIcon: {
-    fontSize: 28,
+    fontSize: 20,
+  },
+  floatingDrawText: {
+    fontSize: 11,
+    color: '#1A1328',
+    fontWeight: 'bold',
+    marginTop: 2,
   },
   
   // ========== 抽签动画样式 ==========
