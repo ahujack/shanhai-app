@@ -78,7 +78,8 @@ export default function ProfileScreen() {
       });
       Alert.alert('成功', '信息已保存，正在生成命盘...');
       // 自动生成命盘
-      await generateChart(gender);
+      const chartGender = gender === 'other' ? 'male' : gender;
+      await generateChart(chartGender);
       setStep('chart');
     } catch (error) {
       Alert.alert('错误', '保存失败，请重试');
@@ -87,7 +88,8 @@ export default function ProfileScreen() {
 
   const handleGenerateChart = async () => {
     try {
-      await generateChart(gender);
+      const chartGender = gender === 'other' ? 'male' : gender;
+      await generateChart(chartGender);
       Alert.alert('成功', '命盘已生成');
     } catch (error) {
       Alert.alert('错误', '生成命盘失败');

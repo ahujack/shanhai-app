@@ -69,7 +69,7 @@ export default function HomeScreen() {
     
     setIsDrawing(true);
     try {
-      const fortune = await fortuneApi.draw(user.id);
+      const fortune = await fortuneApi.draw();
       setDrawFortune(fortune);
     } catch (error) {
       Alert.alert('抽签失败', '请稍后重试');
@@ -366,7 +366,11 @@ export default function HomeScreen() {
                   
                   <View style={styles.fortuneDetail}>
                     <Text style={styles.fortuneDetailTitle}>详解</Text>
-                    <Text style={styles.fortuneDetailText}>{drawFortune.interpretation}</Text>
+                    <Text style={styles.fortuneDetailText}>
+                      {typeof drawFortune.interpretation === 'string' 
+                        ? drawFortune.interpretation 
+                        : drawFortune.interpretation?.overall || ''}
+                    </Text>
                   </View>
                   
                   <View style={styles.luckyInfo}>

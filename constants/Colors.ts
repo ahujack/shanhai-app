@@ -17,11 +17,34 @@ const base = {
 
 export type ThemeMode = 'light' | 'dark';
 
+export interface ThemeColors {
+  text: string;
+  mutedText: string;
+  textSecondary: string;
+  background: string;
+  surface: string;
+  accent: string;
+  accentSecondary: string;
+  tabIconDefault: string;
+  tabIconSelected: string;
+  gradient: string[];
+  borderRadius: number;
+  palette: typeof palette;
+  tint: string;
+  card: string;
+}
+
+export interface Theme {
+  light: ThemeColors;
+  dark: ThemeColors;
+}
+
 export const theme = {
   light: {
     ...base,
     text: '#F7F6F0',
     mutedText: palette.mist,
+    textSecondary: palette.mist,
     background: palette.ink,
     surface: palette.night,
     accent: palette.ember,
@@ -29,11 +52,14 @@ export const theme = {
     tabIconDefault: '#6E6E8A',
     tabIconSelected: palette.gold,
     gradient: [palette.ember, palette.emberDeep],
+    tint: palette.plum,
+    card: palette.night,
   },
   dark: {
     ...base,
     text: '#F7F6F0',
     mutedText: '#B2B4C8',
+    textSecondary: '#B2B4C8',
     background: '#0A0716',
     surface: '#161126',
     accent: palette.ember,
@@ -41,6 +67,8 @@ export const theme = {
     tabIconDefault: '#6E6E8A',
     tabIconSelected: palette.gold,
     gradient: [palette.ember, palette.emberDeep],
+    tint: '#4C2F80',
+    card: '#1A1328',
   },
 };
 

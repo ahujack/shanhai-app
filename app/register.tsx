@@ -71,7 +71,7 @@ export default function RegisterScreen() {
       setIsCodeSent(true);
       setCountdown(60);
     } else {
-      // 错误信息已经在store中显示
+      Alert.alert('发送失败', result?.message || '该邮箱可能已注册，或稍后重试');
     }
   };
 
@@ -110,7 +110,7 @@ export default function RegisterScreen() {
       Alert.alert('注册成功', '欢迎加入山海灵境！');
       router.replace('/(tabs)');
     } else {
-      // 错误信息已经在store中显示
+      Alert.alert('注册失败', result?.message || '请检查验证码是否正确');
     }
   };
 
@@ -384,8 +384,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 32,
     lineHeight: 18,
-  },
-  termsLink: {
-    color: '#B2A0FF',
   },
 });

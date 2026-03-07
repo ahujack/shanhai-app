@@ -100,10 +100,7 @@ export default function LoginScreen() {
       setIsCodeSent(true);
       setCountdown(60); // 开始60秒倒计时
     } else {
-      // 错误信息已经在store中显示
-    }
-    } else {
-      Alert.alert('发送失败', '请检查邮箱是否已注册，或稍后重试');
+      Alert.alert('发送失败', result?.message || '请检查邮箱是否已注册，或稍后重试');
     }
   };
 

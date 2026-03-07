@@ -27,11 +27,11 @@ interface UserState {
   
   // Auth actions
   loadUser: () => Promise<void>;
-  register: (email: string, password: string, code: string, name?: string) => Promise<boolean>;
+  register: (email: string, password: string, code: string, name?: string) => Promise<{ success: boolean; message?: string }>;
   loginWithPassword: (email: string, password: string) => Promise<boolean>;
   loginWithCode: (email?: string, code?: string) => Promise<boolean>;
   loginWithSocial: (provider: 'google' | 'facebook', idToken: string) => Promise<boolean>;
-  sendCode: (email?: string, purpose?: string) => Promise<boolean>;
+  sendCode: (email?: string, purpose?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   
   // User actions

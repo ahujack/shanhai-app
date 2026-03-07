@@ -9,7 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { PersonaProfile } from '../src/types/persona';
-import theme from '../src/constants/Colors';
+import theme from '../constants/Colors';
 
 interface PersonaPickerProps {
   personas: PersonaProfile[];
