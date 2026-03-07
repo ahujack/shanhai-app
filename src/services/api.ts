@@ -474,21 +474,6 @@ export interface AgentResponse {
 }
 
 // ========== 签到 API ==========
-export interface CheckInResult {
-  success: boolean;
-  message: string;
-  streak: number;
-  points: number;
-  reward?: string;
-}
-
-export interface CheckInStatus {
-  todayCheckedIn: boolean;
-  currentStreak: number;
-  totalPoints: number;
-  consecutiveDays: number;
-}
-
 export const checkInApi = {
   // 签到
   checkIn: (userId: string) =>

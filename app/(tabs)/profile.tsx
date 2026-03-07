@@ -274,9 +274,29 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>退出登录</Text>
-          </TouchableOpacity>
+          {/* 个人信息详情 */}
+          <View style={styles.userDetails}>
+            {user.birthDate && (
+              <View style={styles.userDetailItem}>
+                <Text style={styles.userDetailLabel}>📅 出生日期</Text>
+                <Text style={styles.userDetailValue}>{user.birthDate}</Text>
+              </View>
+            )}
+            {user.birthTime && (
+              <View style={styles.userDetailItem}>
+                <Text style={styles.userDetailLabel}>⏰ 出生时间</Text>
+                <Text style={styles.userDetailValue}>{user.birthTime}</Text>
+              </View>
+            )}
+            {user.gender && (
+              <View style={styles.userDetailItem}>
+                <Text style={styles.userDetailLabel}>⚧ 性别</Text>
+                <Text style={styles.userDetailValue}>
+                  {user.gender === 'male' ? '男' : user.gender === 'female' ? '女' : '其他'}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       )}
 
@@ -376,6 +396,13 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         ))}
       </View>
+      
+      {/* 退出登录按钮 - 仅已登录用户显示 */}
+      {isLoggedIn && (
+        <TouchableOpacity style={styles.logoutButtonBottom} onPress={handleLogout}>
+          <Text style={styles.logoutButtonBottomText}>退出登录</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
@@ -468,6 +495,42 @@ const styles = StyleSheet.create({
   membershipText: {
     color: '#1A0A18',
     fontSize: 12,
+    fontWeight: '600',
+  },
+  userDetails: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#2F2342',
+  },
+  userDetailItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  userDetailLabel: {
+    color: '#B2B4C8',
+    fontSize: 14,
+  },
+  userDetailValue: {
+    color: '#F7F6F0',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  logoutButtonBottom: {
+    backgroundColor: '#2F2342',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 40,
+    borderWidth: 1,
+    borderColor: '#D32F2F',
+  },
+  logoutButtonBottomText: {
+    color: '#FF6B6B',
+    fontSize: 16,
     fontWeight: '600',
   },
   logoutButton: {
