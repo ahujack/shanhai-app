@@ -137,7 +137,7 @@ export default function HomeScreen() {
             <Text style={styles.title}>山海灵境</Text>
             <TouchableOpacity 
               style={styles.loginButton}
-              onPress={() => router.push('/login')}
+              onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
             >
               <Text style={styles.loginButtonText}>{user ? '👤' : '登录'}</Text>
             </TouchableOpacity>
@@ -827,6 +827,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0A0716',
+    position: 'relative',
   },
   header: {
     paddingHorizontal: 20,

@@ -105,7 +105,7 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    // 首次登录需要勾选协议 - 放在最前面检查
+    // 首次登录需要勾选协议 - 必须首先检查
     if (!agreedToTerms) {
       Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
       return;
@@ -126,7 +126,6 @@ export default function LoginScreen() {
       if (success) {
         router.replace('/(tabs)/profile');
       }
-      // 登录失败的提示已经在 store 中处理
     } else {
       // 验证码登录
       if (!validateCode(code)) {
