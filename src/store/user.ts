@@ -62,8 +62,10 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const userId = await AsyncStorage.getItem(USER_ID_KEY);
       const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+      console.log('[loadUser] userId:', userId, 'token:', token ? 'exists' : 'null');
       if (userId) {
         const user = await userApi.get(userId);
+        console.log('[loadUser] user loaded:', user);
         set({ user, token });
         
         // 加载命盘

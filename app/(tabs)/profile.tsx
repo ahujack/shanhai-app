@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
@@ -27,17 +27,13 @@ export default function ProfileScreen() {
   // 检查用户是否登录
   const isLoggedIn = !!user;
   
-  // 加载完成前显示空状态，避免闪烁
-  if (isInitializing) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={styles.loadingText}>加载中...</Text>
-      </View>
-    );
-  }
-
+  // 页面加载时获取用户信息
   React.useEffect(() => {
-    loadUser().finally(() => setIsInitializing(false));
+    const init = async () => {
+      await loadUser();
+      setIsInitializing(false);
+    };
+    init();
   }, []);
 
   React.useEffect(() => {
@@ -236,6 +232,16 @@ export default function ProfileScreen() {
   }
 
   // 渲染输入表单（未登录状态）
+  // 加载中显示空状态
+  if (isInitializing) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', flex: 1 }]}>
+        <ActivityIndicator size="large" color="#4C2F80" />
+        <Text style={[styles.loadingText, { marginTop: 16 }]}>加载中...</Text>
+      </View>
+    );
+  }
+  
   return (
     <ScrollView 
       style={[styles.container, { backgroundColor: colors.background }]}
