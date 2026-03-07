@@ -288,13 +288,16 @@ export default function HomeScreen() {
         <TouchableOpacity 
           style={styles.floatingDrawButton}
           onPress={() => {
+            console.log('[抽签按钮] 点击了, user:', user?.id);
             if (!user?.id) {
+              console.log('[抽签按钮] 未登录，提示登录');
               Alert.alert('提示', '请先登录后再抽签', [
                 { text: '取消', style: 'cancel' },
                 { text: '去登录', onPress: () => router.push('/login') }
               ]);
               return;
             }
+            console.log('[抽签按钮] 已登录，打开抽签弹窗');
             setShowDrawModal(true);
           }}
         >
