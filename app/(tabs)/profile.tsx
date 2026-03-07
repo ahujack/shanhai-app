@@ -152,41 +152,55 @@ export default function ProfileScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={styles.cardTitle}>📝 性格特点</Text>
           <View style={styles.traitsContainer}>
-            {chart.personalityTraits.map((trait, idx) => (
-              <View key={idx} style={[styles.traitTag, { backgroundColor: colors.accentSecondary }]}>
-                <Text style={styles.traitText}>{trait}</Text>
-              </View>
-            ))}
+            {chart.personalityTraits && chart.personalityTraits.length > 0 ? (
+              chart.personalityTraits.map((trait, idx) => (
+                <View key={idx} style={[styles.traitTag, { backgroundColor: colors.accentSecondary }]}>
+                  <Text style={styles.traitText}>{trait}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={{ color: colors.textSecondary }}>暂无性格数据</Text>
+            )}
           </View>
         </View>
 
         {/* 运势简述 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={styles.cardTitle}>💫 运势简述</Text>
-          <View style={styles.fortuneItem}>
-            <Text style={styles.fortuneLabel}>💼 事业</Text>
-            <Text style={styles.fortuneValue}>{chart.fortuneSummary.career}</Text>
-          </View>
-          <View style={styles.fortuneItem}>
-            <Text style={styles.fortuneLabel}>💕 感情</Text>
-            <Text style={styles.fortuneValue}>{chart.fortuneSummary.love}</Text>
-          </View>
-          <View style={styles.fortuneItem}>
-            <Text style={styles.fortuneLabel}>💰 财运</Text>
-            <Text style={styles.fortuneValue}>{chart.fortuneSummary.wealth}</Text>
-          </View>
-          <View style={styles.fortuneItem}>
-            <Text style={styles.fortuneLabel}>❤️ 健康</Text>
-            <Text style={styles.fortuneValue}>{chart.fortuneSummary.health}</Text>
-          </View>
+          {chart.fortuneSummary ? (
+            <>
+              <View style={styles.fortuneItem}>
+                <Text style={styles.fortuneLabel}>💼 事业</Text>
+                <Text style={styles.fortuneValue}>{chart.fortuneSummary.career}</Text>
+              </View>
+              <View style={styles.fortuneItem}>
+                <Text style={styles.fortuneLabel}>💕 感情</Text>
+                <Text style={styles.fortuneValue}>{chart.fortuneSummary.love}</Text>
+              </View>
+              <View style={styles.fortuneItem}>
+                <Text style={styles.fortuneLabel}>💰 财运</Text>
+                <Text style={styles.fortuneValue}>{chart.fortuneSummary.wealth}</Text>
+              </View>
+              <View style={styles.fortuneItem}>
+                <Text style={styles.fortuneLabel}>❤️ 健康</Text>
+                <Text style={styles.fortuneValue}>{chart.fortuneSummary.health}</Text>
+              </View>
+            </>
+          ) : (
+            <Text style={{ color: colors.textSecondary }}>暂无运势数据</Text>
+          )}
         </View>
 
         {/* 建议 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={styles.cardTitle}>✨ 建议</Text>
-          {chart.suggestions.map((suggestion, idx) => (
-            <Text key={idx} style={styles.suggestionText}>• {suggestion}</Text>
-          ))}
+          {chart.suggestions && chart.suggestions.length > 0 ? (
+            chart.suggestions.map((suggestion, idx) => (
+              <Text key={idx} style={styles.suggestionText}>• {suggestion}</Text>
+            ))
+          ) : (
+            <Text style={{ color: colors.textSecondary }}>暂无建议</Text>
+          )}
         </View>
 
         {/* 编辑信息按钮 */}

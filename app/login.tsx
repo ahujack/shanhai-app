@@ -122,9 +122,11 @@ export default function LoginScreen() {
         return;
       }
       
-      const success = await loginWithPassword(email, password);
-      if (success) {
-        router.replace('/(tabs)/profile');
+      const result = await loginWithPassword(email, password);
+      if (result.success) {
+        Alert.alert('登录成功', '欢迎回来！', [{ text: '确定', onPress: () => router.replace('/(tabs)/profile') }]);
+      } else {
+        Alert.alert('登录失败', result.message);
       }
     } else {
       // 验证码登录
@@ -132,9 +134,11 @@ export default function LoginScreen() {
         return;
       }
       
-      const success = await loginWithCode(email, code);
-      if (success) {
-        router.replace('/(tabs)/profile');
+      const result = await loginWithCode(email, code);
+      if (result.success) {
+        Alert.alert('登录成功', '欢迎回来！', [{ text: '确定', onPress: () => router.replace('/(tabs)/profile') }]);
+      } else {
+        Alert.alert('登录失败', result.message);
       }
     }
   };
@@ -167,11 +171,11 @@ export default function LoginScreen() {
     try {
       const userInfo = await signInWithGoogle();
       if (userInfo && userInfo.idToken) {
-        const success = await loginWithSocial('google', userInfo.idToken);
-        if (success) {
-          router.replace('/(tabs)/profile');
+        const result = await loginWithSocial('google', userInfo.idToken);
+        if (result.success) {
+          Alert.alert('登录成功', '欢迎回来！', [{ text: '确定', onPress: () => router.replace('/(tabs)/profile') }]);
         } else {
-          Alert.alert('登录失败', '无法完成 Google 登录，请重试');
+          Alert.alert('登录失败', result.message);
         }
       }
     } catch (error) {

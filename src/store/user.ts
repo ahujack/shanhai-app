@@ -28,9 +28,9 @@ interface UserState {
   // Auth actions
   loadUser: () => Promise<void>;
   register: (email: string, password: string, code: string, name?: string) => Promise<{ success: boolean; message?: string }>;
-  loginWithPassword: (email: string, password: string) => Promise<boolean>;
-  loginWithCode: (email?: string, code?: string) => Promise<boolean>;
-  loginWithSocial: (provider: 'google' | 'facebook', idToken: string) => Promise<boolean>;
+  loginWithPassword: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithCode: (email?: string, code?: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithSocial: (provider: 'google' | 'facebook', idToken: string) => Promise<{ success: boolean; message?: string }>;
   sendCode: (email?: string, purpose?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   
@@ -146,18 +146,13 @@ export const useUserStore = create<UserState>((set, get) => ({
         await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
         console.log('[Login] Password login success, user:', result.user);
-        return true;
+        return { success: true, message: '登录成功' };
       }
-      // 显示服务器返回的错误消息
-      const errorMessage = result.message || '邮箱或密码错误';
-      Alert.alert('登录失败', errorMessage);
-      return false;
+      // 返回错误消息，让UI层显示
+      return { success: false, message: result.message || '邮箱或密码错误' };
     } catch (e: any) {
       console.error('[Login] Password login error:', e);
-      // 显示网络错误或其他错误
-      const errorMessage = e?.message || '网络错误，请检查网络连接后重试';
-      Alert.alert('登录失败', errorMessage);
-      return false;
+      return { success: false, message: e?.message || '网络错误，请检查网络连接后重试' };
     } finally {
       set({ isLoading: false });
     }
@@ -174,18 +169,13 @@ export const useUserStore = create<UserState>((set, get) => ({
         await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
         console.log('[Login] Code login success, user:', result.user);
-        return true;
+        return { success: true, message: '登录成功' };
       }
-      // 显示服务器返回的错误消息
-      const errorMessage = result.message || '验证码错误或已过期';
-      Alert.alert('登录失败', errorMessage);
-      return false;
+      // 返回错误消息，让UI层显示
+      return { success: false, message: result.message || '验证码错误或已过期' };
     } catch (e: any) {
       console.error('[Login] Code login error:', e);
-      // 显示网络错误或其他错误
-      const errorMessage = e?.message || '网络错误，请检查网络连接后重试';
-      Alert.alert('登录失败', errorMessage);
-      return false;
+      return { success: false, message: e?.message || '网络错误，请检查网络连接后重试' };
     } finally {
       set({ isLoading: false });
     }
@@ -199,12 +189,12 @@ export const useUserStore = create<UserState>((set, get) => ({
         await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
         await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
-        return true;
+        return { success: true, message: '登录成功' };
       }
-      return false;
+      return { success: false, message: result.message || '第三方登录失败' };
     } catch (e) {
       console.error('第三方登录失败:', e);
-      return false;
+      return { success: false, message: '网络错误，请检查网络连接后重试' };
     } finally {
       set({ isLoading: false });
     }
