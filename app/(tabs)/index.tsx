@@ -72,7 +72,7 @@ export default function HomeScreen() {
   // 抽签
   const handleDrawFortune = async () => {
     if (!user?.id) {
-      Alert.alert('提示', '请先登录后再抽签');
+      showToast('请先登录后再抽签', 'error');
       return;
     }
     
@@ -81,7 +81,7 @@ export default function HomeScreen() {
       const fortune = await fortuneApi.draw();
       setDrawFortune(fortune);
     } catch (error) {
-      Alert.alert('抽签失败', '请稍后重试');
+      showToast('抽签失败，请稍后重试', 'error');
     } finally {
       setIsDrawing(false);
     }
@@ -90,16 +90,16 @@ export default function HomeScreen() {
   // 创建命盘
   const handleCreateChart = async () => {
     if (!user?.id) {
-      Alert.alert('提示', '请先登录后再创建命盘');
+      showToast('请先登录后再创建命盘', 'error');
       return;
     }
     
     try {
       await generateChart(chartGender);
-      Alert.alert('成功', '命盘已创建');
+      showToast('命盘已创建', 'success');
       setShowChartModal(false);
     } catch (error) {
-      Alert.alert('创建失败', '请稍后重试');
+      showToast('命盘创建失败，请稍后重试', 'error');
     }
   };
 
@@ -138,16 +138,21 @@ export default function HomeScreen() {
   // 签到
   const handleCheckIn = async () => {
     if (!user?.id) {
-      Alert.alert('提示', '请先登录后签到');
+      showToast('请先登录后签到', 'error');
       return;
     }
-    await checkIn();
+    const result = await checkIn();
+    if (result?.success) {
+      showToast(`🎉 签到成功！+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`, 'success');
+    } else {
+      showToast(result?.message || '签到失败', 'error');
+    }
   };
 
   // 分享功能
   const handleShare = async () => {
     if (!user) {
-      Alert.alert('提示', '请先登录后分享');
+      showToast('请先登录后分享', 'error');
       return;
     }
     

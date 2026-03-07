@@ -41,7 +41,7 @@ interface UserState {
   clearUser: () => Promise<void>;
   
   // 签到
-  checkIn: () => Promise<CheckInStatus | null>;
+  checkIn: () => Promise<{ success: boolean; message?: string; points?: number; reward?: string } | null>;
   loadCheckInStatus: () => Promise<void>;
 }
 
@@ -255,22 +255,20 @@ export const useUserStore = create<UserState>((set, get) => ({
   // 签到
   checkIn: async () => {
     const { user } = get();
-    if (!user) return null;
+    if (!user) return { success: false, message: '请先登录' };
     
     try {
       const result = await checkInApi.checkIn(user.id);
       if (result.success) {
-        Alert.alert('🎉 签到成功', `${result.message}\n+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`);
         // 刷新签到状态
         await get().loadCheckInStatus();
-        return get().checkInStatus;
+        return { success: true, message: result.message, points: result.points, reward: result.reward };
       } else {
-        Alert.alert('提示', result.message);
+        return { success: false, message: result.message };
       }
-      return null;
     } catch (e) {
       console.error('签到失败:', e);
-      return null;
+      return { success: false, message: '签到失败，请稍后重试' };
     }
   },
   
