@@ -38,13 +38,34 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       },
     });
 
-    if (!response.ok) {
-      console.error(`[API Error] ${response.status} ${response.statusText}`, await response.text());
-      throw new Error(`API Error: ${response.status}`);
+    // 尝试解析响应为 JSON
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      // 如果响应不是 JSON
+      if (!response.ok) {
+        console.error(`[API Error] ${response.status} ${response.statusText}`);
+        throw new Error(`请求失败: ${response.status} ${response.statusText}`);
+      }
+      throw new Error('服务器响应格式错误');
     }
 
-    const data = await response.json();
     console.log(`[API Response] ${response.status}`, data);
+
+    // 即使 HTTP 状态码是 200，也要检查业务层面的 success
+    if (response.ok && data.success === false) {
+      // 业务层面的失败，仍然返回数据让调用方处理
+      return data;
+    }
+
+    if (!response.ok) {
+      // HTTP 层面的错误
+      const errorMsg = data?.message || `请求失败: ${response.status}`;
+      console.error(`[API Error] ${response.status}`, errorMsg);
+      throw new Error(errorMsg);
+    }
+
     return data;
   } catch (error) {
     console.error(`[API Request Failed] ${fullUrl}:`, error);

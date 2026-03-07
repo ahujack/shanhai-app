@@ -216,7 +216,49 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           
-          {/* 快捷功能按钮 - 已移除，因为 Tab 栏已有 */}
+          {/* 快捷功能按钮 */}
+          <View style={styles.quickActions}>
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => {
+                if (!user?.id) {
+                  Alert.alert('提示', '请先登录后使用此功能');
+                  return;
+                }
+                setShowDrawModal(true);
+              }}
+            >
+              <Text style={styles.quickActionIcon}>🎯</Text>
+              <Text style={styles.quickActionText}>抽签</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => router.push('/(tabs)/zi')}
+            >
+              <Text style={styles.quickActionIcon}>✍️</Text>
+              <Text style={styles.quickActionText}>测字</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => router.push('/(tabs)/reading')}
+            >
+              <Text style={styles.quickActionIcon}>🔮</Text>
+              <Text style={styles.quickActionText}>占卜</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.quickActionButton}
+              onPress={() => {
+                if (!user?.id) {
+                  Alert.alert('提示', '请先登录后使用此功能');
+                  return;
+                }
+                setShowChartModal(true);
+              }}
+            >
+              <Text style={styles.quickActionIcon}>📊</Text>
+              <Text style={styles.quickActionText}>命盘</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -698,6 +740,31 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  
+  // Quick actions
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#2F2342',
+  },
+  quickActionButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 60,
+  },
+  quickActionIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  quickActionText: {
+    color: '#8D8DAA',
+    fontSize: 12,
   },
   
   // Modal styles

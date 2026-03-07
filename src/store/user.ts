@@ -130,11 +130,15 @@ export const useUserStore = create<UserState>((set, get) => ({
         console.log('[Login] Password login success, user:', result.user);
         return true;
       }
-      Alert.alert('登录失败', result.message || '邮箱或密码错误');
+      // 显示服务器返回的错误消息
+      const errorMessage = result.message || '邮箱或密码错误';
+      Alert.alert('登录失败', errorMessage);
       return false;
     } catch (e: any) {
       console.error('[Login] Password login error:', e);
-      Alert.alert('登录失败', e.message || '网络错误，请重试');
+      // 显示网络错误或其他错误
+      const errorMessage = e?.message || '网络错误，请检查网络连接后重试';
+      Alert.alert('登录失败', errorMessage);
       return false;
     } finally {
       set({ isLoading: false });
@@ -154,11 +158,15 @@ export const useUserStore = create<UserState>((set, get) => ({
         console.log('[Login] Code login success, user:', result.user);
         return true;
       }
-      Alert.alert('登录失败', result.message || '验证码错误或已过期');
+      // 显示服务器返回的错误消息
+      const errorMessage = result.message || '验证码错误或已过期';
+      Alert.alert('登录失败', errorMessage);
       return false;
     } catch (e: any) {
       console.error('[Login] Code login error:', e);
-      Alert.alert('登录失败', e.message || '网络错误，请重试');
+      // 显示网络错误或其他错误
+      const errorMessage = e?.message || '网络错误，请检查网络连接后重试';
+      Alert.alert('登录失败', errorMessage);
       return false;
     } finally {
       set({ isLoading: false });
