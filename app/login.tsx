@@ -93,12 +93,15 @@ export default function LoginScreen() {
     }
 
     // 调用后端 API 发送验证码
-    const success = await sendCode(email, 'login');
+    const result = await sendCode(email, 'login');
 
-    if (success) {
+    if (result?.success) {
       Alert.alert('验证码已发送到您的邮箱', '请查收邮件');
       setIsCodeSent(true);
       setCountdown(60); // 开始60秒倒计时
+    } else {
+      // 错误信息已经在store中显示
+    }
     } else {
       Alert.alert('发送失败', '请检查邮箱是否已注册，或稍后重试');
     }

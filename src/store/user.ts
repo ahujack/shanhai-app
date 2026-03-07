@@ -95,10 +95,16 @@ export const useUserStore = create<UserState>((set, get) => ({
   sendCode: async (email?: string, purpose?: string) => {
     try {
       const result = await authApi.sendCode({ email: email || undefined, purpose });
-      return result.success;
-    } catch (e) {
+      if (result.success) {
+        return { success: true };
+      }
+      // 返回错误消息
+      Alert.alert('发送失败', result.message || '请稍后重试');
+      return { success: false, message: result.message };
+    } catch (e: any) {
       console.error('发送验证码失败:', e);
-      return false;
+      Alert.alert('网络错误', '无法连接到服务器，请检查网络');
+      return { success: false, message: '网络错误' };
     }
   },
 
@@ -111,12 +117,18 @@ export const useUserStore = create<UserState>((set, get) => ({
         await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
         await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
-        return true;
+        return { success: true };
       }
-      return false;
-    } catch (e) {
+      // 显示服务器返回的错误消息
+      const errorMessage = result.message || '注册失败，请检查输入信息';
+      Alert.alert('注册失败', errorMessage);
+      return { success: false, message: errorMessage };
+    } catch (e: any) {
       console.error('注册失败:', e);
-      return false;
+      // 显示网络错误或其他错误
+      const errorMessage = e?.response?.data?.message || '网络错误，请检查网络连接后重试';
+      Alert.alert('注册失败', errorMessage);
+      return { success: false, message: errorMessage };
     } finally {
       set({ isLoading: false });
     }

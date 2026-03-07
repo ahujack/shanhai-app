@@ -130,7 +130,7 @@ export default function ProfileScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={styles.cardTitle}>🌟 五行强弱</Text>
           <View style={styles.wuxingContainer}>
-            {Object.entries(chart.wuxingStrength).map(([key, value]) => (
+            {chart.wuxingStrength ? Object.entries(chart.wuxingStrength).map(([key, value]) => (
               <View key={key} style={styles.wuxingItem}>
                 <Text style={styles.wuxingLabel}>
                   {key === 'wood' ? '木' : key === 'fire' ? '火' : key === 'earth' ? '土' : key === 'metal' ? '金' : '水'}
@@ -140,7 +140,9 @@ export default function ProfileScreen() {
                 </View>
                 <Text style={styles.wuxingValue}>{value}%</Text>
               </View>
-            ))}
+            )) : (
+              <Text style={{ color: colors.textSecondary }}>暂无五行数据</Text>
+            )}
           </View>
         </View>
 

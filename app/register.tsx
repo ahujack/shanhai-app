@@ -10,6 +10,8 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUserStore } from '../src/store/user';
@@ -25,6 +27,9 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
 
   // 倒计时
   React.useEffect(() => {
@@ -34,7 +39,18 @@ export default function RegisterScreen() {
     }
   }, [countdown]);
 
+  const openTerms = (type: 'terms' | 'privacy') => {
+    setTermsType(type);
+    setShowTermsModal(true);
+  };
+
   const handleSendCode = async () => {
+    // 检查是否同意协议
+    if (!agreedToTerms) {
+      Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
+      return;
+    }
+    
     if (!email.trim()) {
       Alert.alert('提示', '请输入邮箱地址');
       return;
@@ -48,18 +64,24 @@ export default function RegisterScreen() {
     }
 
     // 调用后端 API 发送注册验证码
-    const success = await sendCode(email, 'register');
+    const result = await sendCode(email, 'register');
 
-    if (success) {
+    if (result?.success) {
       Alert.alert('验证码已发送到您的邮箱', '请查收邮件');
       setIsCodeSent(true);
       setCountdown(60);
     } else {
-      Alert.alert('发送失败', '该邮箱可能已注册，请重试');
+      // 错误信息已经在store中显示
     }
   };
 
   const handleRegister = async () => {
+    // 检查是否同意协议
+    if (!agreedToTerms) {
+      Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
+      return;
+    }
+    
     // 验证输入
     if (!email.trim()) {
       Alert.alert('提示', '请输入邮箱地址');
@@ -82,13 +104,13 @@ export default function RegisterScreen() {
       return;
     }
 
-    const success = await register(email, password, code, name);
+    const result = await register(email, password, code, name);
 
-    if (success) {
+    if (result?.success) {
       Alert.alert('注册成功', '欢迎加入山海灵境！');
       router.replace('/(tabs)');
     } else {
-      Alert.alert('注册失败', '请检查验证码是否正确');
+      // 错误信息已经在store中显示
     }
   };
 
@@ -179,6 +201,22 @@ export default function RegisterScreen() {
             editable={!isLoading}
           />
         </View>
+
+        {/* 协议勾选 */}
+        <TouchableOpacity 
+          style={styles.termsContainer}
+          onPress={() => setAgreedToTerms(!agreedToTerms)}
+        >
+          <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+            {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
+          </View>
+          <Text style={styles.termsText}>
+            我已阅读并同意 
+            <Text style={styles.termsLink} onPress={() => openTerms('terms')}>《用户协议》</Text>
+            和 
+            <Text style={styles.termsLink} onPress={() => openTerms('privacy')}>《隐私政策》</Text>
+          </Text>
+        </TouchableOpacity>
 
         {/* 注册按钮 */}
         <TouchableOpacity
@@ -276,6 +314,39 @@ const styles = StyleSheet.create({
     color: '#F8D05F',
     fontSize: 14,
     fontWeight: '600',
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#4C2F80',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#4C2F80',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  termsText: {
+    color: '#8D8DAA',
+    fontSize: 13,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  termsLink: {
+    color: '#F8D05F',
+    fontSize: 13,
   },
   registerButton: {
     backgroundColor: '#F8D05F',
