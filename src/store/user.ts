@@ -6,13 +6,44 @@ import { UserProfile, BaziChart, FortuneSlip, userApi, chartApi, fortuneApi, Cre
 const USER_ID_KEY = 'shanhai_user_id';
 const AUTH_TOKEN_KEY = 'shanhai_auth_token';
 
+// 兼容Web和Native的存储辅助函数
+const storage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      // Web环境使用localStorage
+      return localStorage.getItem(key);
+    }
+    // Native环境使用AsyncStorage
+    return AsyncStorage.getItem(key);
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      // Web环境使用localStorage
+      localStorage.setItem(key, value);
+    } else {
+      // Native环境使用AsyncStorage
+      await AsyncStorage.setItem(key, value);
+    }
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      // Web环境使用localStorage
+      localStorage.removeItem(key);
+    } else {
+      // Native环境使用AsyncStorage
+      await AsyncStorage.removeItem(key);
+    }
+  }
+};
+
 // 导出 token 供 API 服务使用
 export let globalAuthToken: string | null = null;
 
 // 初始化时加载 token（仅在浏览器环境）
 if (typeof window !== 'undefined') {
-  AsyncStorage.getItem(AUTH_TOKEN_KEY).then(token => {
+  storage.getItem(AUTH_TOKEN_KEY).then(token => {
     globalAuthToken = token;
+    console.log('[Store] 初始化加载token:', token ? 'exists' : 'null');
   });
 }
 
@@ -60,8 +91,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     
     set({ isLoading: true });
     try {
-      const userId = await AsyncStorage.getItem(USER_ID_KEY);
-      const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+      const userId = await storage.getItem(USER_ID_KEY);
+      const token = await storage.getItem(AUTH_TOKEN_KEY);
       console.log('[loadUser] userId:', userId, 'token:', token ? 'exists' : 'null');
       if (userId) {
         const user = await userApi.get(userId);
@@ -116,8 +147,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const result = await authApi.register({ email, password, code, name });
       if (result.success && result.token && result.user) {
-        await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
-        await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        await storage.setItem(USER_ID_KEY, result.user.id);
+        await storage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
         return { success: true };
       }
@@ -144,8 +175,8 @@ export const useUserStore = create<UserState>((set, get) => ({
       const result = await authApi.login({ email, password });
       console.log('[Login] Password login result:', result);
       if (result.success && result.token && result.user) {
-        await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
-        await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        await storage.setItem(USER_ID_KEY, result.user.id);
+        await storage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
         console.log('[Login] Password login success, user:', result.user);
         return { success: true, message: '登录成功' };
@@ -167,8 +198,8 @@ export const useUserStore = create<UserState>((set, get) => ({
       const result = await authApi.login({ email: email || '', code: code || '' });
       console.log('[Login] Code login result:', result);
       if (result.success && result.token && result.user) {
-        await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
-        await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        await storage.setItem(USER_ID_KEY, result.user.id);
+        await storage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
         console.log('[Login] Code login success, user:', result.user);
         return { success: true, message: '登录成功' };
@@ -188,8 +219,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const result = await authApi.socialLogin({ provider, idToken });
       if (result.success && result.token && result.user) {
-        await AsyncStorage.setItem(USER_ID_KEY, result.user.id);
-        await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        await storage.setItem(USER_ID_KEY, result.user.id);
+        await storage.setItem(AUTH_TOKEN_KEY, result.token);
         set({ user: result.user, token: result.token });
         return { success: true, message: '登录成功' };
       }
@@ -208,8 +239,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     } catch (e) {
       // ignore
     }
-    await AsyncStorage.removeItem(USER_ID_KEY);
-    await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+    await storage.removeItem(USER_ID_KEY);
+    await storage.removeItem(AUTH_TOKEN_KEY);
     set({ user: null, token: null, chart: null, hasChart: false, dailyFortune: null });
   },
   
@@ -249,8 +280,8 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
   
   clearUser: async () => {
-    await AsyncStorage.removeItem(USER_ID_KEY);
-    await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+    await storage.removeItem(USER_ID_KEY);
+    await storage.removeItem(AUTH_TOKEN_KEY);
     set({ user: null, token: null, chart: null, hasChart: false, dailyFortune: null, checkInStatus: null });
   },
   
