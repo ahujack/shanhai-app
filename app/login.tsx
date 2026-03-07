@@ -500,12 +500,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
-    paddingTop: 50,
+    padding: 16,
+    paddingTop: 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
     position: 'relative',
   },
   registerButton: {
@@ -523,26 +523,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   logo: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 56,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#F8D05F',
     letterSpacing: 4,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#8D8DAA',
-    marginTop: 8,
+    marginTop: 6,
   },
   methodToggle: {
     flexDirection: 'row',
     backgroundColor: '#1A1328',
     borderRadius: 12,
     padding: 4,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   methodButton: {
     flex: 1,
@@ -562,10 +562,10 @@ const styles = StyleSheet.create({
     color: '#F8D05F',
   },
   inputContainer: {
-    gap: 8,
+    gap: 4,
   },
   inputWrapper: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   inputLabel: {
     color: '#8D8DAA',
