@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
@@ -16,8 +16,15 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { active: persona, personas, setActive } = usePersonaStore();
-  const { user, chart, hasChart, generateChart } = useUserStore();
+  const { user, chart, hasChart, generateChart, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
+  
+  // 加载签到状态
+  useEffect(() => {
+    if (user?.id) {
+      loadCheckInStatus();
+    }
+  }, [user?.id]);
   
   const [inputText, setInputText] = useState('');
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
@@ -119,6 +126,47 @@ export default function HomeScreen() {
     router.push('/(tabs)/reading');
   };
 
+  // 签到
+  const handleCheckIn = async () => {
+    if (!user?.id) {
+      Alert.alert('提示', '请先登录后签到');
+      return;
+    }
+    await checkIn();
+  };
+
+  // 分享功能
+  const handleShare = async () => {
+    if (!user) {
+      Alert.alert('提示', '请先登录后分享');
+      return;
+    }
+    
+    let shareText = '🔮 山海灵境 - 命运探索之旅\n\n';
+    
+    // 分享今日运势
+    try {
+      const fortune = await fortuneApi.getDaily(user.id);
+      shareText += `✨ 今日运势：${fortune.poem.title}\n`;
+      shareText += `📝 ${fortune.day}\n`;
+      shareText += `💫 幸运数字：${fortune.lucky.number} | 幸运颜色：${fortune.lucky.color}\n\n`;
+    } catch (e) {
+      // ignore
+    }
+    
+    shareText += '🌟 加入我，一起探索命运的奥秘！\n';
+    shareText += '📱 下载山海灵境App';
+    
+    try {
+      await Share.share({
+        message: shareText,
+        title: '山海灵境 - 命运探索',
+      });
+    } catch (error) {
+      console.error('分享失败:', error);
+    }
+  };
+
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -135,14 +183,33 @@ export default function HomeScreen() {
               <Text style={styles.personaSwitchText}>🎭 切换</Text>
             </TouchableOpacity>
             <Text style={styles.title}>山海灵境</Text>
-            <TouchableOpacity 
-              style={styles.loginButton}
-              onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
-            >
-              <Text style={styles.loginButtonText}>{user ? '👤' : '登录'}</Text>
-            </TouchableOpacity>
+            <View style={styles.headerRight}>
+              {user && (
+                <TouchableOpacity 
+                  style={styles.checkInButton}
+                  onPress={handleCheckIn}
+                >
+                  <Text style={styles.checkInButtonText}>
+                    {checkInStatus?.todayCheckedIn ? '✓ 已签到' : '📝 签到'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity 
+                style={styles.loginButton}
+                onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
+              >
+                <Text style={styles.loginButtonText}>{user ? '👤' : '登录'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.subtitle}>{persona.name}</Text>
+          <View style={styles.headerBottom}>
+            <Text style={styles.subtitle}>{persona.name}</Text>
+            {user && checkInStatus && (
+              <TouchableOpacity onPress={handleShare}>
+                <Text style={styles.shareText}>📤 分享</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* 角色选择弹窗 */}
@@ -872,6 +939,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#B2B4C8',
     marginTop: 4,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkInButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  checkInButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  headerBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  shareText: {
+    color: '#B2A0FF',
+    fontSize: 14,
   },
   chatContainer: {
     flex: 1,

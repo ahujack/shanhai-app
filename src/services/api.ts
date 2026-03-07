@@ -330,6 +330,36 @@ export interface AgentResponse {
   hasChart: boolean;
 }
 
+// ========== 签到 API ==========
+export interface CheckInResult {
+  success: boolean;
+  message: string;
+  streak: number;
+  points: number;
+  reward?: string;
+}
+
+export interface CheckInStatus {
+  todayCheckedIn: boolean;
+  currentStreak: number;
+  totalPoints: number;
+  consecutiveDays: number;
+}
+
+export const checkInApi = {
+  // 签到
+  checkIn: (userId: string) =>
+    request<CheckInResult>(`/checkin/${userId}`, { method: 'POST' }),
+  
+  // 获取签到状态
+  getStatus: (userId: string) =>
+    request<CheckInStatus>(`/checkin/status/${userId}`),
+  
+  // 获取签到日历
+  getCalendar: (userId: string) =>
+    request<string[]>(`/checkin/calendar/${userId}`),
+};
+
 export const agentApi = {
   chat: (dto: AgentChatDto) =>
     request<AgentResponse>('/agent/chat', { method: 'POST', body: JSON.stringify(dto) }),
@@ -463,3 +493,33 @@ export interface AgentResponse {
   };
   hasChart: boolean;
 }
+
+// ========== 签到 API ==========
+export interface CheckInResult {
+  success: boolean;
+  message: string;
+  streak: number;
+  points: number;
+  reward?: string;
+}
+
+export interface CheckInStatus {
+  todayCheckedIn: boolean;
+  currentStreak: number;
+  totalPoints: number;
+  consecutiveDays: number;
+}
+
+export const checkInApi = {
+  // 签到
+  checkIn: (userId: string) =>
+    request<CheckInResult>(`/checkin/${userId}`, { method: 'POST' }),
+  
+  // 获取签到状态
+  getStatus: (userId: string) =>
+    request<CheckInStatus>(`/checkin/status/${userId}`),
+  
+  // 获取签到日历
+  getCalendar: (userId: string) =>
+    request<string[]>(`/checkin/calendar/${userId}`),
+};

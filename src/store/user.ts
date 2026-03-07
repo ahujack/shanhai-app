@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserProfile, BaziChart, FortuneSlip, userApi, chartApi, fortuneApi, CreateUserDto, authApi } from '../services/api';
+import { UserProfile, BaziChart, FortuneSlip, userApi, chartApi, fortuneApi, CreateUserDto, authApi, checkInApi, CheckInStatus } from '../services/api';
 
 const USER_ID_KEY = 'shanhai_user_id';
 const AUTH_TOKEN_KEY = 'shanhai_auth_token';
@@ -22,6 +22,7 @@ interface UserState {
   chart: BaziChart | null;
   hasChart: boolean;
   dailyFortune: FortuneSlip | null;
+  checkInStatus: CheckInStatus | null;
   isLoading: boolean;
   
   // Auth actions
@@ -38,6 +39,10 @@ interface UserState {
   generateChart: (gender: 'male' | 'female') => Promise<void>;
   loadDailyFortune: () => Promise<void>;
   clearUser: () => Promise<void>;
+  
+  // 签到
+  checkIn: () => Promise<CheckInStatus | null>;
+  loadCheckInStatus: () => Promise<void>;
 }
 
 export const useUserStore = create<UserState>((set, get) => ({
@@ -46,6 +51,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   chart: null,
   hasChart: false,
   dailyFortune: null,
+  checkInStatus: null,
   isLoading: false,
   
   loadUser: async () => {
@@ -241,6 +247,41 @@ export const useUserStore = create<UserState>((set, get) => ({
   clearUser: async () => {
     await AsyncStorage.removeItem(USER_ID_KEY);
     await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
-    set({ user: null, token: null, chart: null, hasChart: false, dailyFortune: null });
+    set({ user: null, token: null, chart: null, hasChart: false, dailyFortune: null, checkInStatus: null });
+  },
+  
+  // 签到
+  checkIn: async () => {
+    const { user } = get();
+    if (!user) return null;
+    
+    try {
+      const result = await checkInApi.checkIn(user.id);
+      if (result.success) {
+        Alert.alert('🎉 签到成功', `${result.message}\n+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`);
+        // 刷新签到状态
+        await get().loadCheckInStatus();
+        return get().checkInStatus;
+      } else {
+        Alert.alert('提示', result.message);
+      }
+      return null;
+    } catch (e) {
+      console.error('签到失败:', e);
+      return null;
+    }
+  },
+  
+  // 加载签到状态
+  loadCheckInStatus: async () => {
+    const { user } = get();
+    if (!user) return;
+    
+    try {
+      const status = await checkInApi.getStatus(user.id);
+      set({ checkInStatus: status });
+    } catch (e) {
+      console.error('加载签到状态失败:', e);
+    }
   },
 }));
