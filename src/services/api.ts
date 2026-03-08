@@ -449,3 +449,72 @@ export const pointsApi = {
       body: JSON.stringify({ points }),
     }),
 };
+
+// ========== 支付 API ==========
+export interface PaymentProduct {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  type: 'points' | 'subscription';
+  price: number;
+  points: number;
+  periodDays: number | null;
+  features: string | null;
+  stripePriceId: string | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface Payment {
+  id: string;
+  userId: string;
+  productId: string;
+  product: PaymentProduct;
+  amount: number;
+  currency: string;
+  points: number;
+  stripePaymentId: string | null;
+  stripeSessionId: string | null;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  paymentMethod: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface CheckoutResult {
+  paymentId: string;
+  sessionId: string;
+  url: string;
+  mock?: boolean;
+  message?: string;
+}
+
+export const paymentApi = {
+  // 获取支付状态
+  getStatus: () =>
+    request<{ stripeConfigured: boolean }>('/payment/status'),
+  
+  // 获取所有支付产品
+  getProducts: () =>
+    request<PaymentProduct[]>('/payment/products'),
+  
+  // 获取单个产品详情
+  getProduct: (id: string) =>
+    request<PaymentProduct>(`/payment/products/${id}`),
+  
+  // 创建支付会话
+  createCheckout: (productId: string) =>
+    request<CheckoutResult>('/payment/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ productId }),
+    }),
+  
+  // 模拟支付成功（仅用于测试）
+  mockPayment: (paymentId: string) =>
+    request<{ success: boolean; payment: Payment }>(`/payment/mock-payment/${paymentId}`),
+  
+  // 获取用户支付历史
+  getHistory: (limit?: number, offset?: number) =>
+    request<Payment[]>(`/payment/history${limit ? `?limit=${limit}` : ''}`),
+};
