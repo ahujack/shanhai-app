@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
-import { paymentApi, PaymentProduct, CheckoutResult } from '../../src/services/api';
+import { paymentApi, PaymentProduct, CheckoutResult, pointsApi, PointsSummary } from '../../src/services/api';
 
 const colors = theme.dark;
 
@@ -17,6 +17,7 @@ export default function PointsMallScreen() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [stripeConfigured, setStripeConfigured] = useState(true);
+  const [pointsSummary, setPointsSummary] = useState<PointsSummary | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -25,12 +26,14 @@ export default function PointsMallScreen() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const [productsData, statusData] = await Promise.all([
+      const [productsData, statusData, pointsData] = await Promise.all([
         paymentApi.getProducts(),
         paymentApi.getStatus(),
+        user ? pointsApi.getSummary().catch(() => null) : Promise.resolve(null),
       ]);
       setProducts(productsData);
       setStripeConfigured(statusData.stripeConfigured);
+      setPointsSummary(pointsData);
     } catch (error) {
       console.error('Failed to load products:', error);
       Alert.alert('错误', '无法加载产品列表');
@@ -156,11 +159,20 @@ export default function PointsMallScreen() {
 
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← 返回</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>积分商城</Text>
+      {/* 用户积分卡片 */}
+      <View style={styles.headerCard}>
+        <View style={styles.headerCardContent}>
+          <View>
+            <Text style={styles.headerCardLabel}>我的积分</Text>
+            <Text style={styles.headerCardValue}>{pointsSummary?.availablePoints || 0}</Text>
+          </View>
+          <View style={styles.headerCardDivider} />
+          <View>
+            <Text style={styles.headerCardLabel}>总积分</Text>
+            <Text style={styles.headerCardValue}>{pointsSummary?.totalPoints || 0}</Text>
+          </View>
+        </View>
+        <Text style={styles.headerCardHint}>积分可用于解锁高级功能、查看详细解读等</Text>
       </View>
 
       {!stripeConfigured && (
@@ -199,27 +211,47 @@ export default function PointsMallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#0A0716',
   },
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
+  headerCard: {
+    backgroundColor: '#1A1328',
+    margin: 16,
+    borderRadius: 16,
     padding: 20,
-    paddingBottom: 10,
+    borderWidth: 1,
+    borderColor: '#322243',
   },
-  backButton: {
-    marginBottom: 10,
+  headerCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
   },
-  backButtonText: {
-    color: colors.accent,
-    fontSize: 16,
+  headerCardDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#322243',
   },
-  title: {
-    fontSize: 28,
+  headerCardLabel: {
+    color: '#8D8DAA',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  headerCardValue: {
+    color: '#F8D05F',
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  headerCardHint: {
+    color: '#6F6287',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 16,
   },
   warningBanner: {
     backgroundColor: '#ff9800',
@@ -250,10 +282,12 @@ const styles = StyleSheet.create({
   },
   productCard: {
     width: '48%',
-    backgroundColor: '#16213e',
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: '#1A1328',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#2F2342',
   },
   productHeader: {
     flexDirection: 'row',

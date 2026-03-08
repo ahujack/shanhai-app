@@ -6,6 +6,8 @@ import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
 import { usePersonaStore } from '../../src/store/persona';
 import { pointsApi, PointsSummary, achievementApi, UserAchievement, AchievementProgress } from '../../src/services/api';
+import * as Clipboard from 'expo-clipboard';
+import * as Sharing from 'expo-sharing';
 
 const colors = theme.dark;
 
@@ -21,6 +23,46 @@ export default function ProfileScreen() {
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [achievementProgress, setAchievementProgress] = useState<AchievementProgress | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
+  // 分享功能
+  const handleShare = async () => {
+    if (!user) {
+      Alert.alert('提示', '请先登录');
+      router.push('/login');
+      return;
+    }
+
+    setIsSharing(true);
+    try {
+      const shareUrl = `https://shanhai.vercel.app?ref=${user.id}`;
+      const shareMessage = `🔮 山海灵境 - 探索你的命运之旅\n\n使用我的邀请链接注册，双方都可获得积分奖励！\n\n${shareUrl}`;
+      
+      // 尝试使用系统分享
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(shareUrl, {
+          dialogTitle: '分享山海灵境',
+          mimeType: 'text/plain',
+        });
+      } else {
+        // 回退到剪贴板
+        await Clipboard.setStringAsync(shareMessage);
+        Alert.alert('已复制', '邀请链接已复制到剪贴板，分享给朋友吧！');
+      }
+    } catch (error) {
+      console.error('分享失败:', error);
+      // 尝试回退到剪贴板
+      try {
+        const shareUrl = `https://shanhai.vercel.app?ref=${user.id}`;
+        await Clipboard.setStringAsync(shareUrl);
+        Alert.alert('已复制', '链接已复制到剪贴板');
+      } catch (e) {
+        Alert.alert('分享失败', '请稍后重试');
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const [name, setName] = useState(user?.name || '');
   const [birthDate, setBirthDate] = useState(user?.birthDate || '');
@@ -407,17 +449,51 @@ export default function ProfileScreen() {
               onPress={handleCheckIn}
               disabled={isCheckingIn || checkInStatus?.todayCheckedIn}
             >
-              <View style={styles.checkinStatusItem}>
+              <View style={styles.checkinStatusHeader}>
                 <Text style={styles.checkinStatusIcon}>
                   {checkInStatus?.todayCheckedIn ? '✅' : isCheckingIn ? '⏳' : '📝'}
                 </Text>
-                <View>
+                <View style={styles.checkinStatusInfo}>
                   <Text style={styles.checkinStatusValue}>
                     {checkInStatus?.todayCheckedIn ? '今日已签到' : isCheckingIn ? '签到中...' : '签到领积分'}
                   </Text>
                   <Text style={styles.checkinStatusLabel}>
                     连续 {checkInStatus?.currentStreak || 0} 天
                   </Text>
+                </View>
+                <View style={styles.checkinPointsBadge}>
+                  <Text style={styles.checkinPointsText}>+10</Text>
+                </View>
+              </View>
+              
+              {/* 签到进度条 */}
+              {!checkInStatus?.todayCheckedIn && (
+                <View style={styles.streakProgressContainer}>
+                  <View style={styles.streakProgressBar}>
+                    <View style={[
+                      styles.streakProgressFill, 
+                      { width: `${Math.min(((checkInStatus?.currentStreak || 0) / 3) * 100, 100)}%` }
+                    ]} />
+                  </View>
+                  <View style={styles.streakMilestones}>
+                    <Text style={[styles.streakMilestoneText, (checkInStatus?.currentStreak || 0) >= 3 && styles.streakMilestoneDone]}>3天</Text>
+                    <Text style={[styles.streakMilestoneText, (checkInStatus?.currentStreak || 0) >= 7 && styles.streakMilestoneDone]}>7天</Text>
+                    <Text style={[styles.streakMilestoneText, (checkInStatus?.currentStreak || 0) >= 30 && styles.streakMilestoneDone]}>30天</Text>
+                  </View>
+                </View>
+              )}
+            </TouchableOpacity>
+            
+            {/* 分享邀请 */}
+            <TouchableOpacity style={styles.shareCard} onPress={handleShare} disabled={isSharing}>
+              <View style={styles.shareCardContent}>
+                <Text style={styles.shareIcon}>🎁</Text>
+                <View style={styles.shareInfo}>
+                  <Text style={styles.shareTitle}>邀请好友</Text>
+                  <Text style={styles.shareDesc}>邀请好友注册，双方各得50积分</Text>
+                </View>
+                <View style={styles.shareButton}>
+                  <Text style={styles.shareButtonText}>{isSharing ? '...' : '分享'}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -1025,6 +1101,94 @@ const styles = StyleSheet.create({
     color: '#8D8DAA',
     fontSize: 12,
     marginTop: 2,
+  },
+  checkinStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkinStatusInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  checkinPointsBadge: {
+    backgroundColor: '#F8D05F',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  checkinPointsText: {
+    color: '#1A1328',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  // 签到进度条
+  streakProgressContainer: {
+    marginTop: 12,
+  },
+  streakProgressBar: {
+    height: 6,
+    backgroundColor: '#2F2342',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  streakProgressFill: {
+    height: '100%',
+    backgroundColor: '#F8D05F',
+    borderRadius: 3,
+  },
+  streakMilestones: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  streakMilestoneText: {
+    color: '#6F6287',
+    fontSize: 10,
+  },
+  streakMilestoneDone: {
+    color: '#F8D05F',
+  },
+  
+  // 分享样式
+  shareCard: {
+    backgroundColor: '#1A1328',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#322243',
+    marginTop: 12,
+  },
+  shareCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  shareIcon: {
+    fontSize: 28,
+  },
+  shareInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  shareTitle: {
+    color: '#F7F6F0',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  shareDesc: {
+    color: '#8D8DAA',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  shareButton: {
+    backgroundColor: '#F8D05F',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  shareButtonText: {
+    color: '#1A1328',
+    fontSize: 13,
+    fontWeight: '700',
   },
   
   // 成就样式

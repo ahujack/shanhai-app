@@ -49,6 +49,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="points"
+        options={{
+          title: '积分商城',
+          tabBarIcon: ({ color, size }) => <Ionicons name="gift-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: '我的',
