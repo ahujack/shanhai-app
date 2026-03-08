@@ -659,6 +659,21 @@ export default function ProfileScreen() {
           <Text style={styles.logoutButtonBottomText}>退出登录</Text>
         </TouchableOpacity>
       )}
+
+      {/* 法律链接 */}
+      <View style={styles.legalLinks}>
+        <TouchableOpacity onPress={() => router.push('/privacy')}>
+          <Text style={styles.legalLinkText}>隐私政策</Text>
+        </TouchableOpacity>
+        <Text style={styles.legalSeparator}>|</Text>
+        <TouchableOpacity onPress={() => router.push('/terms')}>
+          <Text style={styles.legalLinkText}>服务条款</Text>
+        </TouchableOpacity>
+        <Text style={styles.legalSeparator}>|</Text>
+        <TouchableOpacity onPress={() => router.push('/faq')}>
+          <Text style={styles.legalLinkText}>常见问题</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
@@ -800,6 +815,22 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     fontSize: 15,
     fontWeight: '600',
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 40,
+    paddingVertical: 12,
+  },
+  legalLinkText: {
+    color: '#8D8DAA',
+    fontSize: 13,
+  },
+  legalSeparator: {
+    color: '#3D3D5C',
+    marginHorizontal: 12,
   },
   loginPrompt: {
     backgroundColor: '#161126',
