@@ -2,12 +2,38 @@
 // 开发环境使用 localhost，生产环境使用 Railway 提供的 URL
 // 可通过环境变量 NEXT_PUBLIC_API_URL 覆盖
 // 注意：在 React Native 中，需要使用 expo 插件来读取环境变量
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://shanhai-production.up.railway.app/api';
+const API_BASE_URL = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL 
+  ? process.env.NEXT_PUBLIC_API_URL 
+  : 'https://shanhai-production.up.railway.app/api';
 
 // 调试日志
 if (typeof window !== 'undefined') {
   console.log('API_BASE_URL:', API_BASE_URL);
-  console.log('process.env:', process.env);
+}
+
+// 全局 token 变量
+let globalAuthToken: string | null = null;
+
+// 初始化时尝试从存储获取 token
+if (typeof window !== 'undefined') {
+  try {
+    // 优先尝试使用 globalAuthToken（由 store 设置）
+    if (globalAuthToken) {
+      console.log('[API] 使用 globalAuthToken');
+    } else if (typeof localStorage !== 'undefined') {
+      // Web 环境使用 localStorage
+      globalAuthToken = localStorage.getItem('shanhai_auth_token');
+      console.log('[API] 从 localStorage 加载 token:', globalAuthToken ? 'exists' : 'null');
+    }
+  } catch (e) {
+    console.log('[API] 读取 token 失败:', e);
+  }
+}
+
+// 导出设置 token 的函数
+export function setGlobalAuthToken(token: string | null) {
+  globalAuthToken = token;
+  console.log('[API] 设置 globalAuthToken:', token ? 'exists' : 'null');
 }
 
 // 通用请求函数
@@ -17,15 +43,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   // 调试日志
   console.log(`[API Request] ${options.method || 'GET'} ${fullUrl}`, options.body);
   
-  // 从存储中获取 token（支持 Web 和 React Native）
-  // 使用同步方式获取localStorage，确保请求能正确携带token
-  let token: string | null = null;
-  if (typeof window !== 'undefined') {
+  // 获取 token（优先使用 globalAuthToken，然后尝试 localStorage）
+  let token: string | null = globalAuthToken;
+  if (!token && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
     try {
-      // Web环境使用localStorage（同步）
-      if (typeof window !== 'undefined' && window.localStorage) {
-        token = localStorage.getItem('shanhai_auth_token');
-      }
+      token = localStorage.getItem('shanhai_auth_token');
     } catch (e) {
       // ignore
     }

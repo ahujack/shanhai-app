@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserProfile, BaziChart, FortuneSlip, userApi, chartApi, fortuneApi, CreateUserDto, authApi, checkInApi, CheckInStatus } from '../services/api';
+import { UserProfile, BaziChart, FortuneSlip, userApi, chartApi, fortuneApi, CreateUserDto, authApi, checkInApi, CheckInStatus, setGlobalAuthToken } from '../services/api';
 
 const USER_ID_KEY = 'shanhai_user_id';
 const AUTH_TOKEN_KEY = 'shanhai_auth_token';
@@ -97,6 +97,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       
       // 同步设置全局token
       globalAuthToken = token;
+      setGlobalAuthToken(token);
       
       console.log('[loadUser] userId:', userId, 'token:', token ? 'exists' : 'null');
       if (userId) {
@@ -197,6 +198,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         }
         // 同步设置全局token
         globalAuthToken = result.token;
+        setGlobalAuthToken(result.token);
         set({ user: result.user, token: result.token });
         console.log('[Login] Password login success, user:', result.user);
         return { success: true, message: '登录成功' };
@@ -251,6 +253,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         }
         // 同步设置全局token
         globalAuthToken = result.token;
+        setGlobalAuthToken(result.token);
         set({ user: result.user, token: result.token });
         return { success: true, message: '登录成功' };
       }

@@ -14,6 +14,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, chart, hasChart, isLoading, createUser, generateChart, loadUser, clearUser, logout, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { personas, active: currentPersona, setActive } = usePersonaStore();
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
 
   // 积分和成就状态
   const [pointsSummary, setPointsSummary] = useState<PointsSummary | null>(null);
@@ -85,6 +86,37 @@ export default function ProfileScreen() {
     
     loadData();
   }, [user]);
+
+  // 签到处理函数
+  const handleCheckIn = async () => {
+    if (!user) {
+      Alert.alert('提示', '请先登录');
+      router.push('/login');
+      return;
+    }
+    
+    if (checkInStatus?.todayCheckedIn) {
+      return; // 今日已签到
+    }
+    
+    setIsCheckingIn(true);
+    try {
+      const result = await checkIn();
+      if (result?.success) {
+        Alert.alert('签到成功', result.message || `获得 ${result.points || 0} 积分`);
+        // 刷新积分显示
+        const pointsData = await pointsApi.getSummary().catch(() => null);
+        setPointsSummary(pointsData);
+      } else {
+        Alert.alert('签到失败', result?.message || '请稍后重试');
+      }
+    } catch (e) {
+      console.error('签到错误:', e);
+      Alert.alert('签到失败', '请稍后重试');
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
 
   React.useEffect(() => {
     if (user && !isInitializing) {
@@ -370,14 +402,18 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             
             {/* 签到状态 */}
-            <TouchableOpacity style={styles.checkinStatusCard} onPress={() => router.push('/(tabs)')}>
+            <TouchableOpacity 
+              style={[styles.checkinStatusCard, checkInStatus?.todayCheckedIn && styles.checkinStatusCardDisabled]} 
+              onPress={handleCheckIn}
+              disabled={isCheckingIn || checkInStatus?.todayCheckedIn}
+            >
               <View style={styles.checkinStatusItem}>
                 <Text style={styles.checkinStatusIcon}>
-                  {checkInStatus?.todayCheckedIn ? '✅' : '📝'}
+                  {checkInStatus?.todayCheckedIn ? '✅' : isCheckingIn ? '⏳' : '📝'}
                 </Text>
                 <View>
                   <Text style={styles.checkinStatusValue}>
-                    {checkInStatus?.todayCheckedIn ? '今日已签到' : '签到领积分'}
+                    {checkInStatus?.todayCheckedIn ? '今日已签到' : isCheckingIn ? '签到中...' : '签到领积分'}
                   </Text>
                   <Text style={styles.checkinStatusLabel}>
                     连续 {checkInStatus?.currentStreak || 0} 天
@@ -968,6 +1004,9 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: '#322243',
+  },
+  checkinStatusCardDisabled: {
+    opacity: 0.6,
   },
   checkinStatusItem: {
     flexDirection: 'row',
