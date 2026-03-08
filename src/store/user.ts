@@ -58,7 +58,7 @@ interface UserState {
   
   // Auth actions
   loadUser: () => Promise<void>;
-  register: (email: string, password: string, code: string, name?: string) => Promise<{ success: boolean; message?: string }>;
+  register: (email: string, password: string, code: string, name?: string, referralCode?: string) => Promise<{ success: boolean; message?: string }>;
   loginWithPassword: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   loginWithCode: (email?: string, code?: string) => Promise<{ success: boolean; message?: string }>;
   loginWithSocial: (provider: 'google' | 'facebook', idToken: string) => Promise<{ success: boolean; message?: string }>;
