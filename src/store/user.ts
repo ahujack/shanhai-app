@@ -39,12 +39,12 @@ const storage = {
 // 导出 token 供 API 服务使用
 export let globalAuthToken: string | null = null;
 
-// 初始化时加载 token（仅在浏览器环境）
+// 初始化时加载 token（仅在浏览器环境）- 同步版本确保立即可用
 if (typeof window !== 'undefined') {
-  storage.getItem(AUTH_TOKEN_KEY).then(token => {
-    globalAuthToken = token;
-    console.log('[Store] 初始化加载token:', token ? 'exists' : 'null');
-  });
+  // 同步从localStorage读取token，确保store初始化时token已加载
+  const storedToken = typeof localStorage !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+  globalAuthToken = storedToken;
+  console.log('[Store] 初始化加载token:', storedToken ? 'exists' : 'null');
 }
 
 interface UserState {
@@ -91,13 +91,21 @@ export const useUserStore = create<UserState>((set, get) => ({
     
     set({ isLoading: true });
     try {
-      const userId = await storage.getItem(USER_ID_KEY);
-      const token = await storage.getItem(AUTH_TOKEN_KEY);
+      // 同步从localStorage读取，确保立即可用
+      const userId = typeof localStorage !== 'undefined' ? localStorage.getItem(USER_ID_KEY) : null;
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+      
+      // 同步设置全局token
+      globalAuthToken = token;
+      
       console.log('[loadUser] userId:', userId, 'token:', token ? 'exists' : 'null');
       if (userId) {
         const user = await userApi.get(userId);
         console.log('[loadUser] user loaded:', user);
-        set({ user, token });
+        
+        // 更新全局token和store状态
+        set({ user, token: token });
+        globalAuthToken = token;
         
         // 加载命盘
         try {
@@ -120,6 +128,13 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
     } catch (e) {
       console.error('加载用户失败:', e);
+      // 如果加载失败，清除可能存在的无效token
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(USER_ID_KEY);
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+      }
+      globalAuthToken = null;
+      set({ user: null, token: null });
     } finally {
       set({ isLoading: false });
     }
@@ -175,8 +190,13 @@ export const useUserStore = create<UserState>((set, get) => ({
       const result = await authApi.login({ email, password });
       console.log('[Login] Password login result:', result);
       if (result.success && result.token && result.user) {
-        await storage.setItem(USER_ID_KEY, result.user.id);
-        await storage.setItem(AUTH_TOKEN_KEY, result.token);
+        // 同步存储到localStorage
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(USER_ID_KEY, result.user.id);
+          localStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        }
+        // 同步设置全局token
+        globalAuthToken = result.token;
         set({ user: result.user, token: result.token });
         console.log('[Login] Password login success, user:', result.user);
         return { success: true, message: '登录成功' };
@@ -197,13 +217,18 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const result = await authApi.login({ email: email || '', code: code || '' });
       console.log('[Login] Code login result:', result);
-      if (result.success && result.token && result.user) {
-        await storage.setItem(USER_ID_KEY, result.user.id);
-        await storage.setItem(AUTH_TOKEN_KEY, result.token);
-        set({ user: result.user, token: result.token });
-        console.log('[Login] Code login success, user:', result.user);
-        return { success: true, message: '登录成功' };
-      }
+        if (result.success && result.token && result.user) {
+          // 同步存储到localStorage
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(USER_ID_KEY, result.user.id);
+            localStorage.setItem(AUTH_TOKEN_KEY, result.token);
+          }
+          // 同步设置全局token
+          globalAuthToken = result.token;
+          set({ user: result.user, token: result.token });
+          console.log('[Login] Code login success, user:', result.user);
+          return { success: true, message: '登录成功' };
+        }
       // 返回错误消息，让UI层显示
       return { success: false, message: result.message || '验证码错误或已过期' };
     } catch (e: any) {
@@ -219,8 +244,13 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const result = await authApi.socialLogin({ provider, idToken });
       if (result.success && result.token && result.user) {
-        await storage.setItem(USER_ID_KEY, result.user.id);
-        await storage.setItem(AUTH_TOKEN_KEY, result.token);
+        // 同步存储到localStorage
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(USER_ID_KEY, result.user.id);
+          localStorage.setItem(AUTH_TOKEN_KEY, result.token);
+        }
+        // 同步设置全局token
+        globalAuthToken = result.token;
         set({ user: result.user, token: result.token });
         return { success: true, message: '登录成功' };
       }
@@ -291,11 +321,21 @@ export const useUserStore = create<UserState>((set, get) => ({
     if (!user) return { success: false, message: '请先登录' };
     
     try {
-      const result = await checkInApi.checkIn(user.id);
+      const result = await checkInApi.checkIn();
       if (result.success) {
         // 刷新签到状态
         await get().loadCheckInStatus();
-        return { success: true, message: result.message, points: result.points, reward: result.reward };
+        // 如果解锁了成就，返回成就信息
+        const achievementMsg = result.unlockedAchievement 
+          ? `\n🎉 解锁成就: ${result.unlockedAchievement.name}`
+          : '';
+        return { 
+          success: true, 
+          message: result.message + achievementMsg, 
+          points: result.points, 
+          reward: result.reward,
+          achievement: result.unlockedAchievement 
+        };
       } else {
         return { success: false, message: result.message };
       }
@@ -311,7 +351,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     if (!user) return;
     
     try {
-      const status = await checkInApi.getStatus(user.id);
+      const status = await checkInApi.getStatus();
       set({ checkInStatus: status });
     } catch (e) {
       console.error('加载签到状态失败:', e);

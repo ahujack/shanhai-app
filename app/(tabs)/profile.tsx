@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
 import { usePersonaStore } from '../../src/store/persona';
+import { pointsApi, PointsSummary, achievementApi, UserAchievement, AchievementProgress } from '../../src/services/api';
 
 const colors = theme.dark;
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, chart, hasChart, isLoading, createUser, generateChart, loadUser, clearUser, logout } = useUserStore();
+  const { user, chart, hasChart, isLoading, createUser, generateChart, loadUser, clearUser, logout, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { personas, active: currentPersona, setActive } = usePersonaStore();
+
+  // 积分和成就状态
+  const [pointsSummary, setPointsSummary] = useState<PointsSummary | null>(null);
+  const [achievements, setAchievements] = useState<UserAchievement[]>([]);
+  const [achievementProgress, setAchievementProgress] = useState<AchievementProgress | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   const [name, setName] = useState(user?.name || '');
   const [birthDate, setBirthDate] = useState(user?.birthDate || '');
@@ -34,6 +41,8 @@ export default function ProfileScreen() {
     const init = async () => {
       try {
         await loadUser();
+        // 加载签到状态
+        await loadCheckInStatus();
       } catch (e) {
         console.error('加载用户失败:', e);
       } finally {
@@ -49,6 +58,33 @@ export default function ProfileScreen() {
       isMounted = false;
     };
   }, []);
+
+  // 加载积分和成就数据
+  useEffect(() => {
+    if (!user) return;
+    
+    const loadData = async () => {
+      setIsLoadingData(true);
+      try {
+        // 并行加载积分和成就数据
+        const [pointsData, achievementsData, progressData] = await Promise.all([
+          pointsApi.getSummary().catch(() => null),
+          achievementApi.getUserAchievements().catch(() => []),
+          achievementApi.getProgress().catch(() => null),
+        ]);
+        
+        setPointsSummary(pointsData);
+        setAchievements(achievementsData);
+        setAchievementProgress(progressData);
+      } catch (e) {
+        console.error('加载积分成就数据失败:', e);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+    
+    loadData();
+  }, [user]);
 
   React.useEffect(() => {
     if (user && !isInitializing) {
@@ -311,6 +347,45 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
+          
+          {/* 积分和签到状态 */}
+          <View style={styles.pointsAndCheckin}>
+            {/* 积分显示 */}
+            <TouchableOpacity style={styles.pointsCard} onPress={() => router.push('/points')}>
+              <View style={styles.pointsItem}>
+                <Text style={styles.pointsIcon}>💎</Text>
+                <View>
+                  <Text style={styles.pointsValue}>{pointsSummary?.availablePoints || 0}</Text>
+                  <Text style={styles.pointsLabel}>可用积分</Text>
+                </View>
+              </View>
+              <View style={styles.pointsDivider} />
+              <View style={styles.pointsItem}>
+                <Text style={styles.pointsIcon}>📈</Text>
+                <View>
+                  <Text style={styles.pointsValue}>{pointsSummary?.totalPoints || 0}</Text>
+                  <Text style={styles.pointsLabel}>总积分</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+            
+            {/* 签到状态 */}
+            <TouchableOpacity style={styles.checkinStatusCard} onPress={() => router.push('/(tabs)')}>
+              <View style={styles.checkinStatusItem}>
+                <Text style={styles.checkinStatusIcon}>
+                  {checkInStatus?.todayCheckedIn ? '✅' : '📝'}
+                </Text>
+                <View>
+                  <Text style={styles.checkinStatusValue}>
+                    {checkInStatus?.todayCheckedIn ? '今日已签到' : '签到领积分'}
+                  </Text>
+                  <Text style={styles.checkinStatusLabel}>
+                    连续 {checkInStatus?.currentStreak || 0} 天
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -392,6 +467,54 @@ export default function ProfileScreen() {
       </View>
 
       {/* 灵伴选择 */}
+      <Text style={styles.sectionTitle}>🏆 成就徽章</Text>
+      <View style={[styles.achievementsCard, { backgroundColor: colors.surface }]}>
+        {/* 成就进度 */}
+        <View style={styles.achievementProgress}>
+          <View style={styles.achievementProgressInfo}>
+            <Text style={styles.achievementProgressText}>
+              已解锁 {achievementProgress?.unlocked || 0} / {achievementProgress?.total || 0}
+            </Text>
+            <Text style={styles.achievementProgressPoints}>
+              成就积分: {achievementProgress?.unlockedPoints || 0}
+            </Text>
+          </View>
+          <View style={styles.achievementProgressBar}>
+            <View 
+              style={[
+                styles.achievementProgressFill, 
+                { 
+                  width: `${achievementProgress?.total ? (achievementProgress.unlocked / achievementProgress.total * 100) : 0}%` 
+                }
+              ]} 
+            />
+          </View>
+        </View>
+        
+        {/* 成就徽章网格 */}
+        {achievements.length > 0 ? (
+          <View style={styles.achievementGrid}>
+            {achievements.slice(0, 6).map((ua) => (
+              <View key={ua.id} style={styles.achievementBadge}>
+                <Text style={styles.achievementIcon}>{ua.achievement.icon || '🏆'}</Text>
+                <Text style={styles.achievementName} numberOfLines={1}>
+                  {ua.achievement.name}
+                </Text>
+              </View>
+            ))}
+            {achievements.length > 6 && (
+              <TouchableOpacity style={styles.achievementMore}>
+                <Text style={styles.achievementMoreText}>+{achievements.length - 6}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <View style={styles.achievementEmpty}>
+            <Text style={styles.achievementEmptyText}>完成登录、抽签等任务解锁成就</Text>
+          </View>
+        )}
+      </View>
+
       <Text style={styles.sectionTitle}>🧙 选择你的灵伴</Text>
       <View style={styles.personaContainer}>
         {personas.map((persona) => (
@@ -801,5 +924,150 @@ const styles = StyleSheet.create({
     color: '#F7F6F0',
     fontSize: 15,
     fontWeight: 'bold',
+  },
+  
+  // 积分和签到样式
+  pointsAndCheckin: {
+    marginTop: 16,
+    gap: 12,
+  },
+  pointsCard: {
+    flexDirection: 'row',
+    backgroundColor: '#1A1328',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#322243',
+  },
+  pointsItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pointsIcon: {
+    fontSize: 24,
+  },
+  pointsValue: {
+    color: '#F8D05F',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  pointsLabel: {
+    color: '#8D8DAA',
+    fontSize: 11,
+  },
+  pointsDivider: {
+    width: 1,
+    backgroundColor: '#322243',
+    marginHorizontal: 12,
+  },
+  checkinStatusCard: {
+    backgroundColor: '#1A1328',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#322243',
+  },
+  checkinStatusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkinStatusIcon: {
+    fontSize: 24,
+  },
+  checkinStatusValue: {
+    color: '#F7F6F0',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  checkinStatusLabel: {
+    color: '#8D8DAA',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  
+  // 成就样式
+  achievementsCard: {
+    backgroundColor: '#161126',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#2F2342',
+  },
+  achievementProgress: {
+    marginBottom: 16,
+  },
+  achievementProgressInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  achievementProgressText: {
+    color: '#F7F6F0',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  achievementProgressPoints: {
+    color: '#F8D05F',
+    fontSize: 12,
+  },
+  achievementProgressBar: {
+    height: 8,
+    backgroundColor: '#2F2342',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  achievementProgressFill: {
+    height: '100%',
+    backgroundColor: '#F8D05F',
+    borderRadius: 4,
+  },
+  achievementGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  achievementBadge: {
+    width: '30%',
+    backgroundColor: '#1A1328',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+  },
+  achievementIcon: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  achievementName: {
+    color: '#F7F6F0',
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  achievementMore: {
+    width: '30%',
+    backgroundColor: '#2F2342',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  achievementMoreText: {
+    color: '#8D8DAA',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  achievementEmpty: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  achievementEmptyText: {
+    color: '#6F6287',
+    fontSize: 13,
+    textAlign: 'center',
   },
 });

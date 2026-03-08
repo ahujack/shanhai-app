@@ -18,16 +18,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   console.log(`[API Request] ${options.method || 'GET'} ${fullUrl}`, options.body);
   
   // 从存储中获取 token（支持 Web 和 React Native）
+  // 使用同步方式获取localStorage，确保请求能正确携带token
   let token: string | null = null;
   if (typeof window !== 'undefined') {
     try {
-      // Web环境使用localStorage
+      // Web环境使用localStorage（同步）
       if (typeof window !== 'undefined' && window.localStorage) {
         token = localStorage.getItem('shanhai_auth_token');
-      } else {
-        // React Native环境使用AsyncStorage
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        token = await AsyncStorage.getItem('shanhai_auth_token');
       }
     } catch (e) {
       // ignore
@@ -343,153 +340,112 @@ export interface CheckInResult {
   streak: number;
   points: number;
   reward?: string;
-}
-
-export const agentApi = {
-  chat: (dto: AgentChatDto) =>
-    request<AgentResponse>('/agent/chat', { method: 'POST', body: JSON.stringify(dto) }),
-};
-
-// ========== Meditation API ==========
-export interface Meditation {
-  id: string;
-  title: string;
-  description: string;
-  durationMinutes: number;
-  category: 'calm' | 'sleep' | 'anxiety' | 'focus';
-  steps: Array<{
-    order: number;
-    title: string;
+  isFirstCheckIn?: boolean;
+  unlockedAchievement?: {
+    name: string;
     description: string;
-    durationSeconds: number;
-  }>;
-}
-
-export const meditationApi = {
-  getAll: () => request<Meditation[]>('/meditations'),
-  get: (id: string) => request<Meditation>(`/meditations/${id}`),
-};
-
-// ========== Zi (测字) API ==========
-export interface HandwritingAnalysis {
-  pressure: 'heavy' | 'light' | 'medium';
-  pressureInterpretation: string;
-  stability: 'stable' | 'shaky' | 'average';
-  stabilityInterpretation: string;
-  structure: 'compact' | 'loose' | 'balanced';
-  structureInterpretation: string;
-  continuity: 'connected' | 'broken' | 'average';
-  continuityInterpretation: string;
-  overallStyle: string;
-  personalityInsights: string[];
-}
-
-export interface ZiAnalysis {
-  zi: string;
-  bushou: string;
-  bihua: number;
-  wuxing: string;
-  yinyang: string;
-  jixiong: string;
-  yijing: string;
-  guaXiang: string;
-  components: string[];
-  componentMeanings: string[];
-  associativeMeaning: string;
-}
-
-export interface ZiResult {
-  handwriting: HandwritingAnalysis;
-  zi: ZiAnalysis;
-  interpretation: {
-    overall: string;
-    career: string;
-    love: string;
-    wealth: string;
-    health: string;
-    advice: string[];
-  };
-  coldReadings: string[];
-  followUpQuestions: string[];
-  metadata: {
-    method: string;
-    generatedAt: string;
+    icon: string;
   };
 }
 
-export const ziApi = {
-  analyze: (zi: string, handwriting?: Partial<HandwritingAnalysis>) =>
-    request<ZiResult>('/zi/analyze', {
-      method: 'POST',
-      body: JSON.stringify({ zi, handwriting }),
-    }),
-};
-
-// ========== Handwriting OCR API ==========
-export interface OcrResult {
-  zi: string;
-  confidence: number;
+export interface CheckInStatus {
+  todayCheckedIn: boolean;
+  currentStreak: number;
+  totalPoints: number;
+  consecutiveDays: number;
 }
 
-export interface HandwritingAnalysisResult {
-  recognizedZi: string | null;
-  confidence: number;
-  analysis?: ZiResult;
-  error?: string;
-}
-
-export const handwritingApi = {
-  // 仅识别手写文字
-  recognize: (svgString: string) => {
-    // 将SVG转换为base64
-    const base64 = btoa(unescape(encodeURIComponent(svgString)));
-    return request<OcrResult>('/zi/recognize', {
-      method: 'POST',
-      body: JSON.stringify({ image: base64 }),
-    });
-  },
-  
-  // 识别并分析
-  analyze: (svgString: string) => {
-    // 将SVG转换为base64
-    const base64 = btoa(unescape(encodeURIComponent(svgString)));
-    return request<HandwritingAnalysisResult>('/zi/analyze-handwriting', {
-      method: 'POST',
-      body: JSON.stringify({ image: base64 }),
-    });
-  },
-};
-
-// ========== 更新 Agent API ==========
-export interface AgentResponse {
-  persona: string;
-  intent: string;
-  reply: string;
-  actions: Array<{
-    type: string;
-    label: string;
-  }>;
-  artifacts: {
-    reading?: DivinationResult;
-    fortune?: FortuneSlip;
-    chart?: BaziChart;
-    meditation?: Meditation;
-    zi?: ZiResult;
-  };
-  hasChart: boolean;
-}
-
-// ========== 签到 API ==========
 export const checkInApi = {
-  // 签到
-  checkIn: (userId: string) =>
-    request<CheckInResult>(`/checkin/${userId}`, { method: 'POST' }),
+  // 签到（从JWT token获取userId）
+  checkIn: () =>
+    request<CheckInResult>('/checkin', { method: 'POST' }),
   
   // 获取签到状态
-  getStatus: (userId: string) =>
-    request<CheckInStatus>(`/checkin/status/${userId}`),
+  getStatus: () =>
+    request<CheckInStatus>('/checkin/status'),
   
   // 获取签到日历
-  getCalendar: (userId: string) =>
-    request<string[]>(`/checkin/calendar/${userId}`),
+  getCalendar: () =>
+    request<string[]>('/checkin/calendar'),
+};
+
+// ========== 成就 API ==========
+export interface Achievement {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  icon?: string;
+  category: string;
+  requirement: number;
+  points: number;
+}
+
+export interface UserAchievement {
+  id: string;
+  userId: string;
+  achievementId: string;
+  unlockedAt: string;
+  achievement: Achievement;
+}
+
+export interface AchievementProgress {
+  total: number;
+  unlocked: number;
+  unlockedPoints: number;
+}
+
+export const achievementApi = {
+  // 获取所有成就列表
+  getAll: () =>
+    request<Achievement[]>('/achievements'),
+  
+  // 获取用户成就列表
+  getUserAchievements: () =>
+    request<UserAchievement[]>('/achievements/user'),
+  
+  // 获取用户成就进度
+  getProgress: () =>
+    request<AchievementProgress>('/achievements/progress'),
+};
+
+// ========== 积分 API ==========
+export interface PointsSummary {
+  totalPoints: number;
+  availablePoints: number;
+  totalEarned: number;
+  totalSpent: number;
+}
+
+export interface PointRecord {
+  id: string;
+  userId: string;
+  points: number;
+  type: string;
+  description?: string;
+  createdAt: string;
+}
+
+export const pointsApi = {
+  // 获取积分概况
+  getSummary: () =>
+    request<PointsSummary>('/points'),
+  
+  // 获取积分记录
+  getRecords: (limit?: number) =>
+    request<PointRecord[]>(`/points/records${limit ? `?limit=${limit}` : ''}`),
+  
+  // 消费积分
+  consume: (points: number, type: string, description: string) =>
+    request<{ success: boolean; message: string; remainingPoints?: number }>('/points/consume', {
+      method: 'POST',
+      body: JSON.stringify({ points, type, description }),
+    }),
+  
+  // 检查积分是否足够
+  check: (points: number) =>
+    request<{ success: boolean; hasEnough: boolean }>('/points/check', {
+      method: 'POST',
+      body: JSON.stringify({ points }),
+    }),
 };
