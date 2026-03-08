@@ -113,6 +113,8 @@ export interface UserProfile {
   avatar?: string;
   role: 'user' | 'admin';
   membership: 'free' | 'premium' | 'vip';
+  referralCode?: string; // 推荐码
+  referredBy?: string;   // 推荐人ID
   createdAt?: string;
   updatedAt?: string;
 }
@@ -143,7 +145,7 @@ export const authApi = {
     }),
   
   // 注册
-  register: (dto: { email: string; password: string; code: string; name?: string }) =>
+  register: (dto: { email: string; password: string; code: string; name?: string; referralCode?: string }) =>
     request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(dto),

@@ -13,12 +13,16 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useUserStore } from '../src/store/user';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { register, sendCode, isLoading } = useUserStore();
+  
+  // 从 URL 获取推荐码
+  const referralCode = params.ref as string | undefined;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -104,7 +108,7 @@ export default function RegisterScreen() {
       return;
     }
 
-    const result = await register(email, password, code, name);
+    const result = await register(email, password, code, name, referralCode);
 
     if (result?.success) {
       Alert.alert('注册成功', '欢迎加入山海灵境！');

@@ -158,10 +158,10 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   // 注册
-  register: async (email: string, password: string, code: string, name?: string) => {
+  register: async (email: string, password: string, code: string, name?: string, referralCode?: string) => {
     set({ isLoading: true });
     try {
-      const result = await authApi.register({ email, password, code, name });
+      const result = await authApi.register({ email, password, code, name, referralCode });
       if (result.success && result.token && result.user) {
         await storage.setItem(USER_ID_KEY, result.user.id);
         await storage.setItem(AUTH_TOKEN_KEY, result.token);

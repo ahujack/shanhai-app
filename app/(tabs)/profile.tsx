@@ -35,7 +35,7 @@ export default function ProfileScreen() {
 
     setIsSharing(true);
     try {
-      const shareUrl = `https://shanhai.vercel.app?ref=${user.id}`;
+      const shareUrl = `https://shanhai.app?ref=${user.id}`;
       const shareMessage = `🔮 山海灵境 - 探索你的命运之旅\n\n使用我的邀请链接注册，双方都可获得积分奖励！\n\n${shareUrl}`;
       
       // 尝试使用系统分享
@@ -53,7 +53,7 @@ export default function ProfileScreen() {
       console.error('分享失败:', error);
       // 尝试回退到剪贴板
       try {
-        const shareUrl = `https://shanhai.vercel.app?ref=${user.id}`;
+        const shareUrl = `https://shanhai.app?ref=${user.id}`;
         await Clipboard.setStringAsync(shareUrl);
         Alert.alert('已复制', '链接已复制到剪贴板');
       } catch (e) {
@@ -491,6 +491,10 @@ export default function ProfileScreen() {
                 <View style={styles.shareInfo}>
                   <Text style={styles.shareTitle}>邀请好友</Text>
                   <Text style={styles.shareDesc}>邀请好友注册，双方各得50积分</Text>
+                  {/* 显示用户推荐码 */}
+                  {user?.referralCode && (
+                    <Text style={styles.referralCode}>我的推荐码: {user.referralCode}</Text>
+                  )}
                 </View>
                 <View style={styles.shareButton}>
                   <Text style={styles.shareButtonText}>{isSharing ? '...' : '分享'}</Text>
@@ -1178,6 +1182,12 @@ const styles = StyleSheet.create({
     color: '#8D8DAA',
     fontSize: 12,
     marginTop: 2,
+  },
+  referralCode: {
+    color: '#F8D05F',
+    fontSize: 11,
+    marginTop: 4,
+    fontFamily: 'monospace',
   },
   shareButton: {
     backgroundColor: '#F8D05F',

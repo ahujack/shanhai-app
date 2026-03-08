@@ -13,13 +13,17 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useUserStore } from '../src/store/user';
 import { signInWithGoogle } from '../src/services/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { sendCode, loginWithPassword, loginWithCode, loginWithSocial, isLoading } = useUserStore();
+
+  // 从 URL 获取推荐码
+  const referralCode = params.ref as string | undefined;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
