@@ -35,8 +35,10 @@ export default function ProfileScreen() {
 
     setIsSharing(true);
     try {
-      const shareUrl = `https://shanhai.app?ref=${user.id}`;
-      const shareMessage = `🔮 山海灵境 - 探索你的命运之旅\n\n使用我的邀请链接注册，双方都可获得积分奖励！\n\n${shareUrl}`;
+      // 使用 referralCode 生成邀请链接
+      const referralCode = user.referralCode || user.id;
+      const shareUrl = `https://shanhai.app?ref=${referralCode}`;
+      const shareMessage = `🔮 山海灵境 - 探索你的命运之旅\n\n邀请码: ${referralCode}\n使用我的邀请链接注册，你得50积分，我也得50积分！\n\n立即注册: ${shareUrl}`;
       
       // 尝试使用系统分享
       if (await Sharing.isAvailableAsync()) {
@@ -47,15 +49,16 @@ export default function ProfileScreen() {
       } else {
         // 回退到剪贴板
         await Clipboard.setStringAsync(shareMessage);
-        Alert.alert('已复制', '邀请链接已复制到剪贴板，分享给朋友吧！');
+        Alert.alert('已复制', '邀请链接已复制到剪贴板，分享给朋友吧！\n\n你邀请好友注册成功，双方各得50积分！');
       }
     } catch (error) {
       console.error('分享失败:', error);
       // 尝试回退到剪贴板
       try {
-        const shareUrl = `https://shanhai.app?ref=${user.id}`;
+        const referralCode = user.referralCode || user.id;
+        const shareUrl = `https://shanhai.app?ref=${referralCode}`;
         await Clipboard.setStringAsync(shareUrl);
-        Alert.alert('已复制', '链接已复制到剪贴板');
+        Alert.alert('已复制', '链接已复制到剪贴板\n\n邀请成功各得50积分！');
       } catch (e) {
         Alert.alert('分享失败', '请稍后重试');
       }
@@ -489,15 +492,15 @@ export default function ProfileScreen() {
               <View style={styles.shareCardContent}>
                 <Text style={styles.shareIcon}>🎁</Text>
                 <View style={styles.shareInfo}>
-                  <Text style={styles.shareTitle}>邀请好友</Text>
-                  <Text style={styles.shareDesc}>邀请好友注册，双方各得50积分</Text>
+                  <Text style={styles.shareTitle}>邀请好友得积分</Text>
+                  <Text style={styles.shareDesc}>好友注册你得50积分，他/她也得50积分！</Text>
                   {/* 显示用户推荐码 */}
                   {user?.referralCode && (
                     <Text style={styles.referralCode}>我的推荐码: {user.referralCode}</Text>
                   )}
                 </View>
                 <View style={styles.shareButton}>
-                  <Text style={styles.shareButtonText}>{isSharing ? '...' : '分享'}</Text>
+                  <Text style={styles.shareButtonText}>{isSharing ? '...' : '立即邀请'}</Text>
                 </View>
               </View>
             </TouchableOpacity>
