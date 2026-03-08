@@ -46,10 +46,16 @@ export default function RootLayout() {
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const [isReady, setIsReady] = useState(false);
+  const loadUser = useUserStore((state) => state.loadUser);
 
   useEffect(() => {
-    // 延迟一下让 Zustand 初始化完成
-    setTimeout(() => setIsReady(true), 100);
+    // 延迟一下让 Zustand 初始化完成，然后加载用户
+    const init = async () => {
+      setIsReady(true);
+      // 加载用户信息（从 localStorage 恢复登录状态）
+      await loadUser();
+    };
+    init();
   }, []);
 
   if (!isReady) {

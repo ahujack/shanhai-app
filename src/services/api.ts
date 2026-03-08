@@ -22,8 +22,9 @@ if (typeof window !== 'undefined') {
       console.log('[API] 使用 globalAuthToken');
     } else if (typeof localStorage !== 'undefined') {
       // Web 环境使用 localStorage
-      globalAuthToken = localStorage.getItem('shanhai_auth_token');
-      console.log('[API] 从 localStorage 加载 token:', globalAuthToken ? 'exists' : 'null');
+      const stored = localStorage.getItem('shanhai_auth_token');
+      globalAuthToken = stored;
+      console.log('[API] 从 localStorage 初始化 token:', stored ? 'exists' : 'null', 'key: shanhai_auth_token');
     }
   } catch (e) {
     console.log('[API] 读取 token 失败:', e);

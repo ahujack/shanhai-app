@@ -274,6 +274,9 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
     await storage.removeItem(USER_ID_KEY);
     await storage.removeItem(AUTH_TOKEN_KEY);
+    // 清除全局 token
+    globalAuthToken = null;
+    setGlobalAuthToken(null);
     set({ user: null, token: null, chart: null, hasChart: false, dailyFortune: null });
   },
   
