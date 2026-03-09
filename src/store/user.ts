@@ -219,7 +219,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const result = await authApi.login({ email: email || '', code: code || '' });
       console.log('[Login] Code login result:', result);
-        if (result.success && result.token && result.user) {
+      if (result.success && result.token && result.user) {
           // 同步存储到localStorage
           if (typeof localStorage !== 'undefined') {
             localStorage.setItem(USER_ID_KEY, result.user.id);
@@ -227,10 +227,10 @@ export const useUserStore = create<UserState>((set, get) => ({
           }
           // 同步设置全局token
           globalAuthToken = result.token;
-          set({ user: result.user, token: result.token });
-          console.log('[Login] Code login success, user:', result.user);
-          return { success: true, message: '登录成功' };
-        }
+        set({ user: result.user, token: result.token });
+        console.log('[Login] Code login success, user:', result.user);
+        return { success: true, message: '登录成功' };
+      }
       // 返回错误消息，让UI层显示
       return { success: false, message: result.message || '验证码错误或已过期' };
     } catch (e: any) {

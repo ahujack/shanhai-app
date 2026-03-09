@@ -48,7 +48,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   let token: string | null = globalAuthToken;
   if (!token && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
     try {
-      token = localStorage.getItem('shanhai_auth_token');
+        token = localStorage.getItem('shanhai_auth_token');
     } catch (e) {
       // ignore
     }

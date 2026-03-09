@@ -250,6 +250,76 @@ export default function ProfileScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       >
+        {/* 用户信息卡片 - 直接显示 */}
+        {isLoggedIn && user && (
+          <View style={[styles.userInfoCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
+            <View style={styles.userInfoHeader}>
+              <View style={styles.avatarContainer}>
+                {user.avatar ? (
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>头像</Text>
+                  </View>
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Text style={styles.avatarPlaceholderText}>
+                      {user.name?.charAt(0)?.toUpperCase() || '?'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.userInfoContent}>
+                <Text style={styles.userName}>{user.name}</Text>
+                <Text style={styles.userEmail}>{user.email}</Text>
+              </View>
+            </View>
+            {/* 个人信息详情 */}
+            <View style={styles.userDetails}>
+              {user.birthDate && (
+                <View style={styles.userDetailItem}>
+                  <Text style={styles.userDetailLabel}>📅 出生日期</Text>
+                  <Text style={styles.userDetailValue}>{user.birthDate}</Text>
+                </View>
+              )}
+              {user.birthTime && (
+                <View style={styles.userDetailItem}>
+                  <Text style={styles.userDetailLabel}>⏰ 出生时间</Text>
+                  <Text style={styles.userDetailValue}>{user.birthTime}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* 积分和成就卡片 - 直接显示 */}
+        {isLoggedIn && (
+          <View style={[styles.statsCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => router.push('/points')}
+            >
+              <Text style={styles.statValue}>{pointsSummary?.totalPoints || 0}</Text>
+              <Text style={styles.statLabel}>积分</Text>
+            </TouchableOpacity>
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => router.push('/points')}
+            >
+              <Text style={styles.statValue}>{achievements.filter(a => a.unlockedAt).length}</Text>
+              <Text style={styles.statLabel}>成就</Text>
+            </TouchableOpacity>
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <TouchableOpacity style={styles.statItem} onPress={handleCheckIn} disabled={isCheckingIn || checkInStatus?.todayCheckedIn}>
+              <Text style={[styles.statValue, checkInStatus?.todayCheckedIn && { color: '#4CAF50' }]}>
+                {checkInStatus?.todayCheckedIn ? '✓' : '+10'}
+              </Text>
+              <Text style={styles.statLabel}>
+                {checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <Text style={styles.sectionTitle}>🔮 你的命盘</Text>
         
         {/* 八字信息 */}
@@ -706,9 +776,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#161126',
     borderRadius: 20,
     padding: 20,
-    marginBottom: 24,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#F8D05F',
+  },
+  // 积分成就卡片样式
+  statsCard: {
+    backgroundColor: '#161126',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+    paddingVertical: 8,
+  },
+  statValue: {
+    color: '#F8D05F',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    color: '#8D8DAA',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
   },
   userInfoHeader: {
     flexDirection: 'row',
