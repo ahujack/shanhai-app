@@ -27,6 +27,7 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
   const [loginMethod, setLoginMethod] = useState<'password' | 'code'>('password');
   const [isCodeSent, setIsCodeSent] = useState(false);
@@ -364,19 +365,29 @@ export default function LoginScreen() {
           {loginMethod === 'password' && (
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>密码</Text>
-              <TextInput
-                style={[styles.input, passwordError ? styles.inputError : null]}
-                placeholder="请输入密码（至少6位）"
-                placeholderTextColor="#6F6287"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (passwordError) validatePassword(text);
-                }}
-                onBlur={() => password && validatePassword(password)}
-                secureTextEntry
-                editable={!isLoading}
-              />
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[styles.input, passwordError ? styles.inputError : null]}
+                  placeholder="请输入密码（至少6位）"
+                  placeholderTextColor="#6F6287"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (passwordError) validatePassword(text);
+                  }}
+                  onBlur={() => password && validatePassword(password)}
+                  secureTextEntry={!showPassword}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity 
+                  style={styles.showPasswordButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Text style={styles.showPasswordText}>
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               
               {/* 忘记密码 */}
@@ -678,6 +689,19 @@ const styles = StyleSheet.create({
     color: '#F8D05F',
     fontSize: 13,
     fontWeight: '600',
+  },
+  passwordInputContainer: {
+    position: 'relative',
+  },
+  showPasswordButton: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  showPasswordText: {
+    fontSize: 18,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
