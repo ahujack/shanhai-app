@@ -367,7 +367,7 @@ export default function ProfileScreen() {
                     <Text style={styles.referralCode}>我的推荐码: {user.referralCode}</Text>
                   )}
                 </View>
-                <View style={styles.shareButton}>
+                <View style={[styles.shareButton, { backgroundColor: copied ? '#4CAF50' : '#F8D05F' }]}>
                   <Text style={styles.shareButtonText}>{isSharing ? '...' : (copied ? '✅ 已复制' : '📋 复制链接')}</Text>
                 </View>
               </View>
@@ -624,7 +624,7 @@ export default function ProfileScreen() {
                     <Text style={styles.referralCode}>我的推荐码: {user.referralCode}</Text>
                   )}
                 </View>
-                <View style={styles.shareButton}>
+                <View style={[styles.shareButton, { backgroundColor: copied ? '#4CAF50' : '#F8D05F' }]}>
                   <Text style={styles.shareButtonText}>{isSharing ? '...' : (copied ? '✅ 已复制' : '📋 复制链接')}</Text>
                 </View>
               </View>
@@ -1381,7 +1381,7 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
   shareButton: {
-    backgroundColor: copied ? '#4CAF50' : '#F8D05F',
+    backgroundColor: '#F8D05F',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
