@@ -7,7 +7,6 @@ import { useUserStore } from '../../src/store/user';
 import { usePersonaStore } from '../../src/store/persona';
 import { pointsApi, PointsSummary, achievementApi, UserAchievement, AchievementProgress } from '../../src/services/api';
 import * as Clipboard from 'expo-clipboard';
-import * as Sharing from 'expo-sharing';
 
 const colors = theme.dark;
 
@@ -24,6 +23,7 @@ export default function ProfileScreen() {
   const [achievementProgress, setAchievementProgress] = useState<AchievementProgress | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // 分享功能
   const handleShare = async () => {
@@ -40,17 +40,13 @@ export default function ProfileScreen() {
       const shareUrl = `https://shanhai.app?ref=${referralCode}`;
       const shareMessage = `🔮 山海灵境 - 探索你的命运之旅\n\n邀请码: ${referralCode}\n使用我的邀请链接注册，你得50积分，我也得50积分！\n\n立即注册: ${shareUrl}`;
       
-      // 尝试使用系统分享
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(shareUrl, {
-          dialogTitle: '分享山海灵境',
-          mimeType: 'text/plain',
-        });
-      } else {
-        // 回退到剪贴板
-        await Clipboard.setStringAsync(shareMessage);
-        Alert.alert('已复制', '邀请链接已复制到剪贴板，分享给朋友吧！\n\n你邀请好友注册成功，双方各得50积分！');
-      }
+      // 优先使用剪贴板复制
+      await Clipboard.setStringAsync(shareMessage);
+      setCopied(true);
+      Alert.alert('✅ 复制成功', `邀请链接已复制！\n\n${shareUrl}\n\n分享给朋友，你们各得50积分！`);
+      
+      // 2秒后重置复制状态
+      setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('分享失败:', error);
       // 尝试回退到剪贴板
@@ -58,7 +54,7 @@ export default function ProfileScreen() {
         const referralCode = user.referralCode || user.id;
         const shareUrl = `https://shanhai.app?ref=${referralCode}`;
         await Clipboard.setStringAsync(shareUrl);
-        Alert.alert('已复制', '链接已复制到剪贴板\n\n邀请成功各得50积分！');
+        Alert.alert('✅ 复制成功', '链接已复制到剪贴板\n\n邀请成功各得50积分！');
       } catch (e) {
         Alert.alert('分享失败', '请稍后重试');
       }
@@ -372,7 +368,7 @@ export default function ProfileScreen() {
                   )}
                 </View>
                 <View style={styles.shareButton}>
-                  <Text style={styles.shareButtonText}>{isSharing ? '...' : '立即邀请'}</Text>
+                  <Text style={styles.shareButtonText}>{isSharing ? '...' : (copied ? '✅ 已复制' : '📋 复制链接')}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -629,7 +625,7 @@ export default function ProfileScreen() {
                   )}
                 </View>
                 <View style={styles.shareButton}>
-                  <Text style={styles.shareButtonText}>{isSharing ? '...' : '立即邀请'}</Text>
+                  <Text style={styles.shareButtonText}>{isSharing ? '...' : (copied ? '✅ 已复制' : '📋 复制链接')}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -1385,15 +1381,17 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
   shareButton: {
-    backgroundColor: '#F8D05F',
-    paddingHorizontal: 16,
+    backgroundColor: copied ? '#4CAF50' : '#F8D05F',
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 8,
+    minWidth: 90,
+    alignItems: 'center',
   },
   shareButtonText: {
     color: '#1A1328',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   
   // 成就样式
