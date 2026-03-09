@@ -302,11 +302,6 @@ export default function HomeScreen() {
           </View>
           <View style={styles.headerBottom}>
             <Text style={styles.subtitle}>{persona.name}</Text>
-            {user && chart && (
-              <TouchableOpacity onPress={handleShareReading}>
-                <Text style={styles.shareText}>📤 解读分享</Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
 

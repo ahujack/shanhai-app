@@ -16,7 +16,7 @@ export default function PointsMallScreen() {
   const [subscriptionProducts, setSubscriptionProducts] = useState<PaymentProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-  const [stripeConfigured, setStripeConfigured] = useState(true);
+  const [creemConfigured, setCreemConfigured] = useState(true);
   const [pointsSummary, setPointsSummary] = useState<PointsSummary | null>(null);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function PointsMallScreen() {
       ]);
       // 只保留订阅产品
       setSubscriptionProducts(productsData.filter((p: PaymentProduct) => p.type === 'subscription'));
-      setStripeConfigured(statusData.stripeConfigured);
+      setCreemConfigured(statusData.creemConfigured);
       setPointsSummary(pointsData);
     } catch (error) {
       console.error('Failed to load products:', error);
@@ -57,7 +57,7 @@ export default function PointsMallScreen() {
       if (result.mock) {
         Alert.alert(
           '测试模式',
-          `Stripe 未配置，这是一个模拟支付。\n\n产品: ${product.name}\n价格: $${product.price}`,
+          `Creem 未配置，这是一个模拟支付。\n\n产品: ${product.name}\n价格: $${product.price}`,
           [
             { text: '取消', style: 'cancel' },
             {
@@ -195,10 +195,10 @@ export default function PointsMallScreen() {
         })}
       </View>
 
-      {!stripeConfigured && (
+      {!creemConfigured && (
         <View style={styles.warningBanner}>
           <Text style={styles.warningText}>
-            ⚠️ Stripe 未配置，当前为测试模式
+            ⚠️ Creem 未配置，当前为测试模式
           </Text>
         </View>
       )}
