@@ -13,6 +13,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useUserStore } from '../src/store/user';
 
@@ -111,6 +112,8 @@ export default function RegisterScreen() {
     const result = await register(email, password, code, name, referralCode);
 
     if (result?.success) {
+      // 记住协议勾选状态
+      await AsyncStorage.setItem('agreedToTerms', 'true');
       Alert.alert('注册成功', '欢迎加入山海灵境！');
       router.replace('/(tabs)');
     } else {

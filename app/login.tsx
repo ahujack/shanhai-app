@@ -13,6 +13,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useUserStore } from '../src/store/user';
 import { signInWithGoogle } from '../src/services/auth';
@@ -57,6 +58,21 @@ export default function LoginScreen() {
       return () => clearTimeout(timer);
     }
   }, [countdown, isCodeSent]);
+
+  // 检查用户之前是否已经同意过协议
+  React.useEffect(() => {
+    const checkAgreedStatus = async () => {
+      try {
+        const agreed = await AsyncStorage.getItem('agreedToTerms');
+        if (agreed === 'true') {
+          setAgreedToTerms(true);
+        }
+      } catch (e) {
+        console.error('检查协议状态失败:', e);
+      }
+    };
+    checkAgreedStatus();
+  }, []);
 
   // 邮箱验证
   const validateEmail = (value: string): boolean => {
@@ -139,7 +155,9 @@ export default function LoginScreen() {
       const result = await loginWithPassword(email, password);
       if (result.success) {
         showToast('登录成功，欢迎回来！', 'success');
-      setTimeout(() => router.replace('/(tabs)/profile'), 500);
+        // 记住协议勾选状态
+        await AsyncStorage.setItem('agreedToTerms', 'true');
+        setTimeout(() => router.replace('/(tabs)'), 500);
       } else {
               showToast(result.message || '登录失败', 'error');
       }
@@ -152,7 +170,9 @@ export default function LoginScreen() {
       const result = await loginWithCode(email, code);
       if (result.success) {
         showToast('登录成功，欢迎回来！', 'success');
-      setTimeout(() => router.replace('/(tabs)/profile'), 500);
+        // 记住协议勾选状态
+        await AsyncStorage.setItem('agreedToTerms', 'true');
+        setTimeout(() => router.replace('/(tabs)'), 500);
       } else {
               showToast(result.message || '登录失败', 'error');
       }
@@ -190,7 +210,9 @@ export default function LoginScreen() {
         const result = await loginWithSocial('google', userInfo.idToken);
         if (result.success) {
           showToast('登录成功，欢迎回来！', 'success');
-      setTimeout(() => router.replace('/(tabs)/profile'), 500);
+          // 记住协议勾选状态
+          await AsyncStorage.setItem('agreedToTerms', 'true');
+          setTimeout(() => router.replace('/(tabs)'), 500);
         } else {
                 showToast(result.message || '登录失败', 'error');
         }

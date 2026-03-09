@@ -250,14 +250,14 @@ export default function ProfileScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       >
-        {/* 用户信息卡片 - 直接显示 */}
+        {/* 用户信息卡片 - 完整显示 */}
         {isLoggedIn && user && (
           <View style={[styles.userInfoCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
             <View style={styles.userInfoHeader}>
               <View style={styles.avatarContainer}>
                 {user.avatar ? (
                   <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>头像</Text>
+                    <Text style={styles.avatarEmoji}>{user.avatar}</Text>
                   </View>
                 ) : (
                   <View style={styles.avatarPlaceholder}>
@@ -270,6 +270,11 @@ export default function ProfileScreen() {
               <View style={styles.userInfoContent}>
                 <Text style={styles.userName}>{user.name}</Text>
                 <Text style={styles.userEmail}>{user.email}</Text>
+                <View style={styles.membershipBadge}>
+                  <Text style={styles.membershipText}>
+                    {user.membership === 'vip' ? 'VIP会员' : user.membership === 'premium' ? '高级会员' : '免费用户'}
+                  </Text>
+                </View>
               </View>
             </View>
             {/* 个人信息详情 */}
@@ -286,11 +291,19 @@ export default function ProfileScreen() {
                   <Text style={styles.userDetailValue}>{user.birthTime}</Text>
                 </View>
               )}
+              {user.gender && (
+                <View style={styles.userDetailItem}>
+                  <Text style={styles.userDetailLabel}>⚧ 性别</Text>
+                  <Text style={styles.userDetailValue}>
+                    {user.gender === 'male' ? '男' : user.gender === 'female' ? '女' : '其他'}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         )}
 
-        {/* 积分和成就卡片 - 直接显示 */}
+        {/* 积分和成就卡片 - 完整显示 */}
         {isLoggedIn && (
           <View style={[styles.statsCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
             <TouchableOpacity 
@@ -316,6 +329,52 @@ export default function ProfileScreen() {
               <Text style={styles.statLabel}>
                 {checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
               </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* 签到和邀请卡片 */}
+        {isLoggedIn && (
+          <View style={[styles.pointsAndCheckin, { marginBottom: 16 }]}>
+            {/* 签到状态 */}
+            <TouchableOpacity 
+              style={[styles.checkinStatusCard, checkInStatus?.todayCheckedIn && styles.checkinStatusCardDisabled]} 
+              onPress={handleCheckIn}
+              disabled={isCheckingIn || checkInStatus?.todayCheckedIn}
+            >
+              <View style={styles.checkinStatusHeader}>
+                <Text style={styles.checkinStatusIcon}>
+                  {checkInStatus?.todayCheckedIn ? '✅' : isCheckingIn ? '⏳' : '📝'}
+                </Text>
+                <View style={styles.checkinStatusInfo}>
+                  <Text style={styles.checkinStatusValue}>
+                    {checkInStatus?.todayCheckedIn ? '今日已签到' : isCheckingIn ? '签到中...' : '签到领积分'}
+                  </Text>
+                  <Text style={styles.checkinStatusLabel}>
+                    连续 {checkInStatus?.currentStreak || 0} 天
+                  </Text>
+                </View>
+                <View style={styles.checkinPointsBadge}>
+                  <Text style={styles.checkinPointsText}>+10</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+            
+            {/* 分享邀请 */}
+            <TouchableOpacity style={styles.shareCard} onPress={handleShare} disabled={isSharing}>
+              <View style={styles.shareCardContent}>
+                <Text style={styles.shareIcon}>🎁</Text>
+                <View style={styles.shareInfo}>
+                  <Text style={styles.shareTitle}>邀请好友得积分</Text>
+                  <Text style={styles.shareDesc}>好友注册你得50积分，他/她也得50积分！</Text>
+                  {user?.referralCode && (
+                    <Text style={styles.referralCode}>我的推荐码: {user.referralCode}</Text>
+                  )}
+                </View>
+                <View style={styles.shareButton}>
+                  <Text style={styles.shareButtonText}>{isSharing ? '...' : '立即邀请'}</Text>
+                </View>
+              </View>
             </TouchableOpacity>
           </View>
         )}
@@ -451,7 +510,7 @@ export default function ProfileScreen() {
             <View style={styles.avatarContainer}>
               {user.avatar ? (
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>头像</Text>
+                  <Text style={styles.avatarEmoji}>{user.avatar}</Text>
                 </View>
               ) : (
                 <View style={styles.avatarPlaceholder}>
@@ -827,6 +886,9 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#F8D05F',
     fontSize: 14,
+  },
+  avatarEmoji: {
+    fontSize: 36,
   },
   avatarPlaceholder: {
     width: 70,
