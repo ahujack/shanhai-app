@@ -229,6 +229,41 @@ export default function HomeScreen() {
     }
   };
 
+  // 解读分享功能 - 分享用户的命盘解读
+  const handleShareReading = async () => {
+    if (!user || !chart) {
+      showToast('请先生成命盘', 'error');
+      return;
+    }
+    
+    let shareText = '🔮 我的山海灵境命盘解读\n\n';
+    
+    // 添加八字信息
+    shareText += `📅 八字：${chart.yearGanZhi} ${chart.monthGanZhi} ${chart.dayGanZhi} ${chart.hourGanZhi}\n\n`;
+    
+    // 添加今日运势
+    try {
+      const fortune = await fortuneApi.getDaily(user.id);
+      shareText += `✨ 今日运势：${fortune.poem.title}\n`;
+      shareText += `📝 ${fortune.day}\n`;
+      shareText += `💫 幸运数字：${fortune.lucky.number} | 幸运颜色：${fortune.lucky.color}\n\n`;
+    } catch (e) {
+      // ignore
+    }
+    
+    shareText += '🌟 加入我，一起探索命运的奥秘！\n';
+    shareText += '🔗 https://shanhai.app';
+    
+    try {
+      await Share.share({
+        message: shareText,
+        title: '山海灵境 - 命盘解读分享',
+      });
+    } catch (error) {
+      console.error('分享失败:', error);
+    }
+  };
+
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1, backgroundColor: colors.background }}
