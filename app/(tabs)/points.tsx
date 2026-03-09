@@ -13,7 +13,7 @@ export default function PointsMallScreen() {
   const router = useRouter();
   const { user, loadUser } = useUserStore();
 
-  const [products, setProducts] = useState<PaymentProduct[]>([]);
+  const [subscriptionProducts, setSubscriptionProducts] = useState<PaymentProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [stripeConfigured, setStripeConfigured] = useState(true);
@@ -31,12 +31,12 @@ export default function PointsMallScreen() {
         paymentApi.getStatus(),
         user ? pointsApi.getSummary().catch(() => null) : Promise.resolve(null),
       ]);
-      setProducts(productsData);
+      // 只保留订阅产品
+      setSubscriptionProducts(productsData.filter((p: PaymentProduct) => p.type === 'subscription'));
       setStripeConfigured(statusData.stripeConfigured);
       setPointsSummary(pointsData);
     } catch (error) {
       console.error('Failed to load products:', error);
-      Alert.alert('错误', '无法加载产品列表');
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,6 @@ export default function PointsMallScreen() {
       const result: CheckoutResult = await paymentApi.createCheckout(product.id);
       
       if (result.mock) {
-        // 模拟支付（测试用）
         Alert.alert(
           '测试模式',
           `Stripe 未配置，这是一个模拟支付。\n\n产品: ${product.name}\n价格: $${product.price}`,
@@ -66,7 +65,7 @@ export default function PointsMallScreen() {
               onPress: async () => {
                 try {
                   await paymentApi.mockPayment(result.paymentId);
-                  Alert.alert('成功', '积分已到账！');
+                  Alert.alert('成功', 'VIP会员已开通！');
                   await loadUser();
                 } catch (e) {
                   Alert.alert('错误', '支付处理失败');
@@ -76,7 +75,6 @@ export default function PointsMallScreen() {
           ]
         );
       } else if (result.url) {
-        // 跳转到 Stripe 支付页面
         const supported = await Linking.canOpenURL(result.url);
         if (supported) {
           await Linking.openURL(result.url);
@@ -92,63 +90,6 @@ export default function PointsMallScreen() {
     }
   };
 
-  // 分离积分产品和订阅产品
-  const pointsProducts = products.filter(p => p.type === 'points');
-  const subscriptionProducts = products.filter(p => p.type === 'subscription');
-
-  const renderProductCard = (product: PaymentProduct) => {
-    const isPurchasing = purchasing === product.id;
-    
-    return (
-      <TouchableOpacity
-        key={product.id}
-        style={styles.productCard}
-        onPress={() => handlePurchase(product)}
-        disabled={isPurchasing || !user}
-      >
-        <View style={styles.productHeader}>
-          <Text style={styles.productName}>{product.name}</Text>
-          <Text style={styles.productPrice}>${product.price}</Text>
-        </View>
-        
-        <Text style={styles.productDescription}>
-          {product.description}
-        </Text>
-        
-        {product.type === 'points' && (
-          <View style={styles.pointsBadge}>
-            <Text style={styles.pointsText}>+{product.points} 积分</Text>
-          </View>
-        )}
-        
-        {product.type === 'subscription' && product.features && (
-          <View style={styles.featuresList}>
-            {JSON.parse(product.features).map((feature: string, index: number) => (
-              <View key={index} style={styles.featureItem}>
-                <Text style={styles.featureIcon}>✓</Text>
-                <Text style={styles.featureText}>{feature}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-        
-        <TouchableOpacity
-          style={[styles.buyButton, !user && styles.buyButtonDisabled]}
-          onPress={() => handlePurchase(product)}
-          disabled={isPurchasing || !user}
-        >
-          {isPurchasing ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.buyButtonText}>
-              {user ? '购买' : '请先登录'}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  };
-
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent, { paddingTop: insets.top }]}>
@@ -157,22 +98,101 @@ export default function PointsMallScreen() {
     );
   }
 
+  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+
   return (
     <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 用户积分卡片 */}
-      <View style={styles.headerCard}>
-        <View style={styles.headerCardContent}>
-          <View>
-            <Text style={styles.headerCardLabel}>我的积分</Text>
-            <Text style={styles.headerCardValue}>{pointsSummary?.availablePoints || 0}</Text>
-          </View>
-          <View style={styles.headerCardDivider} />
-          <View>
-            <Text style={styles.headerCardLabel}>总积分</Text>
-            <Text style={styles.headerCardValue}>{pointsSummary?.totalPoints || 0}</Text>
+      {/* VIP状态卡片 */}
+      <View style={[styles.vipCard, isVip && styles.vipCardActive]}>
+        <View style={styles.vipCardContent}>
+          <Text style={styles.vipIcon}>👑</Text>
+          <View style={styles.vipInfo}>
+            <Text style={styles.vipTitle}>
+              {isVip ? 'VIP 会员' : '普通用户'}
+            </Text>
+            <Text style={styles.vipSubtitle}>
+              {isVip ? '有效期至：永久' : '开通VIP，解锁全部功能'}
+            </Text>
           </View>
         </View>
-        <Text style={styles.headerCardHint}>积分可用于解锁高级功能、查看详细解读等</Text>
+        {isVip && (
+          <View style={styles.vipBadge}>
+            <Text style={styles.vipBadgeText}>已开通</Text>
+          </View>
+        )}
+      </View>
+
+      {/* 积分说明 */}
+      <View style={styles.pointsCard}>
+        <Text style={styles.pointsTitle}>📝 积分获取方式</Text>
+        <View style={styles.pointsList}>
+          <View style={styles.pointItem}>
+            <Text style={styles.pointIcon}>📅</Text>
+            <Text style={styles.pointText}>每日签到 +10 积分</Text>
+          </View>
+          <View style={styles.pointItem}>
+            <Text style={styles.pointIcon}>📤</Text>
+            <Text style={styles.pointText}>分享解读 +5 积分</Text>
+          </View>
+          <View style={styles.pointItem}>
+            <Text style={styles.pointIcon}>👥</Text>
+            <Text style={styles.pointText}>邀请好友 +50 积分</Text>
+          </View>
+        </View>
+        <Text style={styles.pointsUsage}>💡 积分可用于解锁高级功能、查看详细解读等</Text>
+      </View>
+
+      {/* VIP 订阅 */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>⭐ VIP 会员</Text>
+        <Text style={styles.sectionSubtitle}>开通VIP，享无限次AI解读</Text>
+        
+        {subscriptionProducts.map((product) => {
+          const isPurchasing = purchasing === product.id;
+          const features = product.features ? JSON.parse(product.features) : [];
+          
+          return (
+            <TouchableOpacity
+              key={product.id}
+              style={styles.vipProductCard}
+              onPress={() => handlePurchase(product)}
+              disabled={isPurchasing || !user || isVip}
+            >
+              <View style={styles.vipProductHeader}>
+                <Text style={styles.vipProductName}>{product.name}</Text>
+                <Text style={styles.vipProductPrice}>${product.price}</Text>
+              </View>
+              
+              <Text style={styles.vipProductDesc}>{product.description}</Text>
+              
+              <View style={styles.featuresList}>
+                {features.map((feature: string, index: number) => (
+                  <View key={index} style={styles.featureItem}>
+                    <Text style={styles.featureIcon}>✓</Text>
+                    <Text style={styles.featureText}>{feature}</Text>
+                  </View>
+                ))}
+              </View>
+              
+              <TouchableOpacity
+                style={[
+                  styles.subscribeButton, 
+                  (!user || isVip) && styles.subscribeButtonDisabled
+                ]}
+                onPress={() => handlePurchase(product)}
+                disabled={isPurchasing || !user || isVip}
+              >
+                {isPurchasing ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.subscribeButtonText}>
+                    {!user ? '请先登录' : isVip ? '已是VIP' : '立即订阅'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {!stripeConfigured && (
@@ -183,27 +203,7 @@ export default function PointsMallScreen() {
         </View>
       )}
 
-      {/* 积分包 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>💎 积分包</Text>
-        <View style={styles.productsGrid}>
-          {pointsProducts.map(renderProductCard)}
-        </View>
-      </View>
-
-      {/* VIP 订阅 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>⭐ VIP 会员</Text>
-        <View style={styles.productsGrid}>
-          {subscriptionProducts.map(renderProductCard)}
-        </View>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          支付完成后，积分将自动添加到您的账户
-        </Text>
-      </View>
+      <View style={styles.bottomPadding} />
     </ScrollView>
   );
 }
@@ -211,158 +211,182 @@ export default function PointsMallScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0716',
+    backgroundColor: '#1A1A2E',
   },
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerCard: {
-    backgroundColor: '#1A1328',
+  vipCard: {
     margin: 16,
-    borderRadius: 16,
+    marginBottom: 8,
     padding: 20,
+    backgroundColor: '#2D2D44',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#322243',
+    borderColor: '#3D3D5C',
   },
-  headerCardContent: {
+  vipCardActive: {
+    backgroundColor: 'linear-gradient(135deg, #4C2F80 0%, #2D1B5E 100%)',
+    borderColor: '#F8D05F',
+  },
+  vipCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
   },
-  headerCardDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#322243',
+  vipIcon: {
+    fontSize: 40,
+    marginRight: 16,
   },
-  headerCardLabel: {
-    color: '#8D8DAA',
-    fontSize: 13,
-    textAlign: 'center',
+  vipInfo: {
+    flex: 1,
   },
-  headerCardValue: {
-    color: '#F8D05F',
-    fontSize: 32,
+  vipTitle: {
+    fontSize: 22,
     fontWeight: 'bold',
-    textAlign: 'center',
+    color: '#F8D05F',
+  },
+  vipSubtitle: {
+    fontSize: 14,
+    color: '#8D8DAA',
     marginTop: 4,
   },
-  headerCardHint: {
-    color: '#6F6287',
+  vipBadge: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+  },
+  vipBadgeText: {
+    color: '#fff',
     fontSize: 12,
-    textAlign: 'center',
-    marginTop: 16,
+    fontWeight: '600',
   },
-  warningBanner: {
-    backgroundColor: '#ff9800',
-    padding: 10,
-    marginHorizontal: 20,
-    borderRadius: 8,
-    marginBottom: 10,
+  pointsCard: {
+    margin: 16,
+    marginTop: 8,
+    padding: 16,
+    backgroundColor: '#16213E',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2D2D44',
   },
-  warningText: {
-    color: '#000',
+  pointsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F7F6F0',
+    marginBottom: 12,
+  },
+  pointsList: {
+    gap: 10,
+  },
+  pointItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pointIcon: {
+    fontSize: 16,
+    width: 28,
+  },
+  pointText: {
+    fontSize: 14,
+    color: '#B2A0FF',
+  },
+  pointsUsage: {
+    marginTop: 12,
+    fontSize: 12,
+    color: '#8D8DAA',
     textAlign: 'center',
-    fontWeight: 'bold',
   },
   section: {
-    padding: 20,
-    paddingTop: 10,
+    padding: 16,
+    paddingTop: 8,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 15,
+    color: '#F8D05F',
+    marginBottom: 4,
   },
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#8D8DAA',
+    marginBottom: 16,
   },
-  productCard: {
-    width: '48%',
-    backgroundColor: '#1A1328',
+  vipProductCard: {
+    backgroundColor: '#16213E',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 15,
+    padding: 20,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#2F2342',
+    borderColor: '#3D3D5C',
   },
-  productHeader: {
+  vipProductHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    flex: 1,
-  },
-  productPrice: {
+  vipProductName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#4ade80',
+    color: '#F7F6F0',
   },
-  productDescription: {
-    fontSize: 12,
-    color: '#a0a0a0',
-    marginBottom: 10,
-    minHeight: 36,
-  },
-  pointsBadge: {
-    backgroundColor: '#4ade80',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
-    marginBottom: 10,
-  },
-  pointsText: {
-    color: '#000',
+  vipProductPrice: {
+    fontSize: 24,
     fontWeight: 'bold',
-    fontSize: 12,
+    color: '#F8D05F',
+  },
+  vipProductDesc: {
+    fontSize: 14,
+    color: '#8D8DAA',
+    marginBottom: 16,
   },
   featuresList: {
-    marginBottom: 10,
+    gap: 8,
+    marginBottom: 20,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
   },
   featureIcon: {
-    color: '#4ade80',
-    marginRight: 6,
-    fontSize: 12,
+    color: '#4CAF50',
+    fontSize: 14,
+    marginRight: 8,
   },
   featureText: {
-    color: '#a0a0a0',
-    fontSize: 11,
+    fontSize: 14,
+    color: '#B2A0FF',
   },
-  buyButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 8,
-    paddingVertical: 10,
+  subscribeButton: {
+    backgroundColor: '#F8D05F',
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
   },
-  buyButtonDisabled: {
-    backgroundColor: '#666',
+  subscribeButtonDisabled: {
+    backgroundColor: '#3D3D5C',
   },
-  buyButtonText: {
+  subscribeButtonText: {
+    color: '#1A1A2E',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  warningBanner: {
+    margin: 16,
+    padding: 12,
+    backgroundColor: '#FF9800',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  warningText: {
     color: '#fff',
-    fontWeight: 'bold',
     fontSize: 14,
   },
-  footer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  footerText: {
-    color: '#666',
-    fontSize: 12,
-    textAlign: 'center',
+  bottomPadding: {
+    height: 40,
   },
 });
