@@ -41,30 +41,77 @@ export const useChatStore = create<ChatState>((set, get) => ({
       content: message,
       timestamp: new Date(),
     };
-    
+
     set(state => ({
       messages: [...state.messages, userMessage],
       isLoading: true,
     }));
-    
-    try {
-      const recentContext = get()
-        .messages
-        .slice(-8)
-        .map((m) => `${m.role === 'user' ? '用户' : '助手'}：${m.content}`);
 
-      const dto: AgentChatDto = {
-        message,
-        personaId,
-        context: recentContext,
-        userId,
-        mood: mood as any,
-      };
-      
+    const recentContext = get()
+      .messages
+      .slice(-8)
+      .map((m) => `${m.role === 'user' ? '用户' : '助手'}：${m.content}`);
+
+    const dto: AgentChatDto = {
+      message,
+      personaId,
+      context: recentContext,
+      userId,
+      mood: mood as any,
+    };
+
+    const assistantId = `assistant_${Date.now()}`;
+    const placeholderMessage: ChatMessage = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    };
+    set(state => ({
+      messages: [...state.messages, placeholderMessage],
+    }));
+
+    try {
+      try {
+        const response = await agentApi.chatStream(dto, (chunk) => {
+          set((state) => {
+            const msgs = [...state.messages];
+            const idx = msgs.findIndex((m) => m.id === assistantId);
+            if (idx >= 0) {
+              msgs[idx] = { ...msgs[idx], content: msgs[idx].content + chunk };
+            }
+            return { messages: msgs };
+          });
+        });
+        set((state) => {
+          const msgs = [...state.messages];
+          const idx = msgs.findIndex((m) => m.id === assistantId);
+          if (idx >= 0) {
+            msgs[idx] = {
+              ...msgs[idx],
+              content: response.reply,
+              intent: response.intent,
+              artifacts: response.artifacts as any,
+              actions: response.actions,
+            };
+          }
+          return {
+            messages: msgs,
+            isLoading: false,
+            currentIntent: response.intent,
+          };
+        });
+        return;
+      } catch (streamErr) {
+        console.warn('流式请求失败，回退到普通请求', streamErr);
+      }
+
+      set((state) => ({
+        messages: state.messages.filter((m) => m.id !== assistantId),
+      }));
       const response = await agentApi.chat(dto);
-      
       const assistantMessage: ChatMessage = {
-        id: `assistant_${Date.now()}`,
+        id: assistantId,
         role: 'assistant',
         content: response.reply,
         timestamp: new Date(),
@@ -72,8 +119,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         artifacts: response.artifacts as any,
         actions: response.actions,
       };
-      
-      set(state => ({
+      set((state) => ({
         messages: [...state.messages, assistantMessage],
         isLoading: false,
         currentIntent: response.intent,
@@ -81,17 +127,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } catch (error) {
       console.error('发送消息失败:', error);
       set({ isLoading: false });
-      
-      // 添加错误提示
-      const errorMessage: ChatMessage = {
-        id: `error_${Date.now()}`,
-        role: 'assistant',
-        content: '抱歉，连接出现问题。请稍后再试。',
-        timestamp: new Date(),
-      };
-      set(state => ({
-        messages: [...state.messages, errorMessage],
-      }));
+
+      set((state) => {
+        const msgs = [...state.messages];
+        const idx = msgs.findIndex((m) => m.id === assistantId);
+        if (idx >= 0) {
+          msgs[idx] = {
+            ...msgs[idx],
+            content: '抱歉，连接出现问题。请稍后再试。',
+          };
+        } else {
+          msgs.push({
+            id: `error_${Date.now()}`,
+            role: 'assistant',
+            content: '抱歉，连接出现问题。请稍后再试。',
+            timestamp: new Date(),
+          });
+        }
+        return { messages: msgs };
+      });
     }
   },
   

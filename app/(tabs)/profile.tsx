@@ -287,6 +287,12 @@ export default function ProfileScreen() {
         {isLoggedIn && user && (
           <View style={[styles.userInfoCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
             <View style={styles.userInfoHeader}>
+              <TouchableOpacity
+                style={[styles.logoutLinkHeader, Platform.OS === 'web' && { cursor: 'pointer' }]}
+                onPress={handleLogout}
+              >
+                <Text style={styles.logoutLinkHeaderText}>退出登录</Text>
+              </TouchableOpacity>
               <View style={styles.avatarContainer}>
                 {user.avatar ? (
                   <View style={styles.avatar}>
@@ -552,6 +558,19 @@ export default function ProfileScreen() {
         <TouchableOpacity style={styles.editButton} onPress={() => setStep('input')}>
           <Text style={styles.editButtonText}>修改信息</Text>
         </TouchableOpacity>
+
+        {/* 退出登录 - 命盘视图也显示 */}
+        {isLoggedIn && (
+          <View style={styles.logoutSection}>
+            <Text style={styles.logoutSectionTitle}>账户安全</Text>
+            <TouchableOpacity
+              style={[styles.logoutButtonBottom, Platform.OS === 'web' && { cursor: 'pointer' }]}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutButtonBottomText}>退出登录</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     );
   }
@@ -576,6 +595,12 @@ export default function ProfileScreen() {
       {isLoggedIn && user && (
         <View style={[styles.userInfoCard, { backgroundColor: colors.surface }]}>
           <View style={styles.userInfoHeader}>
+            <TouchableOpacity
+              style={[styles.logoutLinkHeader, Platform.OS === 'web' && { cursor: 'pointer' }]}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutLinkHeaderText}>退出登录</Text>
+            </TouchableOpacity>
             <View style={styles.avatarContainer}>
               {user.avatar ? (
                 <View style={styles.avatar}>
@@ -1030,6 +1055,19 @@ const styles = StyleSheet.create({
   userInfoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    position: 'relative',
+  },
+  logoutLinkHeader: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  logoutLinkHeaderText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontWeight: '500',
   },
   avatarContainer: {
     marginRight: 16,

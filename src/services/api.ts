@@ -544,6 +544,62 @@ export const agentApi = {
       method: 'POST',
       body: JSON.stringify(dto),
     }),
+  /** 流式聊天，onChunk 收到每个文本片段，返回完整 AgentResponse */
+  chatStream: async (
+    dto: AgentChatDto,
+    onChunk: (content: string) => void,
+  ): Promise<AgentResponse> => {
+    const token =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('shanhai_auth_token') : null;
+    const url = `${API_BASE_URL}/agent/chat-stream`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(dto),
+    });
+    if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error('不支持流式响应');
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let result: AgentResponse | null = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const parsed = JSON.parse(line.slice(6));
+            if (parsed.type === 'chunk' && parsed.content) {
+              onChunk(parsed.content);
+            } else if (parsed.type === 'done') {
+              result = {
+                persona: parsed.persona,
+                intent: parsed.intent,
+                reply: parsed.reply,
+                actions: parsed.actions || [],
+                artifacts: parsed.artifacts || {},
+                hasChart: parsed.hasChart || false,
+              };
+            } else if (parsed.type === 'error') {
+              throw new Error(parsed.message || '流式请求失败');
+            }
+          } catch (e) {
+            if (e instanceof Error && e.message.includes('流式请求')) throw e;
+            // ignore parse errors for non-JSON lines
+          }
+        }
+      }
+    }
+    if (!result) throw new Error('未收到完整响应');
+    return result;
+  },
 };
 
 // ========== 签到 API ==========
