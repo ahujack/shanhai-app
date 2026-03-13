@@ -218,18 +218,14 @@ export default function HomeScreen() {
     }
   };
 
-  // 处理测字
-  const handleZiAnalyze = () => {
-    setShowZiNudge(false);
-    setShowZiModal(false);
-    setInputText(`帮我测字：${detectedZi}`);
-  };
-
   // 跳转到测字页面
   const goToZiPage = () => {
     setShowZiNudge(false);
     setShowZiModal(false);
-    router.push('/(tabs)/zi');
+    router.push({
+      pathname: '/(tabs)/zi',
+      params: detectedZi ? { prefillZi: detectedZi, fromChat: '1' } : { fromChat: '1' },
+    });
   };
 
   // 跳转到占卜页面
@@ -617,20 +613,14 @@ export default function HomeScreen() {
           <View style={styles.ziModalContent}>
             <Text style={styles.ziModalTitle}>检测到汉字</Text>
             <Text style={styles.ziModalZi}>{detectedZi}</Text>
-            <Text style={styles.ziModalHint}>是否对此字进行测字分析？</Text>
+            <Text style={styles.ziModalHint}>建议先静心想着这件事，再进入测字页面书写，会更聚焦。</Text>
             
             <View style={styles.ziModalButtons}>
               <TouchableOpacity 
                 style={styles.ziModalButton}
-                onPress={handleZiAnalyze}
-              >
-                <Text style={styles.ziModalButtonText}>在对话中测字</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.ziModalButton, styles.ziModalButtonSecondary]}
                 onPress={goToZiPage}
               >
-                <Text style={[styles.ziModalButtonText, styles.ziModalButtonTextSecondary]}>进入测字页面</Text>
+                <Text style={styles.ziModalButtonText}>进入测字页面</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.ziModalButton, styles.ziModalButtonCancel]}
@@ -730,9 +720,17 @@ function ChatBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
   const router = useRouter();
   const { setLastReading } = useDivinationStore();
+  const extractFirstZi = (text?: string): string | undefined => {
+    if (!text) return undefined;
+    const match = text.match(/[\u4e00-\u9fa5]/);
+    return match?.[0];
+  };
 
   const openZiDetail = () => {
-    const zi = message.artifacts?.zi?.zi?.zi;
+    const ziFromFullResult = message.artifacts?.zi?.zi?.zi;
+    const ziFromSuggestion = (message.artifacts as any)?.ziSuggestion?.zi;
+    const ziFromContent = extractFirstZi(message.content);
+    const zi = ziFromFullResult || ziFromSuggestion || ziFromContent;
     router.push({
       pathname: '/(tabs)/zi',
       params: zi ? { prefillZi: zi, fromChat: '1' } : { fromChat: '1' },
@@ -804,7 +802,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
         )}
 
         {/* 测字结果 */}
-        {message.artifacts?.zi && (
+        {message.artifacts?.zi?.zi?.zi && Array.isArray(message.artifacts?.zi?.coldReadings) && (
           <TouchableOpacity style={styles.artifactCard} onPress={openZiDetail}>
             <Text style={styles.artifactTitle}>✍️ 测字</Text>
             <Text style={styles.artifactText}>

@@ -26,10 +26,13 @@ export default function ZiScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ prefillZi?: string; fromChat?: string }>();
+  const fromChat = (Array.isArray(params.fromChat) ? params.fromChat[0] : params.fromChat) === '1';
   const [inputZi, setInputZi] = useState('');
   const [result, setResult] = useState<ZiResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [handwritingStage, setHandwritingStage] = useState<'idle' | 'recognizing' | 'analyzing'>('idle');
+  const [ritualReady, setRitualReady] = useState(false);
+  const [ritualCountdown, setRitualCountdown] = useState(0);
   const [showColdReading, setShowColdReading] = useState(true);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
@@ -193,6 +196,27 @@ export default function ZiScreen() {
     AsyncStorage.setItem(ziStateStorageKey, JSON.stringify(payload)).catch(() => null);
   }, [ziStateStorageKey, inputZi, result, selectedAspect, customAspect, isHandwritingMode, showColdReading]);
 
+  React.useEffect(() => {
+    if (!isHandwritingMode) return;
+    setRitualReady(false);
+    setRitualCountdown(0);
+  }, [isHandwritingMode]);
+
+  React.useEffect(() => {
+    if (ritualCountdown <= 0) return;
+    const timer = setTimeout(() => {
+      setRitualCountdown((prev) => {
+        const next = prev - 1;
+        if (next <= 0) {
+          setRitualReady(true);
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [ritualCountdown]);
+
   // 打字模式测字
   const handleAnalyze = async () => {
     if (!inputZi.trim()) {
@@ -204,6 +228,10 @@ export default function ZiScreen() {
 
   // 手写模式识别并测字
   const handleHandwritingRecognize = async (svgString: string) => {
+    if (!ritualReady) {
+      Alert.alert('提示', '先做3秒静心，再开始写字（也可以点击“跳过，直接写字”）。');
+      return;
+    }
     console.log('开始手写识别，SVG长度:', svgString.length);
     setIsLoading(true);
     setHandwritingStage('recognizing');
@@ -227,6 +255,17 @@ export default function ZiScreen() {
       setHandwritingStage('idle');
       setIsLoading(false);
     }
+  };
+
+  const startRitualCountdown = () => {
+    if (isLoading) return;
+    setRitualReady(false);
+    setRitualCountdown(3);
+  };
+
+  const skipRitual = () => {
+    setRitualCountdown(0);
+    setRitualReady(true);
   };
 
   const getWuxingColor = (wuxing: string) => {
@@ -337,6 +376,12 @@ export default function ZiScreen() {
       : handwritingStage === 'analyzing'
       ? '解读中（2/2）'
       : '';
+  const ritualBreathHint =
+    ritualCountdown <= 0
+      ? '准备好了就落笔。'
+      : ritualCountdown >= 2
+      ? `吸气... ${ritualCountdown}`
+      : '呼气... 1';
   
   // 点击继续聊聊，AI自动发送一个问题，等待用户回答
   const handleFollowUpQuestion = async (_question: string) => {
@@ -409,6 +454,15 @@ export default function ZiScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {fromChat && (
+          <View style={styles.ritualHintCard}>
+            <Text style={styles.ritualHintTitle}>🕯️ 测字前小仪式</Text>
+            <Text style={styles.ritualHintText}>
+              先闭眼静心10秒，只想着你最在意的这件事，再写下一个字。越聚焦，解读越贴近你当下的真实状态。
+            </Text>
+          </View>
+        )}
+
         {/* 输入模式切换 */}
         <View style={styles.modeSwitchRow}>
           <TouchableOpacity
@@ -507,11 +561,44 @@ export default function ZiScreen() {
           {isHandwritingMode ? (
             // 手写模式
             <View style={styles.handwritingSection}>
-              <HandwritingCanvas 
-                onRecognize={handleHandwritingRecognize}
-                isRecognizing={isLoading}
-                wuxing={result?.zi?.wuxing}
-              />
+              {!ritualReady && (
+                <View style={styles.ritualCountdownCard}>
+                  <Text style={styles.ritualCountdownTitle}>🫧 写字前先静心</Text>
+                  <Text style={styles.ritualCountdownText}>
+                    把注意力放在你此刻最想问的一件事上，再落笔，解读会更聚焦。
+                  </Text>
+                  {ritualCountdown > 0 && (
+                    <Text style={styles.ritualBreathHint}>{ritualBreathHint}</Text>
+                  )}
+                  <View style={styles.ritualCountdownActions}>
+                    <TouchableOpacity
+                      style={[
+                        styles.ritualCountdownPrimary,
+                        ritualCountdown > 0 && styles.ritualCountdownPrimaryDisabled,
+                      ]}
+                      onPress={startRitualCountdown}
+                      disabled={ritualCountdown > 0}
+                    >
+                      <Text style={styles.ritualCountdownPrimaryText}>
+                        {ritualCountdown > 0 ? `静心中 ${ritualCountdown}s` : '开始3秒静心'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.ritualCountdownSecondary} onPress={skipRitual}>
+                      <Text style={styles.ritualCountdownSecondaryText}>跳过，直接写字</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              <View
+                style={[styles.handwritingCanvasWrap, !ritualReady && styles.handwritingCanvasWrapLocked]}
+                pointerEvents={ritualReady ? 'auto' : 'none'}
+              >
+                <HandwritingCanvas 
+                  onRecognize={handleHandwritingRecognize}
+                  isRecognizing={isLoading}
+                  wuxing={result?.zi?.wuxing}
+                />
+              </View>
               {handwritingStage !== 'idle' && (
                 <View style={styles.progressWrap}>
                   <Text style={styles.progressText}>{handwritingProgressText}</Text>
@@ -915,6 +1002,25 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
+  ritualHintCard: {
+    backgroundColor: '#1A2238',
+    borderWidth: 1,
+    borderColor: '#3A4670',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  ritualHintTitle: {
+    color: '#FFD700',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  ritualHintText: {
+    color: '#C8D0E8',
+    fontSize: 13,
+    lineHeight: 20,
+  },
   modeSwitchRow: {
     flexDirection: 'row',
     backgroundColor: '#16213e',
@@ -993,6 +1099,70 @@ const styles = StyleSheet.create({
   handwritingSection: {
     alignItems: 'center',
     marginTop: 10,
+  },
+  ritualCountdownCard: {
+    width: '92%',
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334B7C',
+    padding: 12,
+    marginBottom: 10,
+  },
+  ritualCountdownTitle: {
+    color: '#FFD700',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  ritualCountdownText: {
+    color: '#BFC8E8',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  ritualBreathHint: {
+    marginTop: 8,
+    color: '#FFD88A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  ritualCountdownActions: {
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  ritualCountdownPrimary: {
+    backgroundColor: '#6D50A6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  ritualCountdownPrimaryDisabled: {
+    backgroundColor: '#4B3A75',
+  },
+  ritualCountdownPrimaryText: {
+    color: '#F7F6F0',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  ritualCountdownSecondary: {
+    borderWidth: 1,
+    borderColor: '#4E5E88',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  ritualCountdownSecondaryText: {
+    color: '#BFC8E8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  handwritingCanvasWrap: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  handwritingCanvasWrapLocked: {
+    opacity: 0.45,
   },
   progressWrap: {
     marginTop: 10,
