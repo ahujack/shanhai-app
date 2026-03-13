@@ -439,6 +439,20 @@ export interface ZiResult {
     components: string[];
     componentMeanings: string[];
     associativeMeaning: string;
+    lihefa?: string[];
+    tianziGe?: string[];
+    imageryInference?: string;
+    probingQuestion?: string;
+    oracleBone?: {
+      exists: boolean;
+      source: string;
+      imageUrls: string[];
+      totalImages: number;
+      shownImages: number;
+      previewLocked: boolean;
+      interpretation: string;
+      note: string;
+    };
   };
   interpretation: {
     overall: string;

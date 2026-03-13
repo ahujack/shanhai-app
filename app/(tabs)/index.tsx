@@ -32,6 +32,7 @@ export default function HomeScreen() {
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
   const [showDrawModal, setShowDrawModal] = useState(false);
   const [showZiModal, setShowZiModal] = useState(false);
+  const [showZiNudge, setShowZiNudge] = useState(false);
   const [showChartModal, setShowChartModal] = useState(false);
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
@@ -91,16 +92,21 @@ export default function HomeScreen() {
   
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // 检查输入中是否包含汉字
-  useEffect(() => {
-    // 检测是否包含汉字
-    const ziMatch = inputText.match(/[\u4e00-\u9fa5]/);
-    if (ziMatch && ziMatch.length === 1 && ziMatch[0].length === 1) {
-      // 用户输入了一个汉字
-      setDetectedZi(ziMatch[0]);
-      setShowZiModal(true);
-    }
-  }, [inputText]);
+  const extractZiCandidate = (text: string): string => {
+    const quoted = text.match(/[「“"']([\u4e00-\u9fa5])[」”"']/);
+    if (quoted?.[1]) return quoted[1];
+    const chars = text.match(/[\u4e00-\u9fa5]/g) || [];
+    if (!chars.length) return '心';
+    // 对较长文本，优先给中间位置的字，避免总是首字触发
+    return chars[Math.floor(chars.length / 2)] || '心';
+  };
+
+  const shouldSuggestZi = (text: string): boolean => {
+    const clean = text.trim();
+    if (clean.length < 8) return false;
+    if (/(测字|看字|这个字|写个字|帮我测)/.test(clean)) return false;
+    return /(工作|事业|感情|关系|焦虑|纠结|压力|财务|健康|家庭|矛盾|怎么办|要不要|该不该)/.test(clean);
+  };
 
   useEffect(() => {
     // 滚动到底部
@@ -158,16 +164,24 @@ export default function HomeScreen() {
       user?.id,
       'calm'
     );
+
+    // 聊到具体问题时再轻量引导测字，不自动弹窗
+    if (shouldSuggestZi(message)) {
+      setDetectedZi(extractZiCandidate(message));
+      setShowZiNudge(true);
+    }
   };
 
   // 处理测字
   const handleZiAnalyze = () => {
+    setShowZiNudge(false);
     setShowZiModal(false);
     setInputText(`帮我测字：${detectedZi}`);
   };
 
   // 跳转到测字页面
   const goToZiPage = () => {
+    setShowZiNudge(false);
     setShowZiModal(false);
     router.push('/(tabs)/zi');
   };
@@ -364,6 +378,29 @@ export default function HomeScreen() {
               <Text style={styles.typingText}>{persona.name} 正在思考...</Text>
             </View>
           )}
+
+          {showZiNudge && !showZiModal && (
+            <View style={styles.ziNudgeCard}>
+              <Text style={styles.ziNudgeTitle}>✍️ 要不要试试测字小游戏？</Text>
+              <Text style={styles.ziNudgeText}>
+                你刚聊到一个具体困扰，我可以用「{detectedZi || '心'}」这个字帮你做一版轻量拆解。
+              </Text>
+              <View style={styles.ziNudgeActions}>
+                <TouchableOpacity
+                  style={styles.ziNudgePrimary}
+                  onPress={() => setShowZiModal(true)}
+                >
+                  <Text style={styles.ziNudgePrimaryText}>试一下</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.ziNudgeSecondary}
+                  onPress={() => setShowZiNudge(false)}
+                >
+                  <Text style={styles.ziNudgeSecondaryText}>先继续聊</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </ScrollView>
 
         {/* 输入区域 */}
@@ -551,7 +588,10 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.ziModalButton, styles.ziModalButtonCancel]}
-                onPress={() => setShowZiModal(false)}
+                onPress={() => {
+                  setShowZiModal(false);
+                  setShowZiNudge(false);
+                }}
               >
                 <Text style={styles.ziModalButtonTextCancel}>取消</Text>
               </TouchableOpacity>
@@ -642,6 +682,34 @@ export default function HomeScreen() {
 // 聊天消息气泡
 function ChatBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
+  const router = useRouter();
+
+  const openZiDetail = () => {
+    const zi = message.artifacts?.zi?.zi?.zi;
+    router.push({
+      pathname: '/(tabs)/zi',
+      params: zi ? { prefillZi: zi, fromChat: '1' } : { fromChat: '1' },
+    });
+  };
+
+  const handleActionPress = (type: string) => {
+    if (type === 'view_zi') {
+      openZiDetail();
+      return;
+    }
+    if (type === 'view_reading') {
+      router.push('/(tabs)/reading');
+      return;
+    }
+    if (type === 'view_chart') {
+      router.push('/(tabs)/bazi');
+      return;
+    }
+    if (type === 'view_fortune') {
+      router.push('/(tabs)/index');
+      return;
+    }
+  };
   
   return (
     <View style={[
@@ -676,7 +744,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
 
         {/* 测字结果 */}
         {message.artifacts?.zi && (
-          <View style={styles.artifactCard}>
+          <TouchableOpacity style={styles.artifactCard} onPress={openZiDetail}>
             <Text style={styles.artifactTitle}>✍️ 测字</Text>
             <Text style={styles.artifactText}>
               {message.artifacts.zi.zi.zi} - {message.artifacts.zi.zi.wuxing}性 {message.artifacts.zi.zi.jixiong}
@@ -684,14 +752,15 @@ function ChatBubble({ message }: { message: ChatMessage }) {
             <Text style={styles.artifactSubtext} numberOfLines={2}>
               {message.artifacts.zi.coldReadings[0]}
             </Text>
-          </View>
+            <Text style={styles.artifactLink}>点击查看测字详情</Text>
+          </TouchableOpacity>
         )}
         
         {/* 操作按钮 */}
         {message.actions && message.actions.length > 0 && (
           <View style={styles.actionButtons}>
             {message.actions.map((action, idx) => (
-              <TouchableOpacity key={idx} style={styles.actionButton}>
+              <TouchableOpacity key={idx} style={styles.actionButton} onPress={() => handleActionPress(action.type)}>
                 <Text style={styles.actionButtonText}>{action.label}</Text>
               </TouchableOpacity>
             ))}
@@ -1138,6 +1207,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  artifactLink: {
+    color: '#BFA7FF',
+    fontSize: 12,
+    marginTop: 8,
+    textDecorationLine: 'underline',
+  },
   actionButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1570,6 +1645,54 @@ const styles = StyleSheet.create({
   ziModalButtonTextCancel: {
     color: '#8D8DAA',
     fontSize: 15,
+  },
+
+  ziNudgeCard: {
+    marginTop: 8,
+    backgroundColor: '#1B1430',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3A2B5A',
+    padding: 12,
+  },
+  ziNudgeTitle: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  ziNudgeText: {
+    color: '#B9ACD3',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  ziNudgeActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  ziNudgePrimary: {
+    backgroundColor: '#6D50A6',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  ziNudgePrimaryText: {
+    color: '#F7F6F0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  ziNudgeSecondary: {
+    borderColor: '#4A3C6D',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  ziNudgeSecondaryText: {
+    color: '#B9ACD3',
+    fontSize: 12,
+    fontWeight: '600',
   },
   
   // Chart modal

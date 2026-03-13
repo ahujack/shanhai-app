@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
   Text,
@@ -8,9 +8,12 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Image,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { ziApi, ZiResult, handwritingApi } from '../../src/services/api';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
@@ -21,6 +24,7 @@ import HandwritingCanvas from '../../components/HandwritingCanvas';
 export default function ZiScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ prefillZi?: string; fromChat?: string }>();
   const [inputZi, setInputZi] = useState('');
   const [result, setResult] = useState<ZiResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +34,7 @@ export default function ZiScreen() {
   // 新增：用户选择的测字方面
   const [selectedAspects, setSelectedAspects] = useState<string[]>([]);
   const [customAspect, setCustomAspect] = useState('');
+  const oracleUnlockAnim = useRef(new Animated.Value(0)).current;
   
   // 可选的测字方面
   const aspectOptions = ['事业', '财运', '婚姻', '学业', '健康', '人际关系'];
@@ -47,15 +52,59 @@ export default function ZiScreen() {
   const { messages, sendMessage } = useChatStore();
   const { active: persona } = usePersonaStore();
   const { user } = useUserStore();
+  const shouldShowOracleUnlock = !!(
+    result?.zi.oracleBone?.previewLocked &&
+    (result.zi.oracleBone.totalImages || 0) > (result.zi.oracleBone.shownImages || 0)
+  );
+  const lockedImageCount = shouldShowOracleUnlock
+    ? (result?.zi.oracleBone?.totalImages || 0) - (result?.zi.oracleBone?.shownImages || 0)
+    : 0;
 
-  // 打字模式测字
-  const handleAnalyze = async () => {
-    if (!inputZi.trim()) {
-      Alert.alert('提示', '请输入一个汉字');
+  useEffect(() => {
+    if (!shouldShowOracleUnlock) {
+      oracleUnlockAnim.setValue(0);
       return;
     }
+    oracleUnlockAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(oracleUnlockAnim, {
+        toValue: 1,
+        duration: 420,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(oracleUnlockAnim, {
+        toValue: 0.85,
+        duration: 240,
+        easing: Easing.inOut(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(oracleUnlockAnim, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [oracleUnlockAnim, shouldShowOracleUnlock, result?.zi.zi]);
 
-    const zi = inputZi.trim().charAt(0);
+  const oracleUnlockAnimStyle = {
+    opacity: oracleUnlockAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.65, 1],
+    }),
+    transform: [
+      {
+        scale: oracleUnlockAnim.interpolate({
+          inputRange: [0, 0.7, 1],
+          outputRange: [0.96, 1.03, 1],
+        }),
+      },
+    ],
+  };
+
+  const analyzeZiInput = async (rawZi: string) => {
+    const zi = rawZi.trim().charAt(0);
     if (!/[\u4e00-\u9fa5]/.test(zi)) {
       Alert.alert('提示', '请输入一个有效的汉字');
       return;
@@ -63,11 +112,12 @@ export default function ZiScreen() {
 
     setIsLoading(true);
     try {
-      const data = await ziApi.analyze(zi);
+      const data = await ziApi.analyze(zi, user?.id);
       setResult(data);
-      
-      // 自动发送后续问题，开启对话
-      setTimeout(() => autoSendFollowUpQuestion(zi), 1000);
+      // 仅手动测字后再自动接聊天，避免从对话进入详情页时打断
+      if (!params.fromChat) {
+        setTimeout(() => autoSendFollowUpQuestion(zi), 1000);
+      }
     } catch (error) {
       console.error('测字失败:', error);
       Alert.alert('错误', '测字失败，请稍后重试');
@@ -76,13 +126,31 @@ export default function ZiScreen() {
     }
   };
 
+  React.useEffect(() => {
+    const prefill = (params.prefillZi || '').trim();
+    if (!prefill) return;
+    const zi = prefill.charAt(0);
+    if (!/[\u4e00-\u9fa5]/.test(zi)) return;
+    setInputZi(zi);
+    analyzeZiInput(zi).catch(() => null);
+  }, [params.prefillZi]);
+
+  // 打字模式测字
+  const handleAnalyze = async () => {
+    if (!inputZi.trim()) {
+      Alert.alert('提示', '请输入一个汉字');
+      return;
+    }
+    await analyzeZiInput(inputZi.trim());
+  };
+
   // 手写模式识别并测字
   const handleHandwritingRecognize = async (svgString: string) => {
     console.log('开始手写识别，SVG长度:', svgString.length);
     setIsLoading(true);
     try {
       console.log('调用 handwritingApi.analyze...');
-      const data = await handwritingApi.analyze(svgString);
+      const data = await handwritingApi.analyze(svgString, user?.id);
       console.log('识别结果:', data);
       
       if (data.recognizedZi) {
@@ -383,6 +451,77 @@ export default function ZiScreen() {
                 </View>
                 <Text style={styles.associativeText}>
                   💡 {result.zi.associativeMeaning}
+                </Text>
+              </View>
+            </View>
+
+            {/* 技法细化 */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🧠 技法细化（离合 / 填字 / 投射）</Text>
+              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                <Text style={styles.skillHead}>离合法</Text>
+                {(result.zi.lihefa || []).map((line, index) => (
+                  <Text key={`lihefa_${index}`} style={styles.skillText}>- {line}</Text>
+                ))}
+
+                <Text style={styles.skillHead}>填字格</Text>
+                {(result.zi.tianziGe || []).map((line, index) => (
+                  <Text key={`tianzi_${index}`} style={styles.skillText}>- {line}</Text>
+                ))}
+
+                <Text style={styles.skillHead}>象形投射</Text>
+                <Text style={styles.skillText}>{result.zi.imageryInference || '当前暂无象形投射结果。'}</Text>
+
+                <Text style={styles.skillHead}>反问引导</Text>
+                <Text style={styles.skillText}>{result.zi.probingQuestion || '这个字里你最在意哪一部分？'}</Text>
+              </View>
+            </View>
+
+            {/* 甲骨文象形维度 */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🪨 甲骨文象形</Text>
+              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                <Text style={styles.skillText}>
+                  {result.zi.oracleBone?.interpretation || '甲骨象形：当前暂无该字图像，先用部件与意象进行辅助解读。'}
+                </Text>
+                <Text style={styles.oracleTip}>
+                  {result.zi.oracleBone?.note || '说明：部分字暂无公开甲骨图像。'}
+                </Text>
+                {!!result.zi.oracleBone?.imageUrls?.length && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.oracleImageRow}
+                  >
+                    {result.zi.oracleBone.imageUrls.map((url, idx) => (
+                      <View key={`${url}_${idx}`} style={styles.oracleImageBox}>
+                        <Image source={{ uri: url }} style={styles.oracleImage} resizeMode="contain" />
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+                {!!result.zi.oracleBone?.totalImages && (
+                  <Text style={styles.oracleCounter}>
+                    已展示 {result.zi.oracleBone.shownImages}/{result.zi.oracleBone.totalImages} 张异体图
+                  </Text>
+                )}
+                {shouldShowOracleUnlock && (
+                    <>
+                      <Text style={styles.oracleRemainText}>
+                        还差 {lockedImageCount} 张未解锁
+                      </Text>
+                      <Animated.View style={oracleUnlockAnimStyle}>
+                        <TouchableOpacity
+                          style={styles.oracleUnlockBtn}
+                          onPress={() => router.push('/(tabs)/points?focus=vip')}
+                        >
+                          <Text style={styles.oracleUnlockText}>查看完整异体图与差异解读</Text>
+                        </TouchableOpacity>
+                      </Animated.View>
+                    </>
+                  )}
+                <Text style={styles.oracleSource}>
+                  图源：{result.zi.oracleBone?.source || 'JiaGuWen 开源字表'}
                 </Text>
               </View>
             </View>
@@ -715,6 +854,74 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  skillHead: {
+    color: '#FFD700',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  skillText: {
+    color: '#DDD',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 2,
+  },
+  oracleTip: {
+    color: '#999',
+    fontSize: 12,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  oracleImageRow: {
+    gap: 10,
+    paddingVertical: 4,
+  },
+  oracleImageBox: {
+    width: 110,
+    height: 110,
+    borderRadius: 10,
+    backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: '#2d2d45',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  oracleImage: {
+    width: 100,
+    height: 100,
+  },
+  oracleSource: {
+    color: '#777',
+    fontSize: 12,
+    marginTop: 10,
+  },
+  oracleCounter: {
+    color: '#C7C7D2',
+    fontSize: 12,
+    marginTop: 8,
+  },
+  oracleUnlockBtn: {
+    marginTop: 8,
+    backgroundColor: 'rgba(255, 215, 0, 0.16)',
+    borderColor: 'rgba(255, 215, 0, 0.45)',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignSelf: 'flex-start',
+  },
+  oracleUnlockText: {
+    color: '#FFD700',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  oracleRemainText: {
+    color: '#BDBDCA',
+    fontSize: 12,
+    marginTop: 6,
   },
   yijingRow: {
     flexDirection: 'row',
