@@ -10,6 +10,24 @@ import { useChatStore, ChatMessage } from '../../src/store/chat';
 
 const colors = theme.dark;
 
+const LOADING_HINTS = [
+  '正在起卦...',
+  '感应六爻中...',
+  '解读卦象中...',
+  '生成建议中...',
+  '即将完成...',
+];
+
+function useLoadingHint(isActive: boolean) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (!isActive) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % LOADING_HINTS.length), 2800);
+    return () => clearInterval(t);
+  }, [isActive]);
+  return LOADING_HINTS[idx];
+}
+
 export default function ReadingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -27,6 +45,7 @@ export default function ReadingScreen() {
   const [result, setResult] = useState<DivinationResult | null>(null);
   const [showDetails, setShowDetails] = useState(true);
   const [showFortuneSource, setShowFortuneSource] = useState(true);
+  const loadingHint = useLoadingHint(isLoading);
 
   const toSingle = (value?: string | string[]) =>
     Array.isArray(value) ? value[0] : value;
@@ -391,7 +410,10 @@ export default function ReadingScreen() {
           disabled={isLoading || !question.trim()}
         >
           {isLoading ? (
-            <ActivityIndicator color="#1A0A18" />
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color="#1A0A18" size="small" />
+              <Text style={styles.loadingHint}>{loadingHint}</Text>
+            </View>
           ) : (
             <Text style={styles.submitButtonText}>开始解读</Text>
           )}
@@ -557,6 +579,16 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingHint: {
+    color: '#1A0A18',
+    fontSize: 14,
+    fontWeight: '600',
   },
   // 结果页样式
   hexagramHeader: {
