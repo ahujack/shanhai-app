@@ -10,6 +10,7 @@ import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { useDivinationStore } from '../../src/store/divination';
 import { fortuneApi, FortuneSlip } from '../../src/services/api';
 import PersonaPicker from '../../components/PersonaPicker';
+import OnboardingModal from '../../components/OnboardingModal';
 
 // 主题颜色
 const colors = theme.dark;
@@ -20,7 +21,7 @@ export default function HomeScreen() {
   const params = useLocalSearchParams<{ skipZiNudgeUntil?: string }>();
   const { active: persona, personas, setActive } = usePersonaStore();
   const { user, chart, hasChart, generateChart, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
-  const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
+  const { messages, isLoading, sendMessage, clearMessages, removeMessage } = useChatStore();
   const { setLastFortune } = useDivinationStore();
   
   // 加载签到状态
@@ -41,6 +42,8 @@ export default function HomeScreen() {
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [achievementUnlock, setAchievementUnlock] = useState<{ name: string; description: string; icon: string } | null>(null);
+  const [lastCheckInPoints, setLastCheckInPoints] = useState(0);
   
   // 神秘特效动画
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -162,11 +165,6 @@ export default function HomeScreen() {
 
   // 抽签
   const handleDrawFortune = async () => {
-    if (!user?.id) {
-      showToast('请先登录后再抽签', 'error');
-      return;
-    }
-    
     setIsDrawing(true);
     try {
       const fortune = await fortuneApi.draw();
@@ -203,10 +201,6 @@ export default function HomeScreen() {
   };
 
   const openDrawModal = () => {
-    if (!user?.id) {
-      showToast('请先登录后再抽签', 'error');
-      return;
-    }
     setShowDrawModal(true);
   };
 
@@ -282,7 +276,12 @@ export default function HomeScreen() {
       const result = await checkIn();
       console.log('[签到] 结果:', result);
       if (result?.success) {
-        showToast(`🎉 签到成功！+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`, 'success');
+        setLastCheckInPoints(result.points || 0);
+        if (result.achievement) {
+          setAchievementUnlock(result.achievement);
+        } else {
+          showToast(`🎉 签到成功！+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`, 'success');
+        }
       } else {
         showToast(result?.message || '签到失败', 'error');
       }
@@ -371,6 +370,7 @@ export default function HomeScreen() {
             <TouchableOpacity 
               style={styles.personaSwitchButton}
               onPress={() => setShowPersonaPicker(true)}
+              accessibilityLabel="切换灵伴"
             >
               <Text style={styles.personaSwitchText}>🎭 切换</Text>
             </TouchableOpacity>
@@ -381,29 +381,28 @@ export default function HomeScreen() {
                   style={styles.checkInButton}
                   onPress={handleCheckIn}
                   activeOpacity={0.7}
+                  accessibilityLabel={checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
                 >
                   <Text style={styles.checkInButtonText}>
                     {checkInStatus?.todayCheckedIn ? '✓ 已签到' : '📝 签到'}
                   </Text>
                 </TouchableOpacity>
               )}
-              <View style={styles.userActionColumn}>
-                <TouchableOpacity
-                  style={styles.loginButton}
-                  onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
-                >
-                  <Text style={styles.loginButtonText}>{user ? '👤 我的' : '登录'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.meditationButton} onPress={() => router.push('/two')}>
-                  <Text style={styles.meditationButtonText}>🍃 冥想</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
+              >
+                <Text style={styles.loginButtonText}>{user ? '👤 我的' : '登录'}</Text>
+              </TouchableOpacity>
             </View>
           </View>
           <View style={styles.headerBottom}>
             <Text style={styles.subtitle}>{persona.name}</Text>
           </View>
         </View>
+
+        {/* 新用户引导 */}
+        <OnboardingModal />
 
         {/* 角色选择弹窗 */}
         {showPersonaPicker && (
@@ -426,20 +425,68 @@ export default function HomeScreen() {
         >
           {/* 欢迎消息 */}
           {messages.length === 0 && (
-            <View style={styles.welcomeCard}>
-              <Text style={styles.welcomeTag}>今日灵感</Text>
-              <Text style={styles.welcomeText}>
-                {persona.greeting}
-              </Text>
-              <Text style={styles.welcomeHint}>
-                你可以问我关于运势、占卜、命盘的问题，或者只是想聊聊。
-              </Text>
-            </View>
+            <>
+              <View style={styles.welcomeCard}>
+                <Text style={styles.welcomeTag}>今日灵感</Text>
+                <Text style={styles.welcomeText}>
+                  {persona.greeting}
+                </Text>
+                <Text style={styles.welcomeHint}>
+                  你可以问我关于运势、占卜、命盘的问题，或者只是想聊聊。
+                </Text>
+                {/* 试试问我 - 示例问题 */}
+                <Text style={styles.suggestedTitle}>试试问我</Text>
+                <View style={styles.suggestedChips}>
+                  {['今日运势如何？', '帮我抽一签', '测「心」字', '感情该不该继续？', '我的命盘'].map((q) => (
+                    <TouchableOpacity
+                      key={q}
+                      style={styles.suggestedChip}
+                      onPress={() => !isLoading && sendMessage(q, persona.id, user?.id, 'calm')}
+                      disabled={isLoading}
+                      accessibilityLabel={`提问：${q}`}
+                    >
+                      <Text style={styles.suggestedChipText}>{q}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              {/* 快捷入口 */}
+              <View style={styles.quickActions}>
+                <TouchableOpacity style={styles.quickAction} onPress={() => !isLoading && sendMessage('今日运势如何？', persona.id, user?.id, 'calm')} disabled={isLoading}>
+                  <Text style={styles.quickActionIcon}>✨</Text>
+                  <Text style={styles.quickActionText}>运势</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAction} onPress={openDrawModal}>
+                  <Text style={styles.quickActionIcon}>🎯</Text>
+                  <Text style={styles.quickActionText}>抽签</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAction} onPress={goToZiPage}>
+                  <Text style={styles.quickActionIcon}>✍️</Text>
+                  <Text style={styles.quickActionText}>测字</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/reading')}>
+                  <Text style={styles.quickActionIcon}>🔮</Text>
+                  <Text style={styles.quickActionText}>占卜</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAction} onPress={() => hasChart ? router.push('/(tabs)/bazi') : setShowChartModal(true)}>
+                  <Text style={styles.quickActionIcon}>📊</Text>
+                  <Text style={styles.quickActionText}>命盘</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/meditation')}>
+                  <Text style={styles.quickActionIcon}>🧘</Text>
+                  <Text style={styles.quickActionText}>冥想</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
 
           {/* 聊天消息 */}
           {messages.map((msg) => (
-            <ChatBubble key={msg.id} message={msg} />
+            <ChatBubble
+              key={msg.id}
+              message={msg}
+              onRetry={msg.retryWith ? () => { removeMessage(msg.id); sendMessage(msg.retryWith!, persona.id, user?.id, 'calm'); } : undefined}
+            />
           ))}
           
           {/* 加载中 */}
@@ -585,6 +632,9 @@ export default function HomeScreen() {
                   </View>
                   {!!drawFortune.socialLine && (
                     <Text style={styles.socialLineText}>{drawFortune.socialLine}</Text>
+                  )}
+                  {!user?.id && (
+                    <Text style={styles.guestHint}>登录后可保存抽签记录、查看历史</Text>
                   )}
                 </FortuneResultAnimation>
               ) : (
@@ -753,12 +803,36 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 成就解锁弹窗 */}
+      <Modal
+        visible={!!achievementUnlock}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setAchievementUnlock(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.achievementModalContent}>
+            <Text style={styles.achievementModalBadge}>{achievementUnlock?.icon || '🏆'}</Text>
+            <Text style={styles.achievementModalTitle}>成就解锁</Text>
+            <Text style={styles.achievementModalName}>{achievementUnlock?.name}</Text>
+            <Text style={styles.achievementModalDesc}>{achievementUnlock?.description}</Text>
+            <Text style={styles.achievementModalPoints}>+{lastCheckInPoints} 积分</Text>
+            <TouchableOpacity
+              style={styles.achievementModalButton}
+              onPress={() => setAchievementUnlock(null)}
+            >
+              <Text style={styles.achievementModalButtonText}>太棒了</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
 
 // 聊天消息气泡
-function ChatBubble({ message }: { message: ChatMessage }) {
+function ChatBubble({ message, onRetry }: { message: ChatMessage; onRetry?: () => void }) {
   const isUser = message.role === 'user';
   const router = useRouter();
   const { setLastReading } = useDivinationStore();
@@ -809,6 +883,10 @@ function ChatBubble({ message }: { message: ChatMessage }) {
       router.push('/');
       return;
     }
+    if (type === 'start_meditation') {
+      router.push('/(tabs)/meditation');
+      return;
+    }
   };
   
   return (
@@ -826,6 +904,13 @@ function ChatBubble({ message }: { message: ChatMessage }) {
         ]}>
           {message.content}
         </Text>
+        
+        {/* 连接失败时显示重试按钮 */}
+        {!isUser && message.retryWith && onRetry && (
+          <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+            <Text style={styles.retryButtonText}>重试</Text>
+          </TouchableOpacity>
+        )}
         
         {/* 显示Artifacts（如果有时） */}
         {message.artifacts?.fortune && (
@@ -1189,21 +1274,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  meditationButton: {
-    backgroundColor: '#4C2F80',
-    minWidth: 92,
-    height: 34,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#F8D05F',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  meditationButtonText: {
-    color: '#F8D05F',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -1223,10 +1293,7 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  userActionColumn: {
+    alignItems: 'center',
     gap: 8,
   },
   checkInButton: {
@@ -1290,6 +1357,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 4,
   },
+  suggestedTitle: {
+    color: '#C8A6FF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 10,
+  },
+  suggestedChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  suggestedChip: {
+    backgroundColor: '#2B1F3C',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#3A2B5A',
+  },
+  suggestedChipText: {
+    color: '#B2B4C8',
+    fontSize: 13,
+  },
   bubbleContainer: {
     marginBottom: 12,
   },
@@ -1350,6 +1441,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
     textDecorationLine: 'underline',
+  },
+  retryButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    backgroundColor: '#4C2F80',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+  },
+  retryButtonText: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: '600',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -1423,18 +1529,23 @@ const styles = StyleSheet.create({
   // Quick actions
   quickActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#2F2342',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: '#161126',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2F2342',
+    gap: 12,
   },
-  quickActionButton: {
+  quickAction: {
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    minWidth: 60,
+    minWidth: 52,
   },
   quickActionIcon: {
     fontSize: 24,
@@ -1755,6 +1866,12 @@ const styles = StyleSheet.create({
     marginTop: 14,
     textAlign: 'center',
   },
+  guestHint: {
+    color: '#8D8DAA',
+    fontSize: 12,
+    marginTop: 16,
+    textAlign: 'center',
+  },
   luckyItem: {
     alignItems: 'center',
   },
@@ -1944,5 +2061,55 @@ const styles = StyleSheet.create({
     color: '#6F6287',
     fontSize: 13,
     textAlign: 'center',
+  },
+  // 成就解锁弹窗
+  achievementModalContent: {
+    backgroundColor: '#1A1328',
+    borderRadius: 24,
+    padding: 28,
+    margin: 32,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#F8D05F',
+  },
+  achievementModalBadge: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  achievementModalTitle: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  achievementModalName: {
+    color: '#F7F6F0',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  achievementModalDesc: {
+    color: '#B2B4C8',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  achievementModalPoints: {
+    color: '#F8D05F',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 24,
+  },
+  achievementModalButton: {
+    backgroundColor: '#F8D05F',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 20,
+  },
+  achievementModalButtonText: {
+    color: '#1A0A18',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

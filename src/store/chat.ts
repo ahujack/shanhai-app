@@ -7,6 +7,7 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   intent?: string;
+  retryWith?: string; // 连接失败时可重试，携带原用户消息
   artifacts?: {
     reading?: DivinationResult;
     fortune?: FortuneSlip;
@@ -27,6 +28,7 @@ interface ChatState {
   // Actions
   sendMessage: (message: string, personaId?: string, userId?: string, mood?: string) => Promise<void>;
   clearMessages: () => void;
+  removeMessage: (id: string) => void;
   addSystemMessage: (content: string) => void;
 }
 
@@ -131,18 +133,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set((state) => {
         const msgs = [...state.messages];
         const idx = msgs.findIndex((m) => m.id === assistantId);
+        const lastUserMsg = state.messages.filter((m) => m.role === 'user').pop();
+        const errorContent = '抱歉，连接出现问题。请稍后再试。';
+        const errorMsg = {
+          id: idx >= 0 ? assistantId : `error_${Date.now()}`,
+          role: 'assistant' as const,
+          content: errorContent,
+          timestamp: new Date(),
+          retryWith: lastUserMsg?.content,
+        };
         if (idx >= 0) {
-          msgs[idx] = {
-            ...msgs[idx],
-            content: '抱歉，连接出现问题。请稍后再试。',
-          };
+          msgs[idx] = { ...msgs[idx], ...errorMsg };
         } else {
-          msgs.push({
-            id: `error_${Date.now()}`,
-            role: 'assistant',
-            content: '抱歉，连接出现问题。请稍后再试。',
-            timestamp: new Date(),
-          });
+          msgs.push(errorMsg);
         }
         return { messages: msgs };
       });
@@ -151,6 +154,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   
   clearMessages: () => {
     set({ messages: [], currentIntent: undefined });
+  },
+  
+  removeMessage: (id: string) => {
+    set((state) => ({ messages: state.messages.filter((m) => m.id !== id) }));
   },
   
   addSystemMessage: (content: string) => {

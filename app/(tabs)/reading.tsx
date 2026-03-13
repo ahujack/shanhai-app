@@ -42,6 +42,7 @@ export default function ReadingScreen() {
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState<CreateReadingDto['category']>('general');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DivinationResult | null>(null);
   const [showDetails, setShowDetails] = useState(true);
   const [showFortuneSource, setShowFortuneSource] = useState(true);
@@ -130,21 +131,24 @@ export default function ReadingScreen() {
   ] as const;
 
   const handleSubmit = async () => {
-    if (!question.trim()) return;
+    const q = question.trim();
+    if (!q || q.length < 2) return;
     
     setIsLoading(true);
     setResult(null);
+    setError(null);
     
     try {
       const dto: CreateReadingDto = {
-        question: question.trim(),
+        question: q,
         category,
         userId: user?.id,
       };
       const reading = await readingApi.create(dto);
       setResult(reading);
-    } catch (error) {
-      console.error('占卜失败:', error);
+    } catch (err: any) {
+      console.error('占卜失败:', err);
+      setError(err?.message || '占卜失败，请稍后重试');
     } finally {
       setIsLoading(false);
     }
@@ -407,7 +411,7 @@ export default function ReadingScreen() {
         <TouchableOpacity 
           style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
-          disabled={isLoading || !question.trim()}
+          disabled={isLoading || !question.trim() || question.trim().length < 2}
         >
           {isLoading ? (
             <View style={styles.loadingRow}>
@@ -418,6 +422,16 @@ export default function ReadingScreen() {
             <Text style={styles.submitButtonText}>开始解读</Text>
           )}
         </TouchableOpacity>
+        
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={handleSubmit}
+              disabled={isLoading}>
+              <Text style={styles.retryButtonText}>重试</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       
       {/* 说明 */}
@@ -579,6 +593,33 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  errorBox: {
+    marginTop: 16,
+    padding: 14,
+    backgroundColor: 'rgba(211,47,47,0.15)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,118,118,0.3)',
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#4C2F80',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+  },
+  retryButtonText: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: '600',
   },
   loadingRow: {
     flexDirection: 'row',

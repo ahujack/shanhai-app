@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
@@ -24,6 +24,7 @@ export default function ProfileScreen() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [achievementUnlock, setAchievementUnlock] = useState<{ name: string; description: string; icon: string } | null>(null);
 
   // 分享功能
   const handleShare = async () => {
@@ -165,7 +166,11 @@ export default function ProfileScreen() {
     try {
       const result = await checkIn();
       if (result?.success) {
-        Alert.alert('签到成功', result.message || `获得 ${result.points || 0} 积分`);
+        if (result.achievement) {
+          setAchievementUnlock(result.achievement);
+        } else {
+          Alert.alert('签到成功', result.message || `获得 ${result.points || 0} 积分`);
+        }
         // 刷新积分显示
         const pointsData = await pointsApi.getSummary().catch(() => null);
         setPointsSummary(pointsData);
@@ -277,6 +282,7 @@ export default function ProfileScreen() {
   // 渲染命盘信息
   if (step === 'chart' && chart) {
     return (
+      <>
       <ScrollView 
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
@@ -361,13 +367,57 @@ export default function ProfileScreen() {
         )}
 
         {isLoggedIn && (
-          <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
-            <View>
-              <Text style={styles.mallEntryTitle}>🎁 积分商城</Text>
-              <Text style={styles.mallEntryDesc}>兑换权益、查看任务、管理积分资产</Text>
+          <>
+            <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
+              <View>
+                <Text style={styles.mallEntryTitle}>🎁 积分商城</Text>
+                <Text style={styles.mallEntryDesc}>兑换权益、查看任务、管理积分资产</Text>
+              </View>
+              <Text style={styles.mallEntryAction}>去看看 ›</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.mallEntryCard} onPress={() => router.push('/(tabs)/meditation')} activeOpacity={0.9}>
+              <View>
+                <Text style={styles.mallEntryTitle}>🧘 静心冥想</Text>
+                <Text style={styles.mallEntryDesc}>静心、助眠、缓解焦虑</Text>
+              </View>
+              <Text style={styles.mallEntryAction}>去冥想 ›</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* 今日任务 */}
+        {isLoggedIn && (
+          <View style={[styles.dailyTasksCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
+            <Text style={styles.dailyTasksTitle}>📋 今日任务</Text>
+            <View style={styles.dailyTasksRow}>
+              <TouchableOpacity
+                style={styles.dailyTaskItem}
+                onPress={handleCheckIn}
+                disabled={isCheckingIn || checkInStatus?.todayCheckedIn}
+              >
+                <Text style={styles.dailyTaskIcon}>{checkInStatus?.todayCheckedIn ? '✅' : '📝'}</Text>
+                <Text style={[styles.dailyTaskLabel, checkInStatus?.todayCheckedIn && styles.dailyTaskDone]}>
+                  {checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
+                </Text>
+                <Text style={styles.dailyTaskPoints}>+10</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/')}>
+                <Text style={styles.dailyTaskIcon}>🎯</Text>
+                <Text style={styles.dailyTaskLabel}>抽签</Text>
+                <Text style={styles.dailyTaskPoints}>+5</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)/zi')}>
+                <Text style={styles.dailyTaskIcon}>✍️</Text>
+                <Text style={styles.dailyTaskLabel}>测字</Text>
+                <Text style={styles.dailyTaskPoints}>+5</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/')}>
+                <Text style={styles.dailyTaskIcon}>💬</Text>
+                <Text style={styles.dailyTaskLabel}>对话</Text>
+                <Text style={styles.dailyTaskPoints}>+5</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.mallEntryAction}>去看看 ›</Text>
-          </TouchableOpacity>
+          </View>
         )}
 
         {/* 积分和成就卡片 - 完整显示 */}
@@ -564,6 +614,20 @@ export default function ProfileScreen() {
           </View>
         )}
       </ScrollView>
+      <Modal visible={!!achievementUnlock} animationType="fade" transparent onRequestClose={() => setAchievementUnlock(null)}>
+        <View style={styles.achievementOverlay}>
+          <View style={styles.achievementModalContent}>
+            <Text style={styles.achievementModalBadge}>{achievementUnlock?.icon || '🏆'}</Text>
+            <Text style={styles.achievementModalTitle}>成就解锁</Text>
+            <Text style={styles.achievementModalName}>{achievementUnlock?.name}</Text>
+            <Text style={styles.achievementModalDesc}>{achievementUnlock?.description}</Text>
+            <TouchableOpacity style={styles.achievementModalButton} onPress={() => setAchievementUnlock(null)}>
+              <Text style={styles.achievementModalButtonText}>太棒了</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
     );
   }
 
@@ -744,13 +808,51 @@ export default function ProfileScreen() {
       )}
 
       {isLoggedIn && (
-        <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
-          <View>
-            <Text style={styles.mallEntryTitle}>🎁 积分商城</Text>
-            <Text style={styles.mallEntryDesc}>兑换权益、查看任务、管理积分资产</Text>
+        <>
+          <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
+            <View>
+              <Text style={styles.mallEntryTitle}>🎁 积分商城</Text>
+              <Text style={styles.mallEntryDesc}>兑换权益、查看任务、管理积分资产</Text>
+            </View>
+            <Text style={styles.mallEntryAction}>去看看 ›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.mallEntryCard} onPress={() => router.push('/(tabs)/meditation')} activeOpacity={0.9}>
+            <View>
+              <Text style={styles.mallEntryTitle}>🧘 静心冥想</Text>
+              <Text style={styles.mallEntryDesc}>静心、助眠、缓解焦虑，在山海世界中寻找宁静</Text>
+            </View>
+            <Text style={styles.mallEntryAction}>去冥想 ›</Text>
+          </TouchableOpacity>
+        </>
+      )}
+
+      {/* 今日任务 - 输入表单视图 */}
+      {isLoggedIn && (
+        <View style={[styles.dailyTasksCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
+          <Text style={styles.dailyTasksTitle}>📋 今日任务</Text>
+          <View style={styles.dailyTasksRow}>
+            <TouchableOpacity style={styles.dailyTaskItem} onPress={handleCheckIn} disabled={isCheckingIn || checkInStatus?.todayCheckedIn}>
+              <Text style={styles.dailyTaskIcon}>{checkInStatus?.todayCheckedIn ? '✅' : '📝'}</Text>
+              <Text style={[styles.dailyTaskLabel, checkInStatus?.todayCheckedIn && styles.dailyTaskDone]}>{checkInStatus?.todayCheckedIn ? '已签到' : '签到'}</Text>
+              <Text style={styles.dailyTaskPoints}>+10</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/')}>
+              <Text style={styles.dailyTaskIcon}>🎯</Text>
+              <Text style={styles.dailyTaskLabel}>抽签</Text>
+              <Text style={styles.dailyTaskPoints}>+5</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)/zi')}>
+              <Text style={styles.dailyTaskIcon}>✍️</Text>
+              <Text style={styles.dailyTaskLabel}>测字</Text>
+              <Text style={styles.dailyTaskPoints}>+5</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/')}>
+              <Text style={styles.dailyTaskIcon}>💬</Text>
+              <Text style={styles.dailyTaskLabel}>对话</Text>
+              <Text style={styles.dailyTaskPoints}>+5</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.mallEntryAction}>去看看 ›</Text>
-        </TouchableOpacity>
+        </View>
       )}
 
       {/* 未登录提示 */}
@@ -973,6 +1075,21 @@ export default function ProfileScreen() {
           <Text style={styles.legalLinkText}>常见问题</Text>
         </TouchableOpacity>
       </View>
+
+      {/* 成就解锁弹窗 */}
+      <Modal visible={!!achievementUnlock} animationType="fade" transparent onRequestClose={() => setAchievementUnlock(null)}>
+        <View style={styles.achievementOverlay}>
+          <View style={styles.achievementModalContent}>
+            <Text style={styles.achievementModalBadge}>{achievementUnlock?.icon || '🏆'}</Text>
+            <Text style={styles.achievementModalTitle}>成就解锁</Text>
+            <Text style={styles.achievementModalName}>{achievementUnlock?.name}</Text>
+            <Text style={styles.achievementModalDesc}>{achievementUnlock?.description}</Text>
+            <TouchableOpacity style={styles.achievementModalButton} onPress={() => setAchievementUnlock(null)}>
+              <Text style={styles.achievementModalButtonText}>太棒了</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -1037,6 +1154,50 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 40,
+  },
+  dailyTasksCard: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2F2342',
+  },
+  dailyTasksTitle: {
+    color: '#F8D05F',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  dailyTasksRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  dailyTaskItem: {
+    flex: 1,
+    minWidth: 70,
+    backgroundColor: '#1A1328',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#322243',
+  },
+  dailyTaskIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  dailyTaskLabel: {
+    color: '#F7F6F0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  dailyTaskDone: {
+    color: '#4CAF50',
+  },
+  dailyTaskPoints: {
+    color: '#F8D05F',
+    fontSize: 11,
+    marginTop: 2,
   },
   userInfoHeader: {
     flexDirection: 'row',
@@ -1244,6 +1405,55 @@ const styles = StyleSheet.create({
   legalSeparator: {
     color: '#3D3D5C',
     marginHorizontal: 12,
+  },
+  achievementOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  achievementModalContent: {
+    backgroundColor: '#1A1328',
+    borderRadius: 24,
+    padding: 28,
+    margin: 32,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#F8D05F',
+  },
+  achievementModalBadge: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  achievementModalTitle: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  achievementModalName: {
+    color: '#F7F6F0',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  achievementModalDesc: {
+    color: '#B2B4C8',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  achievementModalButton: {
+    backgroundColor: '#F8D05F',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 20,
+  },
+  achievementModalButtonText: {
+    color: '#1A0A18',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   loginPrompt: {
     backgroundColor: '#161126',

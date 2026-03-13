@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -111,6 +111,7 @@ export default function BaziScreen() {
   const [highlightMaster, setHighlightMaster] = React.useState(false);
   const [showUnlockTip, setShowUnlockTip] = React.useState(false);
   const [annualSectionY, setAnnualSectionY] = React.useState(0);
+  const [genError, setGenError] = React.useState<string | null>(null);
   const scrollRef = React.useRef<ScrollView>(null);
 
   const trackGodClick = React.useCallback((god: string) => {
@@ -225,8 +226,13 @@ export default function BaziScreen() {
       router.push('/login');
       return;
     }
+    setGenError(null);
     const gender = user.gender === 'female' ? 'female' : 'male';
-    await generateChart(gender);
+    try {
+      await generateChart(gender);
+    } catch (err) {
+      setGenError('生成命盘失败，请检查网络后重试');
+    }
   };
 
   if (!user) {
@@ -246,6 +252,9 @@ export default function BaziScreen() {
       <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <Text style={styles.title}>📜 八字看盘</Text>
         <Text style={styles.sub}>先生成命盘，再查看十神与五行结构</Text>
+        {genError && (
+          <Text style={styles.errorText}>{genError}</Text>
+        )}
         <TouchableOpacity style={styles.primaryBtn} onPress={handleGenerate} disabled={isLoading}>
           <Text style={styles.primaryBtnText}>{isLoading ? '生成中...' : '生成我的命盘'}</Text>
         </TouchableOpacity>
@@ -451,6 +460,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#F8D05F', marginBottom: 12 },
   sub: { color: '#9D93B3', fontSize: 14, textAlign: 'center', marginBottom: 16 },
+  errorText: { color: '#FF6B6B', fontSize: 13, marginBottom: 12, textAlign: 'center' },
   card: { backgroundColor: '#161126', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#2F2342' },
   cardTitle: { color: '#F8D05F', fontWeight: 'bold', fontSize: 15, marginBottom: 10 },
   body: { color: '#F2EEF9', fontSize: 14, lineHeight: 22, marginBottom: 4 },

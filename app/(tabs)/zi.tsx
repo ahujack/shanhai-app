@@ -135,9 +135,16 @@ export default function ZiScreen() {
     try {
       const data = await ziApi.analyze(zi, user?.id, focusAspect);
       setResult(data);
-    } catch (error) {
-      console.error('测字失败:', error);
-      Alert.alert('错误', '测字失败，请稍后重试');
+    } catch (err) {
+      console.error('测字失败:', err);
+      Alert.alert(
+        '测字失败',
+        '连接出现问题，请检查网络后重试',
+        [
+          { text: '知道了', style: 'cancel' },
+          { text: '重试', onPress: () => analyzeZiInput(rawZi, focusAspect) },
+        ]
+      );
     } finally {
       setIsLoading(false);
     }

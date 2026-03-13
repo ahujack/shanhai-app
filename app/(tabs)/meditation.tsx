@@ -11,14 +11,12 @@ const categoryLabels: Record<string, string> = {
   calm: '静心',
   sleep: '助眠',
   anxiety: '缓解焦虑',
-  focus: '专注',
 };
 
 const categoryEmojis: Record<string, string> = {
   calm: '🧘',
   sleep: '🌙',
   anxiety: '😌',
-  focus: '🎯',
 };
 
 const noiseAudioUrls: Record<'rain' | 'stream' | 'wind', string> = {
@@ -80,7 +78,7 @@ export default function MeditationScreen() {
       <Text style={styles.guideHint}>建议：戴上耳机，跟随节奏呼吸（吸气4秒-停2秒-呼气6秒）</Text>
 
       <View style={styles.categoryFilterRow}>
-        {(['all', 'calm', 'sleep', 'anxiety', 'focus'] as const).map((key) => (
+        {(['all', 'calm', 'sleep', 'anxiety'] as const).map((key) => (
           <TouchableOpacity
             key={key}
             style={[styles.categoryChip, selectedCategory === key && styles.categoryChipActive]}
@@ -222,7 +220,7 @@ function MeditationPlayer({
 
         const modeLabel = noiseMode === 'rain' ? '雨声' : noiseMode === 'stream' ? '溪流' : '风声';
         if (!isPlaying) {
-          setAudioHint(`已选择${modeLabel}，点击“开始”后播放`);
+          setAudioHint(`已选择${modeLabel}，点击"开始"后播放`);
           return;
         }
 
