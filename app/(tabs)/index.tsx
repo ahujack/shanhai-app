@@ -6,6 +6,7 @@ import theme from '../../constants/Colors';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
+import { useDivinationStore } from '../../src/store/divination';
 import { fortuneApi, FortuneSlip } from '../../src/services/api';
 import PersonaPicker from '../../components/PersonaPicker';
 
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const { active: persona, personas, setActive } = usePersonaStore();
   const { user, chart, hasChart, generateChart, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
+  const { setLastFortune } = useDivinationStore();
   
   // 加载签到状态
   useEffect(() => {
@@ -120,6 +122,7 @@ export default function HomeScreen() {
     try {
       const fortune = await fortuneApi.draw();
       setDrawFortune(fortune);
+      setLastFortune(fortune);
     } catch (error) {
       showToast('抽签失败，请稍后重试', 'error');
     } finally {
@@ -172,7 +175,19 @@ export default function HomeScreen() {
   // 跳转到占卜页面
   const goToReadingPage = () => {
     setShowDrawModal(false);
-    router.push('/(tabs)/reading');
+    const fortuneSummary = drawFortune?.interpretation?.overall || drawFortune?.day || '';
+    const suggestedQuestion = drawFortune
+      ? `我抽到「${drawFortune.poem.title}」，想重点请你深度解读我在近期${fortuneSummary ? `（${fortuneSummary}）` : ''}该怎么做。`
+      : '';
+
+    router.push({
+      pathname: '/(tabs)/reading',
+      params: {
+        fromFortune: drawFortune ? '1' : '0',
+        suggestedQuestion,
+        suggestedCategory: 'general',
+      },
+    });
   };
 
   // 签到

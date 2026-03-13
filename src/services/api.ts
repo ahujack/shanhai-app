@@ -332,6 +332,90 @@ export const readingApi = {
     request<DivinationResult>('/readings', { method: 'POST', body: JSON.stringify(dto) }),
 };
 
+// ========== Meditation API ==========
+export interface MeditationStep {
+  order: number;
+  title: string;
+  description: string;
+  durationSeconds: number;
+}
+
+export interface Meditation {
+  id: string;
+  title: string;
+  description: string;
+  durationMinutes: number;
+  category: 'calm' | 'sleep' | 'anxiety' | 'focus';
+  steps: MeditationStep[];
+}
+
+export const meditationApi = {
+  getAll: () => request<Meditation[]>('/meditations'),
+  getById: (id: string) => request<Meditation>(`/meditations/${id}`),
+};
+
+// ========== Zi API ==========
+export interface ZiResult {
+  handwriting: {
+    pressure: 'heavy' | 'light' | 'medium';
+    pressureInterpretation: string;
+    stability: 'stable' | 'shaky' | 'average';
+    stabilityInterpretation: string;
+    structure: 'compact' | 'loose' | 'balanced';
+    structureInterpretation: string;
+    continuity: 'connected' | 'broken' | 'average';
+    continuityInterpretation: string;
+    overallStyle: string;
+    personalityInsights: string[];
+  };
+  zi: {
+    zi: string;
+    bushou: string;
+    bihua: number;
+    wuxing: string;
+    yinyang: string;
+    jixiong: string;
+    yijing: string;
+    guaXiang: string;
+    components: string[];
+    componentMeanings: string[];
+    associativeMeaning: string;
+  };
+  interpretation: {
+    overall: string;
+    career: string;
+    love: string;
+    wealth: string;
+    health: string;
+    advice: string[];
+  };
+  coldReadings: string[];
+  followUpQuestions: string[];
+  metadata: {
+    method: string;
+    generatedAt: string;
+  };
+}
+
+export const ziApi = {
+  analyze: (zi: string, userId?: string) =>
+    request<ZiResult>('/zi/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ zi, userId }),
+    }),
+};
+
+export const handwritingApi = {
+  analyze: (image: string, userId?: string) =>
+    request<{ recognizedZi: string | null; confidence?: number; analysis?: ZiResult; error?: string }>(
+      '/zi/analyze-handwriting',
+      {
+        method: 'POST',
+        body: JSON.stringify({ image, userId }),
+      },
+    ),
+};
+
 // ========== Agent API ==========
 export interface AgentChatDto {
   message: string;
@@ -357,6 +441,14 @@ export interface AgentResponse {
   };
   hasChart: boolean;
 }
+
+export const agentApi = {
+  chat: (dto: AgentChatDto) =>
+    request<AgentResponse>('/agent/chat', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+};
 
 // ========== 签到 API ==========
 export interface CheckInResult {

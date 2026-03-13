@@ -1,19 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { readingApi, CreateReadingDto, DivinationResult } from '../../src/services/api';
 import { useUserStore } from '../../src/store/user';
+import { useDivinationStore } from '../../src/store/divination';
+import { useChatStore, ChatMessage } from '../../src/store/chat';
 
 const colors = theme.dark;
 
 export default function ReadingScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    fromFortune?: string | string[];
+    suggestedQuestion?: string | string[];
+    suggestedCategory?: string | string[];
+  }>();
   const { user } = useUserStore();
+  const { lastFortune } = useDivinationStore();
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState<CreateReadingDto['category']>('general');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<DivinationResult | null>(null);
+
+  const toSingle = (value?: string | string[]) =>
+    Array.isArray(value) ? value[0] : value;
+
+  const fromFortune = toSingle(params.fromFortune) === '1';
+  const suggestedQuestion = toSingle(params.suggestedQuestion);
+  const suggestedCategory = toSingle(params.suggestedCategory) as CreateReadingDto['category'] | undefined;
+
+  useEffect(() => {
+    if (!fromFortune) return;
+    if (!question && suggestedQuestion) {
+      setQuestion(suggestedQuestion);
+    }
+    if (suggestedCategory) {
+      setCategory(suggestedCategory);
+    }
+  }, [fromFortune, question, suggestedQuestion, suggestedCategory]);
 
   const categories = [
     { value: 'general', label: '综合' },
@@ -50,7 +77,52 @@ export default function ReadingScreen() {
     setResult(null);
   };
 
+  const handleDeepConversation = () => {
+    if (!result) return;
+    const movingLines = result.hexagram.lines.filter((line) => line === '6' || line === '9').length;
+    const caution = result.timing.caution || '';
+    const cautionRisky =
+      caution.includes('争') || caution.includes('困') || caution.includes('避') || caution.includes('损');
+
+    const bridgeMode: 'soothe' | 'listen' | 'clarify' =
+      cautionRisky ? 'soothe' : movingLines >= 3 ? 'clarify' : 'listen';
+
+    const bridgeByMode: Record<typeof bridgeMode, string> = {
+      soothe:
+        `我看到了你此刻的不容易。先不急着做决定，我们先把心放稳一点。\n\n` +
+        `你不用表现得很坚强，可以先告诉我：现在最让你难受的是哪一块？`,
+      listen:
+        `这次解读里，我更在意你的感受本身，而不是“马上怎么做”。\n\n` +
+        `如果你愿意，我会认真听你说：你最近最常反复想到的一件事是什么？`,
+      clarify:
+        `你现在可能不是“没有答案”，而是信息太多、情绪太满。\n\n` +
+        `我们先一起把线头理清：你最怕发生的结果是什么？你最希望保住的又是什么？`,
+    };
+
+    const supportChoiceLine =
+      `\n\n你也可以直接告诉我你现在想要哪种陪伴：` +
+      `\n1）先安慰我` +
+      `\n2）先听我讲` +
+      `\n3）帮我理清楚`;
+
+    const supportiveMessage: ChatMessage = {
+      id: `bridge_${Date.now()}`,
+      role: 'assistant',
+      content: `${bridgeByMode[bridgeMode]}${supportChoiceLine}`,
+      timestamp: new Date(),
+    };
+
+    useChatStore.setState((state) => ({
+      messages: [...state.messages, supportiveMessage],
+    }));
+
+    router.push('/');
+  };
+
   if (result) {
+    const movingLines = result.hexagram.lines.filter((line) => line === '6' || line === '9').length;
+    const confidence = Math.max(62, Math.min(92, 88 - movingLines * 6 + (result.hexagram.original === result.hexagram.changed ? 4 : 0)));
+
     return (
       <ScrollView 
         style={[styles.container, { backgroundColor: colors.background }]}
@@ -85,6 +157,29 @@ export default function ReadingScreen() {
           <Text style={styles.interpretationText}>{result.interpretation.guidance}</Text>
         </View>
 
+        {/* 结构化解释卡 */}
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <Text style={styles.cardTitle}>🧭 结构化解释</Text>
+          <View style={styles.structCard}>
+            <Text style={styles.structTitle}>依据</Text>
+            <Text style={styles.structText}>本卦：{result.hexagram.originalName}</Text>
+            <Text style={styles.structText}>变卦：{result.hexagram.changedName}</Text>
+            <Text style={styles.structText}>动爻数：{movingLines}（越多代表变化越快）</Text>
+          </View>
+          <View style={styles.structCard}>
+            <Text style={styles.structTitle}>建议</Text>
+            <Text style={styles.structText}>{result.interpretation.guidance}</Text>
+          </View>
+          <View style={styles.structCard}>
+            <Text style={styles.structTitle}>风险</Text>
+            <Text style={styles.structText}>⚠️ {result.timing.caution}</Text>
+          </View>
+          <View style={styles.confidenceRow}>
+            <Text style={styles.confidenceLabel}>解读置信度</Text>
+            <Text style={styles.confidenceValue}>{confidence}%</Text>
+          </View>
+        </View>
+
         {/* 建议 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={styles.cardTitle}>💡 建议</Text>
@@ -103,6 +198,18 @@ export default function ReadingScreen() {
           <Text style={styles.timingText}>⚠️ {result.timing.caution}</Text>
         </View>
 
+        {/* 情绪承接与深聊 */}
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <Text style={styles.cardTitle}>🤍 先照顾你的感受</Text>
+          <Text style={styles.supportText}>
+            这份解读不是在催你立刻行动，而是帮你看见自己。你可以先把情绪说出来，我们再一起慢慢梳理。
+          </Text>
+          <TouchableOpacity style={styles.deepChatButton} onPress={handleDeepConversation}>
+            <Text style={styles.deepChatButtonText}>进入深度对话</Text>
+          </TouchableOpacity>
+          <Text style={styles.supportHint}>会把当前解读自然衔接到聊天里，不需要你重复描述。</Text>
+        </View>
+
         {/* 再次占卜 */}
         <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
           <Text style={styles.resetButtonText}>再次占卜</Text>
@@ -117,6 +224,15 @@ export default function ReadingScreen() {
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
     >
       <Text style={styles.sectionTitle}>🔮 深度解读</Text>
+
+      {fromFortune && lastFortune && (
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <Text style={styles.cardTitle}>🧿 本次抽签摘要</Text>
+          <Text style={styles.featureText}>签名：{lastFortune.poem.title}</Text>
+          <Text style={styles.featureText}>今日：{lastFortune.day}</Text>
+          <Text style={styles.hint}>{lastFortune.interpretation?.overall || '已为你带入本次抽签结果。'}</Text>
+        </View>
+      )}
       
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
         <Text style={styles.hint}>将心中困惑如实道来，字数不限，可附加时间、人物或地点，以便匹配更精准的卦象。</Text>
@@ -360,5 +476,64 @@ const styles = StyleSheet.create({
   featureText: {
     color: '#8D8DAA',
     fontSize: 14,
+  },
+  structCard: {
+    backgroundColor: '#1A1328',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#322243',
+    padding: 12,
+    marginBottom: 10,
+  },
+  structTitle: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  structText: {
+    color: '#B9B3C9',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  confidenceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#2F2342',
+  },
+  confidenceLabel: {
+    color: '#9C95AD',
+    fontSize: 13,
+  },
+  confidenceValue: {
+    color: '#F8D05F',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  supportText: {
+    color: '#BDB6CC',
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 14,
+  },
+  deepChatButton: {
+    backgroundColor: '#6D50A6',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  deepChatButtonText: {
+    color: '#F7F6F0',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  supportHint: {
+    color: '#8E84A3',
+    fontSize: 12,
   },
 });
