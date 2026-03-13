@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
 import { ziApi, ZiResult, handwritingApi } from '../../src/services/api';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
@@ -75,6 +76,7 @@ export default function ZiScreen() {
   const lockedImageCount = shouldShowOracleUnlock
     ? (result?.zi.oracleBone?.totalImages || 0) - (result?.zi.oracleBone?.shownImages || 0)
     : 0;
+  const ziStateStorageKey = `zi_screen_state_${user?.id || 'guest'}`;
 
   useEffect(() => {
     if (!shouldShowOracleUnlock) {
@@ -146,6 +148,50 @@ export default function ZiScreen() {
     setInputZi(zi);
     analyzeZiInput(zi).catch(() => null);
   }, [params.prefillZi]);
+
+  React.useEffect(() => {
+    const prefill = (params.prefillZi || '').trim();
+    if (prefill) return;
+    let cancelled = false;
+    const loadState = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(ziStateStorageKey);
+        if (!raw || cancelled) return;
+        const parsed = JSON.parse(raw) as {
+          inputZi?: string;
+          result?: ZiResult | null;
+          selectedAspect?: string;
+          customAspect?: string;
+          isHandwritingMode?: boolean;
+          showColdReading?: boolean;
+        };
+        if (parsed.inputZi) setInputZi(parsed.inputZi);
+        if (parsed.result) setResult(parsed.result);
+        if (parsed.selectedAspect) setSelectedAspect(parsed.selectedAspect);
+        if (parsed.customAspect) setCustomAspect(parsed.customAspect);
+        if (typeof parsed.isHandwritingMode === 'boolean') setIsHandwritingMode(parsed.isHandwritingMode);
+        if (typeof parsed.showColdReading === 'boolean') setShowColdReading(parsed.showColdReading);
+      } catch {
+        // ignore restore failure
+      }
+    };
+    loadState();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.prefillZi, ziStateStorageKey]);
+
+  React.useEffect(() => {
+    const payload = {
+      inputZi,
+      result,
+      selectedAspect,
+      customAspect,
+      isHandwritingMode,
+      showColdReading,
+    };
+    AsyncStorage.setItem(ziStateStorageKey, JSON.stringify(payload)).catch(() => null);
+  }, [ziStateStorageKey, inputZi, result, selectedAspect, customAspect, isHandwritingMode, showColdReading]);
 
   // 打字模式测字
   const handleAnalyze = async () => {
