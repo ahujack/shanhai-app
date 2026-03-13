@@ -25,7 +25,8 @@ export default function ReadingScreen() {
   const [category, setCategory] = useState<CreateReadingDto['category']>('general');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<DivinationResult | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(true);
+  const [showFortuneSource, setShowFortuneSource] = useState(true);
 
   const toSingle = (value?: string | string[]) =>
     Array.isArray(value) ? value[0] : value;
@@ -34,6 +35,55 @@ export default function ReadingScreen() {
   const fromChatReading = toSingle(params.fromChatReading) === '1';
   const suggestedQuestion = toSingle(params.suggestedQuestion);
   const suggestedCategory = toSingle(params.suggestedCategory) as CreateReadingDto['category'] | undefined;
+
+  const mapFortuneToReading = (fortune: NonNullable<typeof lastFortune>): DivinationResult => {
+    const fallbackYao = ['初爻静守', '二爻蓄势', '三爻观变', '四爻谨行', '五爻得助', '上爻知止'];
+    const recommendations = fortune.advice?.length
+      ? fortune.advice
+      : ['先稳住节奏', '先做最关键的一步', '留意情绪与身体信号'];
+
+    return {
+      id: `fortune_${fortune.id}_${Date.now()}`,
+      question: `我抽到「${fortune.poem.title}」，想看更细致的方向建议。`,
+      category: 'general',
+      conclusion: {
+        verdict: fortune.interpretation.overall,
+        confidence: fortune.fortuneScore || 78,
+        emotionalTone: fortune.fortuneRank || '中签',
+        nextStep: recommendations[0] || '先把今天最重要的一步做掉。',
+      },
+      hexagram: {
+        original: fortune.poem.title,
+        originalName: fortune.poem.title,
+        changed: fortune.poem.title,
+        changedName: fortune.poem.title,
+        lines: ['7', '8', '7', '8', '7', '8'],
+        yaoDescriptions: fallbackYao.map((line, idx) => `${idx + 1}. ${line}`),
+      },
+      interpretation: {
+        overall: fortune.interpretation.overall,
+        situation: `今日签运：${fortune.day}`,
+        guidance: recommendations.slice(0, 2).join('；'),
+      },
+      recommendations,
+      timing: {
+        suitable: fortune.luckyTime || '顺势推进今天最关键的一件事',
+        caution: '避免情绪化决策，先确认信息再行动',
+      },
+      culturalSource: fortune.poem.title,
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        method: 'fortune-bridge',
+      },
+    };
+  };
+
+  useEffect(() => {
+    if (!fromFortune || !lastFortune) return;
+    if (fromChatReading) return;
+    setResult(mapFortuneToReading(lastFortune));
+    setShowDetails(true);
+  }, [fromFortune, fromChatReading, lastFortune]);
 
   useEffect(() => {
     if (!fromFortune) return;
@@ -99,18 +149,18 @@ export default function ReadingScreen() {
 
     const bridgeByMode: Record<typeof bridgeMode, string> = {
       soothe:
-        `我看到了你此刻的不容易。先不急着做决定，我们先把心放稳一点。\n\n` +
-        `你不用表现得很坚强，可以先告诉我：现在最让你难受的是哪一块？`,
+        `谢谢你把这些感受带来。我们先不着急定结论，先把心慢慢放稳。\n\n` +
+        `如果你愿意，可以先说说：此刻最压着你的情绪是什么？`,
       listen:
-        `这次解读里，我更在意你的感受本身，而不是“马上怎么做”。\n\n` +
-        `如果你愿意，我会认真听你说：你最近最常反复想到的一件事是什么？`,
+        `这次我更想先听你，而不是催你马上行动。\n\n` +
+        `你最近最反复想到、最放不下的是哪一件事？`,
       clarify:
-        `你现在可能不是“没有答案”，而是信息太多、情绪太满。\n\n` +
-        `我们先一起把线头理清：你最怕发生的结果是什么？你最希望保住的又是什么？`,
+        `你已经很认真了，也许现在只是信息太多、心有点累。\n\n` +
+        `我们先轻轻理一理：你最担心什么？你最想守住什么？`,
     };
 
     const supportChoiceLine =
-      `\n\n你也可以直接告诉我你现在想要哪种陪伴：` +
+      `\n\n你也可以直接告诉我，你此刻更需要哪种陪伴：` +
       `\n1）先安慰我` +
       `\n2）先听我讲` +
       `\n3）帮我理清楚`;
@@ -139,6 +189,40 @@ export default function ReadingScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       >
         <Text style={styles.sectionTitle}>🔮 占卜结果</Text>
+
+        {fromFortune && lastFortune && (
+          <View style={[styles.card, styles.fromFortuneCard, { backgroundColor: colors.surface }]}>
+            <View style={styles.fromFortuneHeader}>
+              <Text style={styles.fromFortuneTitle}>🎯 来自本次抽签的深度解读</Text>
+              <View style={styles.fromFortuneHeaderRight}>
+                {!!lastFortune.fortuneRank && (
+                  <View style={styles.rankBadge}>
+                    <Text style={styles.rankBadgeText}>{lastFortune.fortuneRank}</Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.fromFortuneToggle}
+                  onPress={() => setShowFortuneSource((v) => !v)}
+                >
+                  <Text style={styles.fromFortuneToggleText}>{showFortuneSource ? '收起' : '展开'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            {showFortuneSource && (
+              <>
+                <Text style={styles.fromFortuneMeta}>
+                  {lastFortune.drawCode ? `签号：${lastFortune.drawCode} · ` : ''}签名：{lastFortune.poem.title}
+                </Text>
+                {!!lastFortune.mission && (
+                  <Text style={styles.fromFortuneHint}>🧩 今日任务：{lastFortune.mission}</Text>
+                )}
+                {!!lastFortune.funTip && (
+                  <Text style={styles.fromFortuneHint}>🎲 趣味提示：{lastFortune.funTip}</Text>
+                )}
+              </>
+            )}
+          </View>
+        )}
 
         {/* 一屏结论 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -229,14 +313,14 @@ export default function ReadingScreen() {
 
         {/* 情绪承接与深聊 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>🤍 先照顾你的感受</Text>
+          <Text style={styles.cardTitle}>🤍 先把心放稳一点</Text>
           <Text style={styles.supportText}>
-            这份解读不是在催你立刻行动，而是帮你看见自己。你可以先把情绪说出来，我们再一起慢慢梳理。
+            这份解读不是在催你立刻行动，而是陪你把感受理顺。你可以先说情绪，再一起慢慢看下一步。
           </Text>
           <TouchableOpacity style={styles.deepChatButton} onPress={handleDeepConversation}>
-            <Text style={styles.deepChatButtonText}>进入深度对话</Text>
+            <Text style={styles.deepChatButtonText}>和我聊聊现在的感受</Text>
           </TouchableOpacity>
-          <Text style={styles.supportHint}>会把当前解读自然衔接到聊天里，不需要你重复描述。</Text>
+          <Text style={styles.supportHint}>会自动承接当前解读，不需要你重复描述。</Text>
         </View>
           </>
         )}
@@ -355,6 +439,62 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#2F2342',
+  },
+  fromFortuneCard: {
+    borderColor: '#5E4591',
+  },
+  fromFortuneHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  fromFortuneHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  fromFortuneTitle: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  rankBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#2B1F46',
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+  },
+  rankBadgeText: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  fromFortuneToggle: {
+    backgroundColor: '#2F2450',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#4A3C6D',
+  },
+  fromFortuneToggleText: {
+    color: '#CFC6DE',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  fromFortuneMeta: {
+    color: '#B9ACD3',
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  fromFortuneHint: {
+    color: '#CFC6DE',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 4,
   },
   hint: {
     color: '#8D8DAA',

@@ -262,17 +262,10 @@ export default function HomeScreen() {
   // 跳转到占卜页面
   const goToReadingPage = () => {
     setShowDrawModal(false);
-    const fortuneSummary = drawFortune?.interpretation?.overall || drawFortune?.day || '';
-    const suggestedQuestion = drawFortune
-      ? `我抽到「${drawFortune.poem.title}」，想重点请你深度解读我在近期${fortuneSummary ? `（${fortuneSummary}）` : ''}该怎么做。`
-      : '';
-
     router.push({
       pathname: '/(tabs)/reading',
       params: {
         fromFortune: drawFortune ? '1' : '0',
-        suggestedQuestion,
-        suggestedCategory: 'general',
       },
     });
   };
@@ -431,20 +424,24 @@ export default function HomeScreen() {
           contentContainerStyle={styles.chatContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.featureHintCard}>
-            <Text style={styles.featureHintText}>🔮 占卜：在底部 Tab，适合问具体问题做推演</Text>
-            <Text style={styles.featureHintText}>🎯 抽签：在右下角悬浮按钮，适合看今日签运</Text>
-          </View>
-
           {/* 欢迎消息 */}
           {messages.length === 0 && (
             <View style={styles.welcomeCard}>
+              <Text style={styles.welcomeTag}>今日灵感</Text>
               <Text style={styles.welcomeText}>
                 {persona.greeting}
               </Text>
               <Text style={styles.welcomeHint}>
                 你可以问我关于运势、占卜、命盘的问题，或者只是想聊聊。
               </Text>
+              <View style={styles.welcomeActions}>
+                <TouchableOpacity style={styles.welcomeActionPrimary} onPress={openDrawModal}>
+                  <Text style={styles.welcomeActionPrimaryText}>🎯 抽一签</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.welcomeActionSecondary} onPress={() => router.push('/reading')}>
+                  <Text style={styles.welcomeActionSecondaryText}>🔮 去占卜</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -541,7 +538,6 @@ export default function HomeScreen() {
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.drawModalHint}>抽签看今日签运；问事推演请前往底部「占卜」</Text>
             
             <ScrollView style={styles.modalScroll}>
               {drawFortune ? (
@@ -1162,7 +1158,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#2F2342',
   },
@@ -1173,9 +1169,13 @@ const styles = StyleSheet.create({
   },
   personaSwitchButton: {
     backgroundColor: '#2B2342',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    minWidth: 86,
+    height: 34,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#3A2B5A',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   personaSwitchText: {
     color: '#F8D05F',
@@ -1184,9 +1184,13 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: '#2B2342',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    minWidth: 92,
+    height: 34,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#3A2B5A',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loginButtonText: {
     color: '#F8D05F',
@@ -1195,11 +1199,13 @@ const styles = StyleSheet.create({
   },
   meditationButton: {
     backgroundColor: '#4C2F80',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    minWidth: 92,
+    height: 34,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#F8D05F',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   meditationButtonText: {
     color: '#F8D05F',
@@ -1213,24 +1219,34 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#B2B4C8',
-    marginTop: 4,
+    marginTop: 6,
+    backgroundColor: '#1B1430',
+    alignSelf: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+    overflow: 'hidden',
   },
   headerRight: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
   userActionColumn: {
-    gap: 6,
+    gap: 8,
   },
   checkInButton: {
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    minWidth: 92,
+    height: 34,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#77D07E',
     zIndex: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkInButtonText: {
     color: '#fff',
@@ -1251,7 +1267,7 @@ const styles = StyleSheet.create({
   },
   chatContent: {
     padding: 16,
-    paddingBottom: 20,
+    paddingBottom: 28,
   },
   welcomeCard: {
     backgroundColor: '#161126',
@@ -1260,6 +1276,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#2F2342',
+  },
+  welcomeTag: {
+    alignSelf: 'center',
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 8,
+    letterSpacing: 1,
   },
   welcomeText: {
     fontSize: 15,
@@ -1272,22 +1296,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#8D8DAA',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  featureHintCard: {
-    backgroundColor: '#151025',
-    borderRadius: 12,
+  welcomeActions: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+  },
+  welcomeActionPrimary: {
+    backgroundColor: '#F8D05F',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  welcomeActionPrimaryText: {
+    color: '#1A0A18',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  welcomeActionSecondary: {
+    borderColor: '#4A3C6D',
     borderWidth: 1,
-    borderColor: '#322243',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    backgroundColor: '#1B1430',
   },
-  featureHintText: {
+  welcomeActionSecondaryText: {
     color: '#B9ACD3',
     fontSize: 12,
-    lineHeight: 18,
+    fontWeight: '700',
   },
   bubbleContainer: {
     marginBottom: 12,
@@ -1621,12 +1659,6 @@ const styles = StyleSheet.create({
     color: '#F8D05F',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  drawModalHint: {
-    color: '#8D8DAA',
-    fontSize: 12,
-    paddingHorizontal: 20,
-    paddingBottom: 6,
   },
   modalClose: {
     color: '#8D8DAA',
