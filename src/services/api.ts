@@ -488,6 +488,11 @@ export const ziApi = {
 };
 
 export const handwritingApi = {
+  recognize: (image: string) =>
+    request<{ recognizedZi: string | null; confidence?: number }>('/zi/recognize', {
+      method: 'POST',
+      body: JSON.stringify({ image }),
+    }),
   analyze: (image: string, userId?: string, focusAspect?: string) =>
     request<{ recognizedZi: string | null; confidence?: number; analysis?: ZiResult; error?: string }>(
       '/zi/analyze-handwriting',

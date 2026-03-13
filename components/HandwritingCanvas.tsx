@@ -276,6 +276,9 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         style={[
           styles.canvasContainer,
           { borderColor: wuxingTheme.border, shadowColor: wuxingTheme.border },
+          ...(Platform.OS === 'web'
+            ? [{ cursor: (isDrawing ? 'none' : 'crosshair') as any }]
+            : []),
         ]} 
         {...panResponder.panHandlers}
       >
@@ -393,7 +396,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
-    ...(Platform.OS === 'web' ? { cursor: 'none' as any } : {}),
   },
   canvasBackground: {
     ...StyleSheet.absoluteFillObject,
@@ -463,15 +465,20 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 3,
     borderWidth: 2,
-    backgroundColor: '#fff',
+    backgroundColor: '#F7F1E3',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
   },
   brushCore: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#1a1a2e',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#111',
   },
   buttonRow: {
     flexDirection: 'row',

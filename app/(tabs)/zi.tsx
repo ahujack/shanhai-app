@@ -28,6 +28,7 @@ export default function ZiScreen() {
   const [inputZi, setInputZi] = useState('');
   const [result, setResult] = useState<ZiResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [handwritingStage, setHandwritingStage] = useState<'idle' | 'recognizing' | 'analyzing'>('idle');
   const [showColdReading, setShowColdReading] = useState(true);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
@@ -159,23 +160,25 @@ export default function ZiScreen() {
   const handleHandwritingRecognize = async (svgString: string) => {
     console.log('开始手写识别，SVG长度:', svgString.length);
     setIsLoading(true);
+    setHandwritingStage('recognizing');
     try {
-      console.log('调用 handwritingApi.analyze...');
-      const data = await handwritingApi.analyze(svgString, user?.id, getFocusAspect());
-      console.log('识别结果:', data);
-      
-      if (data.recognizedZi) {
-        setInputZi(data.recognizedZi);
-        setResult(data.analysis || null);
-        
-        Alert.alert('🎉 识别成功', `识别到汉字：${data.recognizedZi}\n\n你可以选择“事业/财运/婚姻”等方向，再点击“按方向重解读”。`);
-      } else {
-        Alert.alert('😔 识别失败', data.error || '未能识别出汉字，请重新书写');
+      console.log('调用 handwritingApi.recognize...');
+      const recognized = await handwritingApi.recognize(svgString);
+      const recognizedZi = recognized.recognizedZi?.trim().charAt(0);
+      if (!recognizedZi || !/[\u4e00-\u9fa5]/.test(recognizedZi)) {
+        Alert.alert('😔 识别失败', '未能识别出汉字，请重新书写');
+        return;
       }
+      setInputZi(recognizedZi);
+      setHandwritingStage('analyzing');
+      const analysis = await ziApi.analyze(recognizedZi, user?.id, getFocusAspect());
+      setResult(analysis);
+      Alert.alert('🎉 识别成功', `识别到汉字：${recognizedZi}\n\n当前已完成首轮解读，你可以继续做方向深挖。`);
     } catch (error: any) {
       console.error('手写识别失败:', error);
       Alert.alert('错误', error?.message || '手写识别失败，请稍后重试');
     } finally {
+      setHandwritingStage('idle');
       setIsLoading(false);
     }
   };
@@ -273,6 +276,13 @@ export default function ZiScreen() {
     }, 450);
   };
   const guaDetail = parseGuaDetail(result?.zi?.guaXiang);
+  const handwritingProgress = handwritingStage === 'recognizing' ? 42 : handwritingStage === 'analyzing' ? 86 : 0;
+  const handwritingProgressText =
+    handwritingStage === 'recognizing'
+      ? '识别中（1/2）'
+      : handwritingStage === 'analyzing'
+      ? '解读中（2/2）'
+      : '';
   
   // 点击继续聊聊，AI自动发送一个问题，等待用户回答
   const handleFollowUpQuestion = async (_question: string) => {
@@ -431,7 +441,11 @@ export default function ZiScreen() {
                 onPress={handleFocusedReanalyze}
                 disabled={!result || isLoading}
               >
-                <Text style={styles.refineInlineBtnText}>{isLoading ? '重解读中...' : '按方向重解读'}</Text>
+                <Text style={styles.refineInlineBtnText}>
+                  {isLoading
+                    ? (result?.interpretation.focusReading ? '重解读中...' : '解读中...')
+                    : '按方向重解读'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -444,6 +458,14 @@ export default function ZiScreen() {
                 isRecognizing={isLoading}
                 wuxing={result?.zi?.wuxing}
               />
+              {handwritingStage !== 'idle' && (
+                <View style={styles.progressWrap}>
+                  <Text style={styles.progressText}>{handwritingProgressText}</Text>
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: `${handwritingProgress}%` }]} />
+                  </View>
+                </View>
+              )}
             </View>
           ) : (
             // 打字模式
@@ -917,6 +939,26 @@ const styles = StyleSheet.create({
   handwritingSection: {
     alignItems: 'center',
     marginTop: 10,
+  },
+  progressWrap: {
+    marginTop: 10,
+    width: '92%',
+  },
+  progressText: {
+    color: '#C7CBE3',
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#2A2D44',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#6D50A6',
   },
   sectionTitle: {
     fontSize: 18,
