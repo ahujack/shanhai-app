@@ -434,14 +434,6 @@ export default function HomeScreen() {
               <Text style={styles.welcomeHint}>
                 你可以问我关于运势、占卜、命盘的问题，或者只是想聊聊。
               </Text>
-              <View style={styles.welcomeActions}>
-                <TouchableOpacity style={styles.welcomeActionPrimary} onPress={openDrawModal}>
-                  <Text style={styles.welcomeActionPrimaryText}>🎯 抽一签</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.welcomeActionSecondary} onPress={() => router.push('/reading')}>
-                  <Text style={styles.welcomeActionSecondaryText}>🔮 去占卜</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           )}
 
@@ -1296,36 +1288,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#8D8DAA',
     textAlign: 'center',
-    marginBottom: 14,
-  },
-  welcomeActions: {
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-  },
-  welcomeActionPrimary: {
-    backgroundColor: '#F8D05F',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  welcomeActionPrimaryText: {
-    color: '#1A0A18',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  welcomeActionSecondary: {
-    borderColor: '#4A3C6D',
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    backgroundColor: '#1B1430',
-  },
-  welcomeActionSecondaryText: {
-    color: '#B9ACD3',
-    fontSize: 12,
-    fontWeight: '700',
+    marginBottom: 4,
   },
   bubbleContainer: {
     marginBottom: 12,

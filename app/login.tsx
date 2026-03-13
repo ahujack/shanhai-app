@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   ActivityIndicator,
-  Modal,
-  Pressable,
+  Animated,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useUserStore } from '../src/store/user';
 import { signInWithGoogle } from '../src/services/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const { sendCode, loginWithPassword, loginWithCode, loginWithSocial, isLoading } = useUserStore();
 
   // 从 URL 获取推荐码
@@ -33,19 +33,26 @@ export default function LoginScreen() {
   const [loginMethod, setLoginMethod] = useState<'password' | 'code'>('password');
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' }>({ visible: false, message: '', type: 'info' });
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Toast显示函数
+  // Toast 显示（带淡入淡出动画）
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToast({ visible: true, message, type });
-    setTimeout(() => {
-      setToast({ visible: false, message: '', type: 'info' });
+    Animated.timing(toastOpacity, { toValue: 1, useNativeDriver: true, duration: 200 }).start();
+    toastTimeoutRef.current = setTimeout(() => {
+      Animated.timing(toastOpacity, { toValue: 0, useNativeDriver: true, duration: 200 }).start(({ finished }) => {
+        if (finished) {
+          setToast({ visible: false, message: '', type: 'info' });
+          toastOpacity.setValue(0);
+        }
+      });
+      toastTimeoutRef.current = null;
     }, 2500);
   };
-  const [showTermsModal, setShowTermsModal] = useState(false);
-  const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
-  
   // 输入错误状态
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -59,19 +66,17 @@ export default function LoginScreen() {
     }
   }, [countdown, isCodeSent]);
 
-  // 检查用户之前是否已经同意过协议
+  // 切换登录方式时重置验证码相关状态
   React.useEffect(() => {
-    const checkAgreedStatus = async () => {
-      try {
-        const agreed = await AsyncStorage.getItem('agreedToTerms');
-        if (agreed === 'true') {
-          setAgreedToTerms(true);
-        }
-      } catch (e) {
-        console.error('检查协议状态失败:', e);
-      }
-    };
-    checkAgreedStatus();
+    if (loginMethod === 'password') {
+      setCode('');
+      setCodeError('');
+    }
+  }, [loginMethod]);
+
+  // 组件卸载时清理 Toast 定时器
+  React.useEffect(() => () => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
   }, []);
 
   // 邮箱验证
@@ -118,63 +123,50 @@ export default function LoginScreen() {
   };
 
   const handleSendCode = async () => {
-    if (!validateEmail(email)) {
-      return;
-    }
+    if (!validateEmail(email)) return;
+    if (isSendingCode) return;
 
-    // 调用后端 API 发送验证码
+    setIsSendingCode(true);
+    setCodeError('');
     const result = await sendCode(email, 'login');
+    setIsSendingCode(false);
 
     if (result?.success) {
-      showToast('验证码已发送到您的邮箱，请查收邮件', 'success');
+      showToast('验证码已发送，请查收邮件（含垃圾邮件箱）', 'success');
       setIsCodeSent(true);
-      setCountdown(60); // 开始60秒倒计时
+      setCountdown(60);
     } else {
-      showToast(result?.message || '发送失败，请检查邮箱是否已注册，或稍后重试', 'error');
+      const msg = result?.message || '发送失败，请确认邮箱已注册或稍后重试';
+      showToast(msg, 'error');
+      setCodeError(msg.includes('邮箱') ? '请确认该邮箱已注册' : '');
     }
   };
 
   const handleLogin = async () => {
-    // 首次登录需要勾选协议 - 必须首先检查
-    if (!agreedToTerms) {
-      showToast('请先阅读并同意用户协议和隐私政策', 'error');
-      return;
-    }
-    
-    // 验证邮箱
-    if (!validateEmail(email)) {
-      return;
-    }
+    if (isLoading) return;
+    if (!validateEmail(email)) return;
 
     if (loginMethod === 'password') {
-      // 密码登录
-      if (!validatePassword(password)) {
-        return;
-      }
-      
+      if (!validatePassword(password)) return;
       const result = await loginWithPassword(email, password);
       if (result.success) {
         showToast('登录成功，欢迎回来！', 'success');
-        // 记住协议勾选状态
-        await AsyncStorage.setItem('agreedToTerms', 'true');
         setTimeout(() => router.replace('/(tabs)'), 500);
       } else {
-              showToast(result.message || '登录失败', 'error');
+        const msg = result.message || '邮箱或密码错误，请检查后重试';
+        showToast(msg, 'error');
+        setPasswordError(msg.includes('密码') ? msg : '');
       }
     } else {
-      // 验证码登录
-      if (!validateCode(code)) {
-        return;
-      }
-      
+      if (!validateCode(code)) return;
       const result = await loginWithCode(email, code);
       if (result.success) {
         showToast('登录成功，欢迎回来！', 'success');
-        // 记住协议勾选状态
-        await AsyncStorage.setItem('agreedToTerms', 'true');
         setTimeout(() => router.replace('/(tabs)'), 500);
       } else {
-              showToast(result.message || '登录失败', 'error');
+        const msg = result.message || '验证码错误或已过期，请重新获取';
+        showToast(msg, 'error');
+        setCodeError(msg.includes('验证码') ? msg : '');
       }
     }
   };
@@ -192,17 +184,8 @@ export default function LoginScreen() {
     router.push('/forgot-password');
   };
 
-  const openTerms = (type: 'terms' | 'privacy') => {
-    setTermsType(type);
-    setShowTermsModal(true);
-  };
-
   const handleGoogleLogin = async () => {
-    // 首次登录需要勾选协议
-    if (!agreedToTerms) {
-      showToast('请先阅读并同意用户协议和隐私政策', 'error');
-      return;
-    }
+    if (isLoading) return;
 
     try {
       const userInfo = await signInWithGoogle();
@@ -210,119 +193,53 @@ export default function LoginScreen() {
         const result = await loginWithSocial('google', userInfo.idToken);
         if (result.success) {
           showToast('登录成功，欢迎回来！', 'success');
-          // 记住协议勾选状态
-          await AsyncStorage.setItem('agreedToTerms', 'true');
           setTimeout(() => router.replace('/(tabs)'), 500);
         } else {
-                showToast(result.message || '登录失败', 'error');
+          showToast(result.message || 'Google 登录失败，请重试', 'error');
         }
       }
+      // Web 环境下会跳转，不返回；原生环境可能取消授权
     } catch (error) {
       console.error('Google login error:', error);
-      showToast('Google 登录出错，请重试', 'error');
+      showToast('Google 登录失败，请检查网络后重试', 'error');
     }
   };
 
-  // 用户协议内容
-  const termsContent = `【山海灵境用户服务协议】
-
-欢迎使用山海灵境！
-
-一、服务条款的确认和接纳
-本服务条款所称的用户是指完全同意本服务条款的用户。用户在使用山海灵境提供的服务时，应遵守本服务条款。山海灵境保留根据法律法规及业务发展需要修改本服务条款的权利。
-
-二、服务内容
-山海灵境提供命运探索服务，包括但不限于：
-- 命理分析
-- 运势预测
-- 解读服务
-
-三、用户行为规范
-用户不得利用本服务从事以下行为：
-1. 反对宪法所确定的基本原则的
-2. 危害国家安全，泄露国家秘密，颠覆国家政权，破坏国家统一的
-3. 损害国家荣誉和利益的
-4. 煽动民族仇恨、民族歧视，破坏民族团结的
-5. 破坏国家宗教政策，宣扬邪教和封建迷信的
-6. 散布谣言，扰乱社会秩序，破坏社会稳定的
-7. 散布淫秽、色情、赌博、暴力、凶杀、恐怖或者教唆犯罪的
-8. 侮辱或者诽谤他人，侵害他人合法权益的
-9. 含有法律、行政法规禁止的其他内容的
-
-四、知识产权
-山海灵境服务中包含的任何内容（包括但不限于文字、图片、视频、软件等）的知识产权归山海灵境或相应权利人所有。用户在使用本服务时产生的任何内容，其知识产权归用户所有，但用户授予山海灵境免费使用的权利、中断或终止。
-
-五、服务变更
-如因系统维护或升级的需要而需暂停网络服务，山海灵境将尽可能事先进行通知。用户在接受山海灵境服务时，应遵守法律法规，不得发布违法违规内容。
-
-六、免责声明
-山海灵境不对用户发布的内容的准确性、完整性、合法性负责。用户在使用本服务时，需自行承担风险。山海灵境保留随时修改或终止服务的权利。
-
-七、联系方式
-如对本服务条款有任何疑问，请联系我们的客服。
-
-生效日期：2024年1月1日`;
-
-  // 隐私政策内容
-  const privacyContent = `【山海灵境隐私政策】
-
-感谢您使用山海灵境！
-
-一、信息的收集和使用
-我们收集您提供的信息以提供服务：
-1. 账户信息：当您注册时，我们需要您提供邮箱地址用于账户创建和身份验证
-2. 个人信息：您可以选择提供姓名、出生日期等信息以获得更精准的命理分析
-3. 使用数据：我们会收集您使用服务的行为数据以改善服务质量
-
-二、信息共享
-我们不会出售您的个人信息。在以下情况下，我们可能会共享您的信息：
-1. 征得您同意后
-2. 法律法规要求时
-3. 保护山海灵境或其他用户的权利时
-
-三、信息安全
-我们采取合理的安全措施保护您的个人信息，包括：
-1. 数据加密传输
-2. 安全的服务器存储
-3. 访问权限控制
-
-四、Cookie使用
-我们使用Cookie改善用户体验，您可以管理Cookie设置。
-
-五、用户权利
-您有权：
-1. 访问您的个人信息
-2. 更正不准确的信息
-3. 删除您的账户和数据
-4. 撤回同意
-
-六、未成年人保护
-我们不为13岁以下用户提供服务。
-
-七、政策的更新
-我们可能会更新本政策，更新后会及时通知用户。
-
-八、联系我们
-如有任何隐私相关问题，请联系我们。
-
-生效日期：2024年1月1日`;
+  const isWeb = Platform.OS === 'web';
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={isWeb ? 'height' : Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Toast提示 */}
+      {/* Toast 提示（带淡入淡出） */}
       {toast.visible && (
-        <View style={[styles.toastContainer, toast.type === 'error' && styles.toastError, toast.type === 'success' && styles.toastSuccess]}>
+        <Animated.View
+          style={[
+            styles.toastContainer,
+            { top: insets.top + 12 },
+            toast.type === 'error' && styles.toastError,
+            toast.type === 'success' && styles.toastSuccess,
+            { opacity: toastOpacity },
+          ]}
+        >
           <Text style={styles.toastText}>{toast.message}</Text>
-        </View>
+        </Animated.View>
       )}
       
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 24 },
+          isWeb && styles.scrollContentWeb,
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={isWeb ? styles.formWrapperWeb : undefined}>
         {/* Logo 和标题 */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+          <TouchableOpacity style={[styles.registerButton, styles.webCursor]} onPress={handleRegister} activeOpacity={0.7}>
             <Text style={styles.registerButtonText}>注册</Text>
           </TouchableOpacity>
           <Text style={styles.logo}>🏔️</Text>
@@ -389,8 +306,8 @@ export default function LoginScreen() {
               <Text style={styles.inputLabel}>密码</Text>
               <View style={styles.passwordInputContainer}>
                 <TextInput
-                  style={[styles.input, passwordError ? styles.inputError : null]}
-                  placeholder="请输入密码（至少6位）"
+                  style={[styles.input, styles.passwordInput, passwordError ? styles.inputError : null]}
+                  placeholder="请输入密码（至少 6 位）"
                   placeholderTextColor="#6F6287"
                   value={password}
                   onChangeText={(text) => {
@@ -401,18 +318,20 @@ export default function LoginScreen() {
                   secureTextEntry={!showPassword}
                   editable={!isLoading}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.showPasswordButton}
                   onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
-                  <Text style={styles.showPasswordText}>
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </Text>
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={22}
+                    color="#8D8DAA"
+                  />
                 </TouchableOpacity>
               </View>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               
-              {/* 忘记密码 */}
               <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
                 <Text style={styles.forgotPasswordText}>忘记密码？</Text>
               </TouchableOpacity>
@@ -426,7 +345,7 @@ export default function LoginScreen() {
               <View style={styles.codeRow}>
                 <TextInput
                   style={[styles.input, styles.codeInput, codeError ? styles.inputError : null]}
-                  placeholder="请输入6位验证码"
+                  placeholder="请输入 6 位数字验证码"
                   placeholderTextColor="#6F6287"
                   value={code}
                   onChangeText={(text) => {
@@ -439,18 +358,27 @@ export default function LoginScreen() {
                   editable={!isLoading}
                 />
                 <TouchableOpacity
-                  style={[styles.codeButton, (isCodeSent || countdown > 0) && styles.codeButtonDisabled]}
+                  style={[
+                    styles.codeButton,
+                    (countdown > 0 || isSendingCode) && styles.codeButtonDisabled,
+                  ]}
                   onPress={handleSendCode}
-                  disabled={isCodeSent || countdown > 0 || isLoading}
+                  disabled={countdown > 0 || isSendingCode || isLoading}
                 >
-                  <Text style={styles.codeButtonText}>
-                    {countdown > 0 ? `${countdown}s` : (isCodeSent ? '已发送' : '获取验证码')}
-                  </Text>
+                  {isSendingCode ? (
+                    <ActivityIndicator size="small" color="#F8D05F" />
+                  ) : (
+                    <Text style={styles.codeButtonText}>
+                      {countdown > 0 ? `${countdown}s 后重发` : (isCodeSent ? '重新发送' : '获取验证码')}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
               {codeError ? <Text style={styles.errorText}>{codeError}</Text> : null}
-              {!isCodeSent && !countdown && (
-                <Text style={styles.hintText}>未收到验证码？请检查邮箱或稍后重试</Text>
+              {isCodeSent && (
+                <Text style={styles.hintText}>
+                  未收到？请检查垃圾邮件箱，或 {countdown > 0 ? `${countdown}s 后` : '点击上方'}重新发送
+                </Text>
               )}
             </View>
           )}
@@ -458,12 +386,13 @@ export default function LoginScreen() {
 
         {/* 登录按钮 */}
         <TouchableOpacity
-          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+          style={[styles.loginButton, isLoading && styles.loginButtonDisabled, styles.webCursor]}
           onPress={handleLogin}
           disabled={isLoading}
+          activeOpacity={0.85}
         >
           {isLoading ? (
-            <ActivityIndicator color="#1A0A18" />
+            <ActivityIndicator color="#1A0A18" size="small" />
           ) : (
             <Text style={styles.loginButtonText}>登录</Text>
           )}
@@ -478,7 +407,7 @@ export default function LoginScreen() {
 
         {/* 第三方登录 */}
         <TouchableOpacity
-          style={styles.socialButton}
+          style={[styles.socialButton, styles.webCursor]}
           onPress={handleGoogleLogin}
           disabled={isLoading}
         >
@@ -489,64 +418,10 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         {/* 游客模式 */}
-        <TouchableOpacity style={styles.guestButton} onPress={handleGuestMode}>
+        <TouchableOpacity style={[styles.guestButton, styles.webCursor]} onPress={handleGuestMode} activeOpacity={0.7}>
           <Text style={styles.guestText}>暂不登录，先逛逛</Text>
         </TouchableOpacity>
-
-        {/* 服务条款 */}
-        <View style={styles.termsContainer}>
-          <TouchableOpacity
-            style={styles.checkboxContainer}
-            onPress={() => setAgreedToTerms(!agreedToTerms)}
-          >
-            <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-              {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text style={agreedToTerms ? styles.termsTextChecked : styles.termsText}>我已阅读并同意</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => openTerms('terms')}>
-            <Text style={styles.termsLink}>《用户协议》</Text>
-          </TouchableOpacity>
-          <Text style={styles.termsText}>和</Text>
-          <TouchableOpacity onPress={() => openTerms('privacy')}>
-            <Text style={styles.termsLink}>《隐私政策》</Text>
-          </TouchableOpacity>
         </View>
-
-        {/* 协议弹窗 */}
-        <Modal
-          visible={showTermsModal}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setShowTermsModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {termsType === 'terms' ? '用户协议' : '隐私政策'}
-                </Text>
-                <TouchableOpacity onPress={() => setShowTermsModal(false)}>
-                  <Text style={styles.modalClose}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.modalScroll}>
-                <Text style={styles.modalText}>
-                  {termsType === 'terms' ? termsContent : privacyContent}
-                </Text>
-              </ScrollView>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => {
-                  setAgreedToTerms(true);
-                  setShowTermsModal(false);
-                }}
-              >
-                <Text style={styles.modalButtonText}>我已阅读并同意</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -593,7 +468,17 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 16,
-    paddingTop: 40,
+    paddingBottom: 32,
+  },
+  scrollContentWeb: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100%',
+  },
+  formWrapperWeb: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   header: {
     alignItems: 'center',
@@ -715,6 +600,9 @@ const styles = StyleSheet.create({
   passwordInputContainer: {
     position: 'relative',
   },
+  passwordInput: {
+    paddingRight: 48,
+  },
   showPasswordButton: {
     position: 'absolute',
     right: 12,
@@ -738,7 +626,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginTop: 8,
+    minHeight: 52,
+    justifyContent: 'center',
   },
   loginButtonDisabled: {
     backgroundColor: '#4A4A5A',
@@ -798,96 +687,8 @@ const styles = StyleSheet.create({
     color: '#8D8DAA',
     fontSize: 14,
   },
-  termsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 24,
-    gap: 4,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#4C2F80',
-    marginRight: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#4C2F80',
-  },
-  checkmark: {
-    color: '#F8D05F',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  termsText: {
-    color: '#6F6287',
-    fontSize: 12,
-  },
-  termsTextChecked: {
-    color: '#F8D05F',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  termsLink: {
-    color: '#B2A0FF',
-    fontSize: 12,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#1A1328',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#322243',
-  },
-  modalTitle: {
-    color: '#F8D05F',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalClose: {
-    color: '#8D8DAA',
-    fontSize: 20,
-  },
-  modalScroll: {
-    padding: 20,
-  },
-  modalText: {
-    color: '#F7F6F0',
-    fontSize: 14,
-    lineHeight: 24,
-  },
-  modalButton: {
-    backgroundColor: '#4C2F80',
-    margin: 20,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    color: '#F8D05F',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  webCursor: Platform.select({
+    web: { cursor: 'pointer' as const },
+    default: {},
+  }),
 });

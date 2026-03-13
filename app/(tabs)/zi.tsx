@@ -454,16 +454,7 @@ export default function ZiScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {fromChat && (
-          <View style={styles.ritualHintCard}>
-            <Text style={styles.ritualHintTitle}>🕯️ 测字前小仪式</Text>
-            <Text style={styles.ritualHintText}>
-              先闭眼静心10秒，只想着你最在意的这件事，再写下一个字。越聚焦，解读越贴近你当下的真实状态。
-            </Text>
-          </View>
-        )}
-
-        {/* 输入模式切换 */}
+        {/* 输入模式切换 - 精简置顶 */}
         <View style={styles.modeSwitchRow}>
           <TouchableOpacity
             style={[
@@ -495,7 +486,7 @@ export default function ZiScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 输入区域 */}
+        {/* 输入区域 - 书写框优先展示 */}
         <View style={styles.inputSection}>
           <Text style={styles.sectionTitle}>
             {isHandwritingMode ? '请在手写板写字' : '请写一字'}
@@ -506,61 +497,20 @@ export default function ZiScreen() {
               : '根据《测字有术》，字如其人。心有所想，字有所现。'}
           </Text>
           
-          {/* 选择测字方面 */}
-          <View style={styles.aspectSection}>
-            <Text style={styles.aspectTitle}>💭 我想测：</Text>
-            <View style={styles.aspectTags}>
-              {aspectOptions.map((aspect) => (
-                <TouchableOpacity
-                  key={aspect}
-                  style={[
-                    styles.aspectTag,
-                    selectedAspect === aspect && styles.aspectTagSelected
-                  ]}
-                  onPress={() => toggleAspect(aspect)}
-                >
-                  <Text style={[
-                    styles.aspectTagText,
-                    selectedAspect === aspect && styles.aspectTagTextSelected
-                  ]}>
-                    {aspect}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TextInput
-              style={styles.customAspectInput}
-              value={customAspect}
-              onChangeText={setCustomAspect}
-              placeholder="或输入其他方面..."
-              placeholderTextColor="#666"
-            />
-            <View style={styles.refineInlineWrap}>
-              <Text style={styles.refineInlineHint}>
-                {result
-                  ? `已识别「${result.zi.zi}」，可直接按方向重解读`
-                  : '先识别一个字，再按方向进行重解读'}
-              </Text>
-              <TouchableOpacity
-                style={[
-                  styles.refineInlineBtn,
-                  (!result || isLoading) && styles.refineInlineBtnDisabled,
-                ]}
-                onPress={handleFocusedReanalyze}
-                disabled={!result || isLoading}
-              >
-                <Text style={styles.refineInlineBtnText}>
-                  {isLoading
-                    ? (result?.interpretation.focusReading ? '重解读中...' : '解读中...')
-                    : '按方向重解读'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          
           {isHandwritingMode ? (
-            // 手写模式
+            // 手写模式 - 书写框在上，静心提示在下
             <View style={styles.handwritingSection}>
+              <View
+                style={[styles.handwritingCanvasWrap, !ritualReady && styles.handwritingCanvasWrapLocked]}
+                pointerEvents={ritualReady ? 'auto' : 'none'}
+              >
+                <HandwritingCanvas 
+                  onRecognize={handleHandwritingRecognize}
+                  isRecognizing={isLoading}
+                  wuxing={result?.zi?.wuxing}
+                />
+              </View>
+              {/* 静心提示 - 放在书写框下方 */}
               {!ritualReady && (
                 <View style={styles.ritualCountdownCard}>
                   <Text style={styles.ritualCountdownTitle}>🫧 写字前先静心</Text>
@@ -589,16 +539,6 @@ export default function ZiScreen() {
                   </View>
                 </View>
               )}
-              <View
-                style={[styles.handwritingCanvasWrap, !ritualReady && styles.handwritingCanvasWrapLocked]}
-                pointerEvents={ritualReady ? 'auto' : 'none'}
-              >
-                <HandwritingCanvas 
-                  onRecognize={handleHandwritingRecognize}
-                  isRecognizing={isLoading}
-                  wuxing={result?.zi?.wuxing}
-                />
-              </View>
               {handwritingStage !== 'idle' && (
                 <View style={styles.progressWrap}>
                   <Text style={styles.progressText}>{handwritingProgressText}</Text>
@@ -695,6 +635,59 @@ export default function ZiScreen() {
                     </View>
                   </View>
                 </View>
+                <Text style={styles.ziMetaSource}>
+                  数据来源：笔画/部首-汉典；五行-部首五行归属；阴阳-笔画奇偶；吉凶-字义传统分类
+                </Text>
+              </View>
+            </View>
+
+            {/* 我想测哪方面 - 放在识别结果下面 */}
+            <View style={styles.aspectSection}>
+              <Text style={styles.aspectTitle}>💭 我想测：</Text>
+              <View style={styles.aspectTags}>
+                {aspectOptions.map((aspect) => (
+                  <TouchableOpacity
+                    key={aspect}
+                    style={[
+                      styles.aspectTag,
+                      selectedAspect === aspect && styles.aspectTagSelected
+                    ]}
+                    onPress={() => toggleAspect(aspect)}
+                  >
+                    <Text style={[
+                      styles.aspectTagText,
+                      selectedAspect === aspect && styles.aspectTagTextSelected
+                    ]}>
+                      {aspect}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={styles.customAspectInput}
+                value={customAspect}
+                onChangeText={setCustomAspect}
+                placeholder="或输入其他方面..."
+                placeholderTextColor="#666"
+              />
+              <View style={styles.refineInlineWrap}>
+                <Text style={styles.refineInlineHint}>
+                  已识别「{result.zi.zi}」，选择方向后可重解读
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.refineInlineBtn,
+                    (!result || isLoading) && styles.refineInlineBtnDisabled,
+                  ]}
+                  onPress={handleFocusedReanalyze}
+                  disabled={!result || isLoading}
+                >
+                  <Text style={styles.refineInlineBtnText}>
+                    {isLoading
+                      ? (result?.interpretation.focusReading ? '重解读中...' : '解读中...')
+                      : '按方向重解读'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -1107,7 +1100,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334B7C',
     padding: 12,
-    marginBottom: 10,
+    marginTop: 12,
   },
   ritualCountdownTitle: {
     color: '#FFD700',
@@ -1350,6 +1343,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  ziMetaSource: {
+    marginTop: 12,
+    color: '#6F6287',
+    fontSize: 11,
+    lineHeight: 16,
   },
   componentsRow: {
     flexDirection: 'row',

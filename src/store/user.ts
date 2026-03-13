@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfile, BaziChart, FortuneSlip, userApi, chartApi, fortuneApi, CreateUserDto, authApi, checkInApi, CheckInStatus, setGlobalAuthToken } from '../services/api';
 
@@ -147,13 +146,14 @@ export const useUserStore = create<UserState>((set, get) => ({
       if (result.success) {
         return { success: true };
       }
-      // 返回错误消息
-      Alert.alert('发送失败', result.message || '请稍后重试');
-      return { success: false, message: result.message };
+      // 返回错误消息，由调用方展示（避免重复弹窗）
+      return { success: false, message: result.message || '发送失败，请稍后重试' };
     } catch (e: any) {
       console.error('发送验证码失败:', e);
-      Alert.alert('网络错误', '无法连接到服务器，请检查网络');
-      return { success: false, message: '网络错误' };
+      const msg = e?.message?.includes('Network') || e?.code === 'ECONNABORTED'
+        ? '网络连接失败，请检查网络后重试'
+        : '无法连接到服务器，请稍后重试';
+      return { success: false, message: msg };
     }
   },
 
@@ -168,15 +168,11 @@ export const useUserStore = create<UserState>((set, get) => ({
         set({ user: result.user, token: result.token });
         return { success: true };
       }
-      // 显示服务器返回的错误消息
       const errorMessage = result.message || '注册失败，请检查输入信息';
-      Alert.alert('注册失败', errorMessage);
       return { success: false, message: errorMessage };
     } catch (e: any) {
       console.error('注册失败:', e);
-      // 显示网络错误或其他错误
       const errorMessage = e?.response?.data?.message || '网络错误，请检查网络连接后重试';
-      Alert.alert('注册失败', errorMessage);
       return { success: false, message: errorMessage };
     } finally {
       set({ isLoading: false });

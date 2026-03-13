@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
@@ -935,11 +935,17 @@ export default function ProfileScreen() {
         ))}
       </View>
       
-      {/* 退出登录按钮 - 仅已登录用户显示 */}
+      {/* 退出登录 - 仅已登录用户显示 */}
       {isLoggedIn && (
-        <TouchableOpacity style={styles.logoutButtonBottom} onPress={handleLogout}>
-          <Text style={styles.logoutButtonBottomText}>退出登录</Text>
-        </TouchableOpacity>
+        <View style={styles.logoutSection}>
+          <Text style={styles.logoutSectionTitle}>账户安全</Text>
+          <TouchableOpacity
+            style={[styles.logoutButtonBottom, Platform.OS === 'web' && { cursor: 'pointer' }]}
+            onPress={handleLogout}
+          >
+            <Text style={styles.logoutButtonBottomText}>退出登录</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* 法律链接 */}
@@ -1177,13 +1183,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  logoutSection: {
+    marginTop: 24,
+    marginBottom: 40,
+  },
+  logoutSectionTitle: {
+    color: '#8D8DAA',
+    fontSize: 14,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
   logoutButtonBottom: {
     backgroundColor: '#2F2342',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 40,
     borderWidth: 1,
     borderColor: '#D32F2F',
   },
