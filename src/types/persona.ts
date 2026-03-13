@@ -7,6 +7,7 @@ export interface PersonaProfile {
   toneTags: string[];
   description: string;
   greeting: string;
-  image: string;
+  /** 头像：string 为 URL，number 为 require() 本地资源 */
+  image: string | number;
 }
 

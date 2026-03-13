@@ -24,7 +24,7 @@ export function PersonaCard({ persona, active, onPress }: PersonaCardProps) {
         gap: 16,
       }}>
       <Image
-        source={{ uri: persona.image }}
+        source={typeof persona.image === 'number' ? persona.image : { uri: persona.image }}
         style={{
           width: 56,
           height: 56,

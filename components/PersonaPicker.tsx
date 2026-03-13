@@ -52,7 +52,7 @@ export default function PersonaPicker({
                 activeOpacity={0.8}
               >
                 <Image
-                  source={{ uri: persona.image }}
+                  source={typeof persona.image === 'number' ? persona.image : { uri: persona.image }}
                   style={styles.personaImage}
                 />
                 <View style={styles.personaInfo}>
