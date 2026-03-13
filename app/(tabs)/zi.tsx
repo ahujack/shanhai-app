@@ -287,6 +287,14 @@ export default function ZiScreen() {
     await analyzeZiInput(zi, focus);
   };
 
+  const goChatWithZiCooldown = () => {
+    const cooldownUntil = Date.now() + 15 * 60 * 1000;
+    router.push({
+      pathname: '/',
+      params: { skipZiNudgeUntil: String(cooldownUntil) },
+    });
+  };
+
   const goProbingChat = () => {
     if (!result) return;
     const focus = getFocusAspect() || result.interpretation.focusReading?.focus || '综合';
@@ -297,7 +305,7 @@ export default function ZiScreen() {
       content: `我们围绕「${focus}」继续深聊。\n${probing}`,
       timestamp: new Date(),
     };
-    router.push('/');
+    goChatWithZiCooldown();
     setTimeout(() => {
       useChatStore.setState((state) => ({
         messages: [...state.messages, aiMessage],
@@ -314,7 +322,7 @@ export default function ZiScreen() {
       content: `我们围绕「${focus}」把行动计划落地。\n第一步建议：${action}\n你做完这一步后告诉我，我继续给你下一步。`,
       timestamp: new Date(),
     };
-    router.push('/');
+    goChatWithZiCooldown();
     setTimeout(() => {
       useChatStore.setState((state) => ({
         messages: [...state.messages, aiMessage],
@@ -344,7 +352,7 @@ export default function ZiScreen() {
     const randomQuestion = followUpQuestions[Math.floor(Math.random() * followUpQuestions.length)];
     
     // 跳转到聊天界面
-    router.push('/');
+    goChatWithZiCooldown();
     
     // 直接添加AI消息（不是用户消息）
     setTimeout(() => {
@@ -375,7 +383,7 @@ export default function ZiScreen() {
     const randomQuestion = followUpQuestions[Math.floor(Math.random() * followUpQuestions.length)];
     
     // 跳转到聊天界面并发送问题
-    router.push('/');
+    goChatWithZiCooldown();
     
     setTimeout(() => {
       // 模拟AI发送问题

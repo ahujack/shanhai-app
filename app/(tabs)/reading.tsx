@@ -15,11 +15,12 @@ export default function ReadingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     fromFortune?: string | string[];
+    fromChatReading?: string | string[];
     suggestedQuestion?: string | string[];
     suggestedCategory?: string | string[];
   }>();
   const { user } = useUserStore();
-  const { lastFortune } = useDivinationStore();
+  const { lastFortune, lastReading } = useDivinationStore();
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState<CreateReadingDto['category']>('general');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +31,7 @@ export default function ReadingScreen() {
     Array.isArray(value) ? value[0] : value;
 
   const fromFortune = toSingle(params.fromFortune) === '1';
+  const fromChatReading = toSingle(params.fromChatReading) === '1';
   const suggestedQuestion = toSingle(params.suggestedQuestion);
   const suggestedCategory = toSingle(params.suggestedCategory) as CreateReadingDto['category'] | undefined;
 
@@ -42,6 +44,12 @@ export default function ReadingScreen() {
       setCategory(suggestedCategory);
     }
   }, [fromFortune, question, suggestedQuestion, suggestedCategory]);
+
+  useEffect(() => {
+    if (!fromChatReading || !lastReading) return;
+    setResult(lastReading);
+    setShowDetails(true);
+  }, [fromChatReading, lastReading]);
 
   const categories = [
     { value: 'general', label: '综合' },

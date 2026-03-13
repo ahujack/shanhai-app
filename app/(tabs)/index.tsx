@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
@@ -16,6 +17,7 @@ const colors = theme.dark;
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ skipZiNudgeUntil?: string }>();
   const { active: persona, personas, setActive } = usePersonaStore();
   const { user, chart, hasChart, generateChart, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
@@ -33,6 +35,8 @@ export default function HomeScreen() {
   const [showDrawModal, setShowDrawModal] = useState(false);
   const [showZiModal, setShowZiModal] = useState(false);
   const [showZiNudge, setShowZiNudge] = useState(false);
+  const [ziNudgeCooldownUntil, setZiNudgeCooldownUntil] = useState(0);
+  const [ziNudgeShownDate, setZiNudgeShownDate] = useState('');
   const [showChartModal, setShowChartModal] = useState(false);
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
@@ -91,6 +95,17 @@ export default function HomeScreen() {
   const [chartGender, setChartGender] = useState<'male' | 'female'>('male');
   
   const scrollViewRef = useRef<ScrollView>(null);
+  const ziNudgeDailyStorageKey = `zi_nudge_daily_${user?.id || 'guest'}`;
+
+  const getLocalDateKey = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const hasShownZiNudgeToday = ziNudgeShownDate === getLocalDateKey();
 
   const extractZiCandidate = (text: string): string => {
     const quoted = text.match(/[「“"']([\u4e00-\u9fa5])[」”"']/);
@@ -103,10 +118,38 @@ export default function HomeScreen() {
 
   const shouldSuggestZi = (text: string): boolean => {
     const clean = text.trim();
+    if (Date.now() < ziNudgeCooldownUntil) return false;
+    if (hasShownZiNudgeToday) return false;
     if (clean.length < 8) return false;
     if (/(测字|看字|这个字|写个字|帮我测)/.test(clean)) return false;
     return /(工作|事业|感情|关系|焦虑|纠结|压力|财务|健康|家庭|矛盾|怎么办|要不要|该不该)/.test(clean);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadZiNudgeDailyState = async () => {
+      try {
+        const storedDate = await AsyncStorage.getItem(ziNudgeDailyStorageKey);
+        if (!cancelled && storedDate) {
+          setZiNudgeShownDate(storedDate);
+        }
+      } catch {
+        // ignore persistence read failure
+      }
+    };
+    loadZiNudgeDailyState();
+    return () => {
+      cancelled = true;
+    };
+  }, [ziNudgeDailyStorageKey]);
+
+  useEffect(() => {
+    const untilRaw = params.skipZiNudgeUntil;
+    if (!untilRaw) return;
+    const parsed = Number(Array.isArray(untilRaw) ? untilRaw[0] : untilRaw);
+    if (!Number.isFinite(parsed)) return;
+    setZiNudgeCooldownUntil((prev) => (parsed > prev ? parsed : prev));
+  }, [params.skipZiNudgeUntil]);
 
   useEffect(() => {
     // 滚动到底部
@@ -169,6 +212,9 @@ export default function HomeScreen() {
     if (shouldSuggestZi(message)) {
       setDetectedZi(extractZiCandidate(message));
       setShowZiNudge(true);
+      const todayKey = getLocalDateKey();
+      setZiNudgeShownDate(todayKey);
+      AsyncStorage.setItem(ziNudgeDailyStorageKey, todayKey).catch(() => null);
     }
   };
 
@@ -683,6 +729,7 @@ export default function HomeScreen() {
 function ChatBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
   const router = useRouter();
+  const { setLastReading } = useDivinationStore();
 
   const openZiDetail = () => {
     const zi = message.artifacts?.zi?.zi?.zi;
@@ -692,13 +739,26 @@ function ChatBubble({ message }: { message: ChatMessage }) {
     });
   };
 
+  const openReadingDetail = () => {
+    const reading = (message.artifacts as any)?.reading;
+    if (reading) {
+      setLastReading(reading);
+      router.push({
+        pathname: '/(tabs)/reading',
+        params: { fromChatReading: '1' },
+      });
+      return;
+    }
+    router.push('/(tabs)/reading');
+  };
+
   const handleActionPress = (type: string) => {
     if (type === 'view_zi') {
       openZiDetail();
       return;
     }
     if (type === 'view_reading') {
-      router.push('/(tabs)/reading');
+      openReadingDetail();
       return;
     }
     if (type === 'view_chart') {
@@ -736,10 +796,11 @@ function ChatBubble({ message }: { message: ChatMessage }) {
         )}
         
         {message.artifacts?.reading && (
-          <View style={styles.artifactCard}>
+          <TouchableOpacity style={styles.artifactCard} onPress={openReadingDetail}>
             <Text style={styles.artifactTitle}>🔮 卦象</Text>
             <Text style={styles.artifactText}>{message.artifacts.reading.hexagram.originalName}</Text>
-          </View>
+            <Text style={styles.artifactLink}>点击查看完整解读</Text>
+          </TouchableOpacity>
         )}
 
         {/* 测字结果 */}
