@@ -200,28 +200,26 @@ export default function ProfileScreen() {
     }
   }, [user, hasChart, isInitializing]);
 
-  // 处理登出
+  // 处理登出（Web 上 Alert.alert 无效，需用 window.confirm）
   const handleLogout = async () => {
-    Alert.alert(
-      '确认退出',
-      '确定要退出登录吗？',
-      [
+    const doLogout = async () => {
+      await logout();
+      setName('');
+      setBirthDate('');
+      setBirthTime('');
+      setGender('male');
+      setStep('input');
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('确定要退出登录吗？')) {
+        await doLogout();
+      }
+    } else {
+      Alert.alert('确认退出', '确定要退出登录吗？', [
         { text: '取消', style: 'cancel' },
-        {
-          text: '退出',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            // 重置表单状态
-            setName('');
-            setBirthDate('');
-            setBirthTime('');
-            setGender('male');
-            setStep('input');
-          },
-        },
-      ]
-    );
+        { text: '退出', style: 'destructive', onPress: doLogout },
+      ]);
+    }
   };
 
   const handleSave = async () => {
@@ -287,12 +285,6 @@ export default function ProfileScreen() {
         {isLoggedIn && user && (
           <View style={[styles.userInfoCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
             <View style={styles.userInfoHeader}>
-              <TouchableOpacity
-                style={[styles.logoutLinkHeader, Platform.OS === 'web' && { cursor: 'pointer' }]}
-                onPress={handleLogout}
-              >
-                <Text style={styles.logoutLinkHeaderText}>退出登录</Text>
-              </TouchableOpacity>
               <View style={styles.avatarContainer}>
                 {user.avatar ? (
                   <View style={styles.avatar}>
@@ -559,7 +551,7 @@ export default function ProfileScreen() {
           <Text style={styles.editButtonText}>修改信息</Text>
         </TouchableOpacity>
 
-        {/* 退出登录 - 命盘视图也显示 */}
+        {/* 退出登录 - 页面底部 */}
         {isLoggedIn && (
           <View style={styles.logoutSection}>
             <Text style={styles.logoutSectionTitle}>账户安全</Text>
@@ -595,12 +587,6 @@ export default function ProfileScreen() {
       {isLoggedIn && user && (
         <View style={[styles.userInfoCard, { backgroundColor: colors.surface }]}>
           <View style={styles.userInfoHeader}>
-            <TouchableOpacity
-              style={[styles.logoutLinkHeader, Platform.OS === 'web' && { cursor: 'pointer' }]}
-              onPress={handleLogout}
-            >
-              <Text style={styles.logoutLinkHeaderText}>退出登录</Text>
-            </TouchableOpacity>
             <View style={styles.avatarContainer}>
               {user.avatar ? (
                 <View style={styles.avatar}>
@@ -1055,19 +1041,6 @@ const styles = StyleSheet.create({
   userInfoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    position: 'relative',
-  },
-  logoutLinkHeader: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  logoutLinkHeaderText: {
-    color: '#FF6B6B',
-    fontSize: 14,
-    fontWeight: '500',
   },
   avatarContainer: {
     marginRight: 16,
