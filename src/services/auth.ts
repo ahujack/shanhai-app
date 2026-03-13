@@ -1,4 +1,5 @@
 import * as WebBrowser from 'expo-web-browser';
+import { AuthRequest, makeRedirectUri } from 'expo-auth-session';
 import { Alert, Linking, Platform } from 'react-native';
 
 // 初始化 Web 浏览器重定向
@@ -106,24 +107,24 @@ export async function signInWithGoogle(): Promise<SocialUserInfo | null> {
 
     // 原生环境：使用 expo-auth-session（这里其实不太会走到，因为 isWeb() 在 Expo 中会返回 true）
     // 为了兼容性，这里还是保留 expo-auth-session 的逻辑
-    const { makeRedirectUri } = await import('expo-auth-session');
     const nativeRedirectUri = makeRedirectUri({
       scheme: 'shanhai',
       path: 'oauth/google',
     });
 
-    const { AuthRequest } = await import('expo-auth-session');
     const authRequest = new AuthRequest({
       clientId: GOOGLE_CLIENT_ID,
       scopes: ['openid', 'profile', 'email'],
       redirectUri: nativeRedirectUri,
       responseType: 'id_token',
       usePKCE: false,
-      nonce: nonce,
+      extraParams: {
+        nonce,
+      },
     });
 
     const result = await authRequest.promptAsync({
-      authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+      authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
     });
 
     if (result.type === 'success' && result.params) {
@@ -177,7 +178,6 @@ export async function signInWithFacebook(): Promise<SocialUserInfo | null> {
     }
 
     // 原生环境
-    const { makeRedirectUri, AuthRequest } = await import('expo-auth-session');
     const nativeRedirectUri = makeRedirectUri({
       scheme: 'shanhai',
       path: 'oauth/facebook',
@@ -194,7 +194,7 @@ export async function signInWithFacebook(): Promise<SocialUserInfo | null> {
     });
 
     const result = await authRequest.promptAsync({
-      authorizeUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
+      authorizationEndpoint: 'https://www.facebook.com/v18.0/dialog/oauth',
     });
 
     if (result.type === 'success' && result.params) {

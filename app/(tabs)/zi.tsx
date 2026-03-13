@@ -773,7 +773,7 @@ export default function ZiScreen() {
               <View style={styles.section}>
                 <TouchableOpacity
                   style={styles.premiumHintCard}
-                  onPress={() => router.push('/(tabs)/points?focus=vip')}
+                  onPress={() => router.push({ pathname: '/points', params: { focus: 'vip' } })}
                 >
                   <Text style={styles.premiumHintText}>🔓 {result.interpretation.premiumHint}</Text>
                   <Text style={styles.premiumHintLink}>点击升级解锁完整版方向推演</Text>
@@ -817,7 +817,7 @@ export default function ZiScreen() {
                       <Animated.View style={oracleUnlockAnimStyle}>
                         <TouchableOpacity
                           style={styles.oracleUnlockBtn}
-                          onPress={() => router.push('/(tabs)/points?focus=vip')}
+                          onPress={() => router.push({ pathname: '/points', params: { focus: 'vip' } })}
                         >
                           <Text style={styles.oracleUnlockText}>查看完整异体图与差异解读</Text>
                         </TouchableOpacity>

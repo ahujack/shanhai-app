@@ -97,7 +97,9 @@ export default function PointsMallScreen() {
       ]);
       // 只保留订阅产品
       setSubscriptionProducts(productsData.filter((p: PaymentProduct) => p.type === 'subscription'));
-      setCreemConfigured(statusData.creemConfigured);
+      const paymentStatus = statusData as { creemConfigured?: boolean; stripeConfigured?: boolean };
+      const paymentConfigured = paymentStatus.creemConfigured ?? paymentStatus.stripeConfigured ?? false;
+      setCreemConfigured(paymentConfigured);
       setPointsSummary(pointsData);
     } catch (error) {
       console.error('Failed to load products:', error);

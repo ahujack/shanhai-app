@@ -395,6 +395,24 @@ export default function HomeScreen() {
           contentContainerStyle={styles.chatContent}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.homeEntrySection}>
+            <TouchableOpacity style={styles.homeEntryCard} onPress={() => router.push('/zi')}>
+              <Text style={styles.homeEntryIcon}>✍️</Text>
+              <Text style={styles.homeEntryTitle}>测字</Text>
+              <Text style={styles.homeEntryDesc}>核心功能</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.homeEntryCard} onPress={() => router.push('/reading')}>
+              <Text style={styles.homeEntryIcon}>🔮</Text>
+              <Text style={styles.homeEntryTitle}>占卜</Text>
+              <Text style={styles.homeEntryDesc}>抽签解卦</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.homeEntryCard} onPress={() => router.push('/two')}>
+              <Text style={styles.homeEntryIcon}>🍃</Text>
+              <Text style={styles.homeEntryTitle}>冥想</Text>
+              <Text style={styles.homeEntryDesc}>静心练习</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* 欢迎消息 */}
           {messages.length === 0 && (
             <View style={styles.welcomeCard}>
@@ -764,7 +782,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
       return;
     }
     if (type === 'view_fortune') {
-      router.push('/(tabs)/index');
+      router.push('/');
       return;
     }
   };
@@ -1364,6 +1382,35 @@ const styles = StyleSheet.create({
   quickActionText: {
     color: '#8D8DAA',
     fontSize: 12,
+  },
+  homeEntrySection: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  homeEntryCard: {
+    flex: 1,
+    backgroundColor: '#161126',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#322243',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  homeEntryIcon: {
+    fontSize: 20,
+    marginBottom: 6,
+  },
+  homeEntryTitle: {
+    color: '#F7F6F0',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  homeEntryDesc: {
+    color: '#8D8DAA',
+    fontSize: 11,
+    marginTop: 3,
   },
   
   // 悬浮抽签按钮

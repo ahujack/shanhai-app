@@ -51,15 +51,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="two"
         options={{
-          title: '冥想',
-          tabBarIcon: ({ color, size }) => <Ionicons name="leaf-outline" size={size} color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="points"
         options={{
-          title: '积分商城',
-          tabBarIcon: ({ color, size }) => <Ionicons name="gift-outline" size={size} color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen

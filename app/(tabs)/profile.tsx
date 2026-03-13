@@ -83,6 +83,19 @@ export default function ProfileScreen() {
 
   // 检查用户是否登录
   const isLoggedIn = !!user;
+  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+  const membershipLabel = user?.membership === 'vip' ? 'VIP会员' : user?.membership === 'premium' ? '高级会员' : '免费用户';
+
+  const handleMembershipPress = () => {
+    router.push({
+      pathname: '/points',
+      params: { focus: 'vip' },
+    });
+  };
+
+  const handleOpenPointsMall = () => {
+    router.push('/points');
+  };
   
   // 页面加载时获取用户信息
   React.useEffect(() => {
@@ -292,7 +305,7 @@ export default function ProfileScreen() {
                 <Text style={styles.userEmail}>{user.email}</Text>
                 <View style={styles.membershipBadge}>
                   <Text style={styles.membershipText}>
-                    {user.membership === 'vip' ? 'VIP会员' : user.membership === 'premium' ? '高级会员' : '免费用户'}
+                    {membershipLabel}
                   </Text>
                 </View>
               </View>
@@ -323,6 +336,42 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {isLoggedIn && user && (
+          <TouchableOpacity
+            style={[
+              styles.membershipCard,
+              isVip ? styles.membershipCardVip : styles.membershipCardFree,
+            ]}
+            onPress={handleMembershipPress}
+            activeOpacity={0.9}
+          >
+            <View style={styles.membershipHeaderRow}>
+              <Text style={styles.membershipIcon}>{isVip ? '👑' : '✨'}</Text>
+              <View style={styles.membershipInfo}>
+                <Text style={styles.membershipCardTitle}>
+                  {isVip ? `${membershipLabel} · 已开通` : '开通会员解锁完整能力'}
+                </Text>
+                <Text style={styles.membershipCardDesc}>
+                  {isVip ? '查看会员权益与状态管理' : '无限次AI解读、专属内容、更多高级能力'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.membershipActionPill}>
+              <Text style={styles.membershipActionText}>{isVip ? '管理会员' : '立即订阅'}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {isLoggedIn && (
+          <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
+            <View>
+              <Text style={styles.mallEntryTitle}>🎁 积分商城</Text>
+              <Text style={styles.mallEntryDesc}>兑换权益、查看任务、管理积分资产</Text>
+            </View>
+            <Text style={styles.mallEntryAction}>去看看 ›</Text>
+          </TouchableOpacity>
+        )}
+
         {/* 积分和成就卡片 - 完整显示 */}
         {isLoggedIn && (
           <View style={[styles.statsCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
@@ -333,7 +382,7 @@ export default function ProfileScreen() {
               <Text style={styles.statValue}>{pointsSummary?.totalPoints || 0}</Text>
               <Text style={styles.statLabel}>积分</Text>
             </TouchableOpacity>
-            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <View style={[styles.statDivider, { backgroundColor: '#322243' }]} />
             <TouchableOpacity 
               style={styles.statItem}
               onPress={() => router.push('/points')}
@@ -341,7 +390,7 @@ export default function ProfileScreen() {
               <Text style={styles.statValue}>{achievements.filter(a => a.unlockedAt).length}</Text>
               <Text style={styles.statLabel}>成就</Text>
             </TouchableOpacity>
-            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+            <View style={[styles.statDivider, { backgroundColor: '#322243' }]} />
             <TouchableOpacity style={styles.statItem} onPress={handleCheckIn} disabled={isCheckingIn || checkInStatus?.todayCheckedIn}>
               <Text style={[styles.statValue, checkInStatus?.todayCheckedIn && { color: '#4CAF50' }]}>
                 {checkInStatus?.todayCheckedIn ? '✓' : '+10'}
@@ -545,7 +594,7 @@ export default function ProfileScreen() {
               <Text style={styles.userEmail}>{user.email}</Text>
               <View style={styles.membershipBadge}>
                 <Text style={styles.membershipText}>
-                  {user.membership === 'vip' ? 'VIP会员' : user.membership === 'premium' ? '高级会员' : '免费用户'}
+                  {membershipLabel}
                 </Text>
               </View>
             </View>
@@ -655,6 +704,42 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      )}
+
+      {isLoggedIn && user && (
+        <TouchableOpacity
+          style={[
+            styles.membershipCard,
+            isVip ? styles.membershipCardVip : styles.membershipCardFree,
+          ]}
+          onPress={handleMembershipPress}
+          activeOpacity={0.9}
+        >
+          <View style={styles.membershipHeaderRow}>
+            <Text style={styles.membershipIcon}>{isVip ? '👑' : '✨'}</Text>
+            <View style={styles.membershipInfo}>
+              <Text style={styles.membershipCardTitle}>
+                {isVip ? `${membershipLabel} · 已开通` : '开通会员解锁完整能力'}
+              </Text>
+              <Text style={styles.membershipCardDesc}>
+                {isVip ? '查看会员权益与状态管理' : '无限次AI解读、专属内容、更多高级能力'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.membershipActionPill}>
+            <Text style={styles.membershipActionText}>{isVip ? '管理会员' : '立即订阅'}</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {isLoggedIn && (
+        <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
+          <View>
+            <Text style={styles.mallEntryTitle}>🎁 积分商城</Text>
+            <Text style={styles.mallEntryDesc}>兑换权益、查看任务、管理积分资产</Text>
+          </View>
+          <Text style={styles.mallEntryAction}>去看看 ›</Text>
+        </TouchableOpacity>
       )}
 
       {/* 未登录提示 */}
@@ -996,6 +1081,80 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontSize: 12,
     fontWeight: '600',
+  },
+  membershipCard: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  membershipCardVip: {
+    backgroundColor: '#2B1F46',
+    borderColor: '#F8D05F',
+  },
+  membershipCardFree: {
+    backgroundColor: '#241935',
+    borderColor: '#6E52A3',
+  },
+  membershipHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  membershipIcon: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  membershipInfo: {
+    flex: 1,
+  },
+  membershipCardTitle: {
+    color: '#F7F6F0',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  membershipCardDesc: {
+    color: '#B2B4C8',
+    fontSize: 13,
+    marginTop: 4,
+  },
+  membershipActionPill: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    backgroundColor: '#F8D05F',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  membershipActionText: {
+    color: '#1A1328',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  mallEntryCard: {
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: '#1A1328',
+    borderWidth: 1,
+    borderColor: '#322243',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  mallEntryTitle: {
+    color: '#F7F6F0',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  mallEntryDesc: {
+    color: '#8D8DAA',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  mallEntryAction: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '700',
   },
   userDetails: {
     marginTop: 16,
