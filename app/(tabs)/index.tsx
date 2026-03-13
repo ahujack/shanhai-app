@@ -179,6 +179,37 @@ export default function HomeScreen() {
     }
   };
 
+  const getFortuneGrade = (fortune: FortuneSlip): { label: string; color: string } => {
+    if (fortune.fortuneRank) {
+      const colorMap: Record<string, string> = {
+        上上签: '#F8D05F',
+        上签: '#7EDC8A',
+        中签: '#B2A0FF',
+        下签: '#FF6B6B',
+      };
+      return { label: fortune.fortuneRank, color: colorMap[fortune.fortuneRank] || '#B2A0FF' };
+    }
+    const text = `${fortune.day} ${fortune.month} ${fortune.year} ${fortune.interpretation.overall}`;
+    if (/(大吉|上吉|诸事大吉|万事皆宜|亨通|丰收之年)/.test(text)) {
+      return { label: '上上签', color: '#F8D05F' };
+    }
+    if (/(凶|闭塞|不通|争讼|阻滞|不宜冒进)/.test(text)) {
+      return { label: '下签', color: '#FF6B6B' };
+    }
+    if (/(吉|有喜|顺利|平稳|贵人)/.test(text)) {
+      return { label: '中上签', color: '#7EDC8A' };
+    }
+    return { label: '中平签', color: '#B2A0FF' };
+  };
+
+  const openDrawModal = () => {
+    if (!user?.id) {
+      showToast('请先登录后再抽签', 'error');
+      return;
+    }
+    setShowDrawModal(true);
+  };
+
   // 创建命盘
   const handleCreateChart = async () => {
     if (!user?.id) {
@@ -363,12 +394,17 @@ export default function HomeScreen() {
                   </Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity 
-                style={styles.loginButton}
-                onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
-              >
-                <Text style={styles.loginButtonText}>{user ? '👤' : '登录'}</Text>
-              </TouchableOpacity>
+              <View style={styles.userActionColumn}>
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
+                >
+                  <Text style={styles.loginButtonText}>{user ? '👤 我的' : '登录'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.meditationButton} onPress={() => router.push('/two')}>
+                  <Text style={styles.meditationButtonText}>🍃 冥想</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
           <View style={styles.headerBottom}>
@@ -395,28 +431,14 @@ export default function HomeScreen() {
           contentContainerStyle={styles.chatContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.homeEntrySection}>
-            <TouchableOpacity style={styles.homeEntryCard} onPress={() => router.push('/zi')}>
-              <Text style={styles.homeEntryIcon}>✍️</Text>
-              <Text style={styles.homeEntryTitle}>测字</Text>
-              <Text style={styles.homeEntryDesc}>核心功能</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.homeEntryCard} onPress={() => router.push('/reading')}>
-              <Text style={styles.homeEntryIcon}>🔮</Text>
-              <Text style={styles.homeEntryTitle}>占卜</Text>
-              <Text style={styles.homeEntryDesc}>抽签解卦</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.homeEntryCard} onPress={() => router.push('/two')}>
-              <Text style={styles.homeEntryIcon}>🍃</Text>
-              <Text style={styles.homeEntryTitle}>冥想</Text>
-              <Text style={styles.homeEntryDesc}>静心练习</Text>
-            </TouchableOpacity>
+          <View style={styles.featureHintCard}>
+            <Text style={styles.featureHintText}>🔮 占卜：在底部 Tab，适合问具体问题做推演</Text>
+            <Text style={styles.featureHintText}>🎯 抽签：在右下角悬浮按钮，适合看今日签运</Text>
           </View>
 
           {/* 欢迎消息 */}
           {messages.length === 0 && (
             <View style={styles.welcomeCard}>
-              <Text style={styles.welcomeTitle}>🙏 欢迎来到山海灵境</Text>
               <Text style={styles.welcomeText}>
                 {persona.greeting}
               </Text>
@@ -489,22 +511,12 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 悬浮抽签按钮 - 固定在右下角 */}
-        <TouchableOpacity 
-          style={styles.floatingDrawButton}
-          onPress={() => {
-            console.log('[抽签按钮] 点击了, user:', user?.id);
-            if (!user?.id) {
-              showToast('请先登录后再抽签', 'error');
-              return;
-            }
-            console.log('[抽签按钮] 已登录，打开抽签弹窗');
-            setShowDrawModal(true);
-          }}
-        >
+        {/* 悬浮抽签按钮 - 与占卜功能独立 */}
+        <TouchableOpacity style={styles.floatingDrawButton} onPress={openDrawModal}>
           <Text style={styles.floatingDrawIcon}>🎯</Text>
           <Text style={styles.floatingDrawText}>抽签</Text>
         </TouchableOpacity>
+
       </View>
 
       {/* Toast提示 */}
@@ -529,10 +541,19 @@ export default function HomeScreen() {
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
+            <Text style={styles.drawModalHint}>抽签看今日签运；问事推演请前往底部「占卜」</Text>
             
             <ScrollView style={styles.modalScroll}>
               {drawFortune ? (
                 <FortuneResultAnimation>
+                  <View style={[styles.fortuneGradeBadge, { borderColor: getFortuneGrade(drawFortune).color }]}>
+                    <Text style={[styles.fortuneGradeText, { color: getFortuneGrade(drawFortune).color }]}>
+                      {getFortuneGrade(drawFortune).label}
+                    </Text>
+                  </View>
+                  {!!drawFortune.drawCode && (
+                    <Text style={styles.drawCodeText}>签号：{drawFortune.drawCode}</Text>
+                  )}
                   <Text style={styles.fortunePoemTitle}>{drawFortune.poem.title}</Text>
                   <Text style={styles.fortunePoemText}>{drawFortune.poem.line1}</Text>
                   <Text style={styles.fortunePoemText}>{drawFortune.poem.line2}</Text>
@@ -546,6 +567,18 @@ export default function HomeScreen() {
                         ? drawFortune.interpretation 
                         : drawFortune.interpretation?.overall || ''}
                     </Text>
+                    {!!drawFortune.funTip && (
+                      <View style={styles.funCard}>
+                        <Text style={styles.funCardTitle}>🎲 今日趣味提示</Text>
+                        <Text style={styles.funCardText}>{drawFortune.funTip}</Text>
+                      </View>
+                    )}
+                    {!!drawFortune.mission && (
+                      <View style={styles.funCard}>
+                        <Text style={styles.funCardTitle}>🧩 今日任务</Text>
+                        <Text style={styles.funCardText}>{drawFortune.mission}</Text>
+                      </View>
+                    )}
                   </View>
                   
                   <View style={styles.luckyInfo}>
@@ -562,6 +595,9 @@ export default function HomeScreen() {
                       <Text style={styles.luckyValue}>{drawFortune.lucky.direction}</Text>
                     </View>
                   </View>
+                  {!!drawFortune.socialLine && (
+                    <Text style={styles.socialLineText}>{drawFortune.socialLine}</Text>
+                  )}
                 </FortuneResultAnimation>
               ) : (
                 <View style={styles.drawPrompt}>
@@ -1157,6 +1193,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  meditationButton: {
+    backgroundColor: '#4C2F80',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+  },
+  meditationButtonText: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -1172,6 +1221,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  userActionColumn: {
+    gap: 6,
   },
   checkInButton: {
     backgroundColor: '#4CAF50',
@@ -1209,13 +1261,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2F2342',
   },
-  welcomeTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#F8D05F',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
   welcomeText: {
     fontSize: 15,
     color: '#F7F6F0',
@@ -1228,6 +1273,21 @@ const styles = StyleSheet.create({
     color: '#8D8DAA',
     textAlign: 'center',
     marginBottom: 16,
+  },
+  featureHintCard: {
+    backgroundColor: '#151025',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#322243',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    gap: 4,
+  },
+  featureHintText: {
+    color: '#B9ACD3',
+    fontSize: 12,
+    lineHeight: 18,
   },
   bubbleContainer: {
     marginBottom: 12,
@@ -1383,37 +1443,6 @@ const styles = StyleSheet.create({
     color: '#8D8DAA',
     fontSize: 12,
   },
-  homeEntrySection: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-  },
-  homeEntryCard: {
-    flex: 1,
-    backgroundColor: '#161126',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#322243',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-  },
-  homeEntryIcon: {
-    fontSize: 20,
-    marginBottom: 6,
-  },
-  homeEntryTitle: {
-    color: '#F7F6F0',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  homeEntryDesc: {
-    color: '#8D8DAA',
-    fontSize: 11,
-    marginTop: 3,
-  },
-  
-  // 悬浮抽签按钮
   floatingDrawButton: {
     position: 'absolute',
     right: 16,
@@ -1593,6 +1622,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  drawModalHint: {
+    color: '#8D8DAA',
+    fontSize: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 6,
+  },
   modalClose: {
     color: '#8D8DAA',
     fontSize: 20,
@@ -1654,6 +1689,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
   },
+  fortuneGradeBadge: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 10,
+  },
+  fortuneGradeText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  drawCodeText: {
+    color: '#8D8DAA',
+    fontSize: 12,
+    marginBottom: 6,
+  },
   fortunePoemText: {
     color: '#F7F6F0',
     fontSize: 16,
@@ -1678,11 +1729,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
   },
+  funCard: {
+    marginTop: 10,
+    backgroundColor: '#1D152B',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#322243',
+  },
+  funCardTitle: {
+    color: '#C8A6FF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  funCardText: {
+    color: '#B9ACD3',
+    fontSize: 13,
+    lineHeight: 19,
+  },
   luckyInfo: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 24,
     width: '100%',
+  },
+  socialLineText: {
+    color: '#F8D05F',
+    fontSize: 13,
+    marginTop: 14,
+    textAlign: 'center',
   },
   luckyItem: {
     alignItems: 'center',
