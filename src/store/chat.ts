@@ -48,9 +48,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
     
     try {
+      const recentContext = get()
+        .messages
+        .slice(-8)
+        .map((m) => `${m.role === 'user' ? '用户' : '助手'}：${m.content}`);
+
       const dto: AgentChatDto = {
         message,
         personaId,
+        context: recentContext,
         userId,
         mood: mood as any,
       };

@@ -515,6 +515,7 @@ export const handwritingApi = {
 export interface AgentChatDto {
   message: string;
   personaId?: string;
+  context?: string[];
   mood?: 'calm' | 'anxious' | 'sad' | 'excited';
   userId?: string;
 }
