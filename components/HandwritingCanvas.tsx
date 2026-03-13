@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// 减小画布尺寸，使用固定宽度而非屏幕宽度
-const CANVAS_SIZE = Math.min(SCREEN_WIDTH - 80, 280);
+// 提升书写舒适度：放大书写区域
+const CANVAS_SIZE = Math.min(SCREEN_WIDTH - 32, 360);
 
 interface Point {
   x: number;
@@ -26,11 +26,13 @@ interface Stroke {
 interface HandwritingCanvasProps {
   onRecognize: (svgString: string) => void;
   isRecognizing?: boolean;
+  wuxing?: string;
 }
 
 export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({ 
   onRecognize, 
-  isRecognizing = false 
+  isRecognizing = false,
+  wuxing,
 }) => {
   // 使用 ref 来存储笔画数据，确保状态更新的准确性
   const strokesRef = useRef<Stroke[]>([]);
@@ -38,6 +40,8 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
   
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
+  const [brushPoint, setBrushPoint] = useState<Point | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
   
   // 淡入动画
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -56,7 +60,21 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     currentPointsRef.current = [];
     setStrokes([]);
     setCurrentPoints([]);
+    setBrushPoint(null);
+    setIsDrawing(false);
   }, []);
+
+  const getWuxingTheme = useCallback((wx?: string) => {
+    const map: Record<string, { border: string; stroke: string; active: string; glow: string }> = {
+      木: { border: '#65B867', stroke: '#1B4D24', active: '#7BEA89', glow: 'rgba(101,184,103,0.18)' },
+      火: { border: '#FF8A65', stroke: '#6A1B09', active: '#FFB199', glow: 'rgba(255,138,101,0.2)' },
+      土: { border: '#C9A769', stroke: '#5D4721', active: '#EED49A', glow: 'rgba(201,167,105,0.2)' },
+      金: { border: '#E0C96D', stroke: '#4A4321', active: '#FFE693', glow: 'rgba(224,201,109,0.2)' },
+      水: { border: '#6FA8FF', stroke: '#123A7B', active: '#A0C8FF', glow: 'rgba(111,168,255,0.22)' },
+    };
+    return map[wx || ''] || { border: '#FFD700', stroke: '#1a1a2e', active: '#FFE26A', glow: 'rgba(255,215,0,0.16)' };
+  }, []);
+  const wuxingTheme = getWuxingTheme(wuxing);
 
   // 计算两个点之间的插值点
   const getInterpolatedPoints = (p1: Point, p2: Point): Point[] => {
@@ -84,6 +102,8 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
       onPanResponderGrant: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
         const newPoint = { x: locationX, y: locationY };
+        setIsDrawing(true);
+        setBrushPoint(newPoint);
         currentPointsRef.current = [newPoint];
         setCurrentPoints([newPoint]);
       },
@@ -100,6 +120,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         }
         
         setCurrentPoints([...currentPointsRef.current]);
+        setBrushPoint(newPoint);
       },
       onPanResponderRelease: () => {
         if (currentPointsRef.current.length > 0) {
@@ -108,6 +129,8 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         }
         currentPointsRef.current = [];
         setCurrentPoints([]);
+        setIsDrawing(false);
+        setBrushPoint(null);
       },
       onPanResponderTerminate: () => {
         if (currentPointsRef.current.length > 0) {
@@ -116,6 +139,8 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         }
         currentPointsRef.current = [];
         setCurrentPoints([]);
+        setIsDrawing(false);
+        setBrushPoint(null);
       },
     }),
   ).current;
@@ -176,7 +201,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
               top: p1.y,
               width: length + 1,
               transform: [{ rotate: `${angle}deg` }],
-              backgroundColor: isActive ? '#FFD700' : '#1a1a2e',
+              backgroundColor: isActive ? wuxingTheme.active : wuxingTheme.stroke,
             },
           ]}
         />
@@ -214,11 +239,15 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <View 
-        style={styles.canvasContainer} 
+        style={[
+          styles.canvasContainer,
+          { borderColor: wuxingTheme.border, shadowColor: wuxingTheme.border },
+        ]} 
         {...panResponder.panHandlers}
       >
         {/* 背景 */}
-        <View style={styles.canvasBackground}>
+        <View style={[styles.canvasBackground, { backgroundColor: '#fff' }]}>
+          <View style={[styles.canvasGlow, { backgroundColor: wuxingTheme.glow }]} />
           {/* 田字格参考线 */}
           <View style={[styles.gridLine, { left: '50%' }]} />
           <View style={[styles.gridLine, styles.gridHorizontal, { top: '50%' }]} />
@@ -228,6 +257,19 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         <View style={styles.strokesLayer}>
           {renderAllStrokes()}
         </View>
+        {isDrawing && brushPoint && (
+          <View
+            style={[
+              styles.brushCursor,
+              {
+                left: brushPoint.x - 10,
+                top: brushPoint.y - 10,
+                borderColor: wuxingTheme.border,
+                backgroundColor: '#fff',
+              },
+            ]}
+          />
+        )}
       </View>
       
       <View style={styles.buttonRow}>
@@ -269,8 +311,15 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFD700',
     position: 'relative',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
   canvasBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  canvasGlow: {
     ...StyleSheet.absoluteFillObject,
   },
   gridLine: {
@@ -295,9 +344,17 @@ const styles = StyleSheet.create({
   },
   segment: {
     position: 'absolute',
-    height: 6,
-    borderRadius: 3,
+    height: 8,
+    borderRadius: 4,
     transformOrigin: 'left center',
+  },
+  brushCursor: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    opacity: 0.88,
   },
   buttonRow: {
     flexDirection: 'row',

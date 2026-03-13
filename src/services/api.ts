@@ -471,20 +471,20 @@ export interface ZiResult {
 }
 
 export const ziApi = {
-  analyze: (zi: string, userId?: string) =>
+  analyze: (zi: string, userId?: string, focusAspect?: string) =>
     request<ZiResult>('/zi/analyze', {
       method: 'POST',
-      body: JSON.stringify({ zi, userId }),
+      body: JSON.stringify({ zi, userId, focusAspect }),
     }),
 };
 
 export const handwritingApi = {
-  analyze: (image: string, userId?: string) =>
+  analyze: (image: string, userId?: string, focusAspect?: string) =>
     request<{ recognizedZi: string | null; confidence?: number; analysis?: ZiResult; error?: string }>(
       '/zi/analyze-handwriting',
       {
         method: 'POST',
-        body: JSON.stringify({ image, userId }),
+        body: JSON.stringify({ image, userId, focusAspect }),
       },
     ),
 };

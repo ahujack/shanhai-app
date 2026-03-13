@@ -31,27 +31,42 @@ export default function ZiScreen() {
   const [showColdReading, setShowColdReading] = useState(false);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
-  // 新增：用户选择的测字方面
-  const [selectedAspects, setSelectedAspects] = useState<string[]>([]);
+  // 用户选择的测字方向（单选）
+  const [selectedAspect, setSelectedAspect] = useState('');
   const [customAspect, setCustomAspect] = useState('');
   const oracleUnlockAnim = useRef(new Animated.Value(0)).current;
   
   // 可选的测字方面
   const aspectOptions = ['事业', '财运', '婚姻', '学业', '健康', '人际关系'];
   
-  // 切换方面选择
+  // 切换方向（单选，再次点击可取消）
   const toggleAspect = (aspect: string) => {
-    setSelectedAspects(prev => 
-      prev.includes(aspect) 
-        ? prev.filter(a => a !== aspect)
-        : [...prev, aspect]
-    );
+    setSelectedAspect((prev) => (prev === aspect ? '' : aspect));
+  };
+
+  const getFocusAspect = (): string | undefined => {
+    const custom = customAspect.trim();
+    if (custom) return custom;
+    if (selectedAspect) return selectedAspect;
+    return undefined;
+  };
+
+  const getWuxingTheme = (wuxing?: string) => {
+    const map: Record<string, { bg: string; glow: string }> = {
+      木: { bg: '#102317', glow: 'rgba(76, 175, 80, 0.16)' },
+      火: { bg: '#2A1515', glow: 'rgba(244, 67, 54, 0.16)' },
+      土: { bg: '#231B15', glow: 'rgba(141, 110, 99, 0.18)' },
+      金: { bg: '#262315', glow: 'rgba(255, 193, 7, 0.18)' },
+      水: { bg: '#121E2D', glow: 'rgba(33, 150, 243, 0.18)' },
+    };
+    return map[wuxing || ''] || { bg: '#1a1a2e', glow: 'rgba(255,255,255,0.06)' };
   };
   
   // 聊天相关
   const { messages, sendMessage } = useChatStore();
   const { active: persona } = usePersonaStore();
   const { user } = useUserStore();
+  const wuxingTheme = getWuxingTheme(result?.zi?.wuxing);
   const shouldShowOracleUnlock = !!(
     result?.zi.oracleBone?.previewLocked &&
     (result.zi.oracleBone.totalImages || 0) > (result.zi.oracleBone.shownImages || 0)
@@ -103,7 +118,7 @@ export default function ZiScreen() {
     ],
   };
 
-  const analyzeZiInput = async (rawZi: string) => {
+  const analyzeZiInput = async (rawZi: string, focusAspect?: string) => {
     const zi = rawZi.trim().charAt(0);
     if (!/[\u4e00-\u9fa5]/.test(zi)) {
       Alert.alert('提示', '请输入一个有效的汉字');
@@ -112,12 +127,8 @@ export default function ZiScreen() {
 
     setIsLoading(true);
     try {
-      const data = await ziApi.analyze(zi, user?.id);
+      const data = await ziApi.analyze(zi, user?.id, focusAspect);
       setResult(data);
-      // 仅手动测字后再自动接聊天，避免从对话进入详情页时打断
-      if (!params.fromChat) {
-        setTimeout(() => autoSendFollowUpQuestion(zi), 1000);
-      }
     } catch (error) {
       console.error('测字失败:', error);
       Alert.alert('错误', '测字失败，请稍后重试');
@@ -141,7 +152,7 @@ export default function ZiScreen() {
       Alert.alert('提示', '请输入一个汉字');
       return;
     }
-    await analyzeZiInput(inputZi.trim());
+    await analyzeZiInput(inputZi.trim(), getFocusAspect());
   };
 
   // 手写模式识别并测字
@@ -150,25 +161,14 @@ export default function ZiScreen() {
     setIsLoading(true);
     try {
       console.log('调用 handwritingApi.analyze...');
-      const data = await handwritingApi.analyze(svgString, user?.id);
+      const data = await handwritingApi.analyze(svgString, user?.id, getFocusAspect());
       console.log('识别结果:', data);
       
       if (data.recognizedZi) {
         setInputZi(data.recognizedZi);
         setResult(data.analysis || null);
         
-        // 识别成功后显示结果，然后自动发送后续问题
-        Alert.alert('🎉 识别成功', `识别到汉字: ${data.recognizedZi}\n\n点击确定查看解读并开始对话`, [
-          { 
-            text: '查看解读', 
-            onPress: () => {
-              // 延迟发送后续问题，让用户先看到结果
-              if (data.recognizedZi) {
-                setTimeout(() => autoSendFollowUpQuestion(data.recognizedZi!), 1500);
-              }
-            }
-          }
-        ]);
+        Alert.alert('🎉 识别成功', `识别到汉字：${data.recognizedZi}\n\n你可以选择“事业/财运/婚姻”等方向，再点击“按方向重解读”。`);
       } else {
         Alert.alert('😔 识别失败', data.error || '未能识别出汉字，请重新书写');
       }
@@ -193,6 +193,20 @@ export default function ZiScreen() {
 
   const getJixiongColor = (jixiong: string) => {
     return jixiong === '吉' ? '#4CAF50' : jixiong === '凶' ? '#F44336' : '#FF9800';
+  };
+
+  const handleFocusedReanalyze = async () => {
+    const zi = (result?.zi?.zi || inputZi || '').trim().charAt(0);
+    if (!/[\u4e00-\u9fa5]/.test(zi)) {
+      Alert.alert('提示', '请先识别或输入一个字');
+      return;
+    }
+    const focus = getFocusAspect();
+    if (!focus) {
+      Alert.alert('提示', '请先选择一个解读方向');
+      return;
+    }
+    await analyzeZiInput(zi, focus);
   };
   
   // 点击继续聊聊，AI自动发送一个问题，等待用户回答
@@ -258,7 +272,8 @@ export default function ZiScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: wuxingTheme.bg }]}>
+      <View pointerEvents="none" style={[styles.wuxingAura, { backgroundColor: wuxingTheme.glow }]} />
       <View style={styles.header}>
         <Text style={styles.title}>🔮 测字问心</Text>
         <Text style={styles.subtitle}>字是心画，写一字可窥心</Text>
@@ -317,13 +332,13 @@ export default function ZiScreen() {
                   key={aspect}
                   style={[
                     styles.aspectTag,
-                    selectedAspects.includes(aspect) && styles.aspectTagSelected
+                    selectedAspect === aspect && styles.aspectTagSelected
                   ]}
                   onPress={() => toggleAspect(aspect)}
                 >
                   <Text style={[
                     styles.aspectTagText,
-                    selectedAspects.includes(aspect) && styles.aspectTagTextSelected
+                    selectedAspect === aspect && styles.aspectTagTextSelected
                   ]}>
                     {aspect}
                   </Text>
@@ -345,6 +360,7 @@ export default function ZiScreen() {
               <HandwritingCanvas 
                 onRecognize={handleHandwritingRecognize}
                 isRecognizing={isLoading}
+                wuxing={result?.zi?.wuxing}
               />
             </View>
           ) : (
@@ -377,6 +393,22 @@ export default function ZiScreen() {
         {/* 结果展示 */}
         {result && (
           <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🎯 定向重解读</Text>
+              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                <Text style={styles.refineHint}>
+                  已识别「{result.zi.zi}」。选择你最关心的方向后，可重新生成更聚焦的解读。
+                </Text>
+                <TouchableOpacity
+                  style={[styles.refineButton, isLoading && styles.refineButtonDisabled]}
+                  onPress={handleFocusedReanalyze}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.refineButtonText}>{isLoading ? '重解读中...' : '按方向重解读'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* 冷读话术 - 首先展示 */}
             <View style={styles.section}>
               <TouchableOpacity
@@ -659,6 +691,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a2e',
   },
+  wuxingAura: {
+    position: 'absolute',
+    top: -120,
+    right: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+  },
   header: {
     padding: 20,
     alignItems: 'center',
@@ -796,6 +836,27 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 20,
+  },
+  refineHint: {
+    color: '#BFC2D8',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  refineButton: {
+    backgroundColor: '#6D50A6',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+  },
+  refineButtonDisabled: {
+    backgroundColor: '#6C6880',
+  },
+  refineButtonText: {
+    color: '#F7F6F0',
+    fontSize: 13,
+    fontWeight: '700',
   },
   card: {
     borderRadius: 12,
