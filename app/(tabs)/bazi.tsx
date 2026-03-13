@@ -5,7 +5,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
-import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { userApi } from '../../src/services/api';
 
 const colors = theme.dark;
@@ -127,9 +126,6 @@ export default function BaziScreen() {
     return sorted[0][0];
   }, [godClicks, activeGod, storedGod]);
 
-  const dominantEmpathy =
-    tenGodMeta[dominantGod]?.empathy || '你已经做得很好了，我们可以慢慢聊清楚。';
-
   React.useEffect(() => {
     if (!user?.id) return;
     const key = `bazi_focus_god_${user.id}`;
@@ -179,26 +175,6 @@ export default function BaziScreen() {
     scrollRef.current?.scrollTo({ y: Math.max(annualSectionY - 24, 0), animated: true });
   }, [highlightMaster, annualSectionY]);
 
-  const goDeepChat = () => {
-    const chatMessage: ChatMessage = {
-      id: `bazi_bridge_${Date.now()}`,
-      role: 'assistant',
-      content:
-        `我看到了你命盘里“${dominantGod}”这条线索。\n` +
-        `${dominantEmpathy}\n\n` +
-        `如果你愿意，我们可以从这里继续：\n` +
-        `1）最近最让你消耗的一件事是什么？\n` +
-        `2）你最想先被理解的感受是什么？\n` +
-        `3）你希望我先安慰、先倾听，还是先帮你梳理？`,
-      timestamp: new Date(),
-    };
-
-    useChatStore.setState((state) => ({
-      messages: [...state.messages, chatMessage],
-    }));
-    router.push('/');
-  };
-
   const handleGenerate = async () => {
     if (!user?.id) {
       router.push('/login');
@@ -245,7 +221,7 @@ export default function BaziScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>一屏总论</Text>
-        <Text style={styles.personalizedLead}>个性化开场：你最近更关注「{storedGod}」主题</Text>
+        <Text style={styles.personalizedLead}>近期关注主题：{tenGodMeta[storedGod]?.title || storedGod}</Text>
         <Text style={styles.bodyMuted}>{tenGodMeta[storedGod]?.empathy || '我们先从你最在意的感受聊起。'}</Text>
         <Text style={styles.body}>{chart.conclusion?.overall || '你的命盘呈现稳中有进的结构。'}</Text>
         <Text style={styles.bodyMuted}>{chart.conclusion?.mindset || '建议先稳住内在节奏，再扩展外部机会。'}</Text>
@@ -290,14 +266,6 @@ export default function BaziScreen() {
         {(chart.tenGods?.summary || []).map((line, idx) => (
           <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
         ))}
-        <View style={styles.bridgeCard}>
-          <Text style={styles.bridgeTitle}>情绪承接建议</Text>
-          <Text style={styles.bodyMuted}>你当前更关注：{dominantGod}</Text>
-          <Text style={styles.body}>{dominantEmpathy}</Text>
-          <TouchableOpacity style={styles.bridgeBtn} onPress={goDeepChat}>
-            <Text style={styles.bridgeBtnText}>带着这个状态去深聊</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       <View style={styles.card}>
@@ -310,40 +278,48 @@ export default function BaziScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>详细解读</Text>
-        <Text style={styles.sectionHead}>核心格局</Text>
-        <Text style={styles.body}>{chart.detailedReading?.corePattern || '正在生成更细致的盘面解读...'}</Text>
-
-        <Text style={styles.sectionHead}>感情关系</Text>
-        <Text style={styles.body}>{chart.detailedReading?.relationship || '-'}</Text>
-
-        <Text style={styles.sectionHead}>事业发展</Text>
-        <Text style={styles.body}>{chart.detailedReading?.career || '-'}</Text>
-
-        <Text style={styles.sectionHead}>财务节奏</Text>
-        <Text style={styles.body}>{chart.detailedReading?.wealth || '-'}</Text>
-
-        <Text style={styles.sectionHead}>身心状态</Text>
-        <Text style={styles.body}>{chart.detailedReading?.health || '-'}</Text>
-
-        <Text style={styles.sectionHead}>阶段节奏参考</Text>
-        {(chart.detailedReading?.decadeRhythm || []).map((line, idx) => (
-          <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
-        ))}
-
-        <Text style={styles.sectionHead}>大运节奏（按起运推算）</Text>
-        <Text style={styles.bodyMuted}>
-          起运约在 {chart.detailedReading?.luckCycles?.startAge ?? '-'} 岁，
-          方向：{chart.detailedReading?.luckCycles?.direction === 'forward' ? '顺行' : '逆行'}
-        </Text>
-        {(chart.detailedReading?.luckCycles?.cycles || []).map((cycle, idx) => (
-          <Text key={`cycle_${idx}`} style={styles.bodyMuted}>
-            - {cycle.ageRange}（{cycle.ganZhi}）：{cycle.focus}
+        <View style={styles.moduleCard}>
+          <Text style={styles.sectionHead}>核心格局</Text>
+          <Text style={styles.body}>{chart.detailedReading?.corePattern || '正在生成更细致的盘面解读...'}</Text>
+        </View>
+        <View style={styles.moduleCard}>
+          <Text style={styles.sectionHead}>感情关系</Text>
+          <Text style={styles.body}>{chart.detailedReading?.relationship || '-'}</Text>
+        </View>
+        <View style={styles.moduleCard}>
+          <Text style={styles.sectionHead}>事业发展</Text>
+          <Text style={styles.body}>{chart.detailedReading?.career || '-'}</Text>
+        </View>
+        <View style={styles.moduleCard}>
+          <Text style={styles.sectionHead}>财务节奏</Text>
+          <Text style={styles.body}>{chart.detailedReading?.wealth || '-'}</Text>
+        </View>
+        <View style={styles.moduleCard}>
+          <Text style={styles.sectionHead}>身心状态</Text>
+          <Text style={styles.body}>{chart.detailedReading?.health || '-'}</Text>
+        </View>
+        <View style={styles.moduleCard}>
+          <Text style={styles.sectionHead}>阶段节奏参考</Text>
+          {(chart.detailedReading?.decadeRhythm || []).map((line, idx) => (
+            <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
+          ))}
+        </View>
+        <View style={styles.moduleCard}>
+          <Text style={styles.sectionHead}>大运节奏（按起运推算）</Text>
+          <Text style={styles.bodyMuted}>
+            起运约在 {chart.detailedReading?.luckCycles?.startAge ?? '-'} 岁，
+            方向：{chart.detailedReading?.luckCycles?.direction === 'forward' ? '顺行' : '逆行'}
           </Text>
-        ))}
+          {(chart.detailedReading?.luckCycles?.cycles || []).map((cycle, idx) => (
+            <Text key={`cycle_${idx}`} style={styles.bodyMuted}>
+              - {cycle.ageRange}（{cycle.ganZhi}）：{cycle.focus}
+            </Text>
+          ))}
+        </View>
 
         <View
           onLayout={(event) => setAnnualSectionY(event.nativeEvent.layout.y)}
-          style={highlightMaster ? styles.highlightPanel : undefined}
+          style={[styles.moduleCard, highlightMaster ? styles.highlightPanel : undefined]}
         >
           <Text style={styles.sectionHead}>近五年流年</Text>
           {showUnlockTip ? <Text style={styles.unlockTip}>✨ 已解锁老师傅批注，以下为高级流年细化</Text> : null}
@@ -380,10 +356,12 @@ export default function BaziScreen() {
         ) : null}
         </View>
 
-        <Text style={styles.sectionHead}>年度提醒</Text>
-        {(chart.detailedReading?.yearlyTips || []).map((line, idx) => (
-          <Text key={`tip_${idx}`} style={styles.bodyMuted}>- {line}</Text>
-        ))}
+        <View style={styles.moduleCard}>
+          <Text style={styles.sectionHead}>年度提醒</Text>
+          {(chart.detailedReading?.yearlyTips || []).map((line, idx) => (
+            <Text key={`tip_${idx}`} style={styles.bodyMuted}>- {line}</Text>
+          ))}
+        </View>
 
         <Text style={styles.disclaimer}>{chart.detailedReading?.disclaimer || ''}</Text>
       </View>
@@ -426,32 +404,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tenGodDetailTitle: { color: '#F8D05F', fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
-  bridgeCard: {
-    marginTop: 10,
-    backgroundColor: '#201834',
+  moduleCard: {
+    marginTop: 8,
+    padding: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#3A2B5A',
-    padding: 10,
-  },
-  bridgeTitle: {
-    color: '#E5D7FF',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  bridgeBtn: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    backgroundColor: '#6D50A6',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  bridgeBtnText: {
-    color: '#F7F6F0',
-    fontSize: 12,
-    fontWeight: '600',
+    borderColor: '#2E2340',
+    backgroundColor: '#1B1430',
   },
   highlightPanel: {
     borderWidth: 1,
