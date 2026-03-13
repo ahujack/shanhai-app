@@ -105,6 +105,11 @@ export interface UserProfile {
   name: string;
   birthDate?: string;
   birthTime?: string;
+  calendarType?: 'solar' | 'lunar';
+  isLeapMonth?: boolean;
+  birthLocation?: string;
+  birthLongitude?: number;
+  birthLatitude?: number;
   gender?: 'male' | 'female' | 'other';
   timezone?: string;
   location?: string;
@@ -124,6 +129,11 @@ export interface CreateUserDto {
   name: string;
   birthDate?: string;
   birthTime?: string;
+  calendarType?: 'solar' | 'lunar';
+  isLeapMonth?: boolean;
+  birthLocation?: string;
+  birthLongitude?: number;
+  birthLatitude?: number;
   gender?: 'male' | 'female' | 'other';
   timezone?: string;
   location?: string;
@@ -237,6 +247,36 @@ export interface BaziChart {
   conclusion: {
     overall: string;
     mindset: string;
+  };
+  detailedReading: {
+    corePattern: string;
+    relationship: string;
+    career: string;
+    wealth: string;
+    health: string;
+    decadeRhythm: string[];
+    luckCycles: {
+      startAge: number;
+      direction: 'forward' | 'backward';
+      cycles: Array<{
+        ageRange: string;
+        ganZhi: string;
+        focus: string;
+      }>;
+    };
+    annualForecast: Array<{
+      year: number;
+      ganZhi: string;
+      tenGod: string;
+      hint: string;
+      favorable: string;
+      caution: string;
+      windowMonths: string[];
+      masterCommentary?: string;
+    }>;
+    yearlyTips: string[];
+    paywallHint?: string;
+    disclaimer: string;
   };
 }
 
@@ -626,10 +666,22 @@ export interface CheckoutResult {
   message?: string;
 }
 
+export interface PaymentStatusResult {
+  paymentId: string;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  productType: 'points' | 'subscription';
+  membership: 'free' | 'premium' | 'vip';
+  completedAt: string | null;
+}
+
 export const paymentApi = {
   // 获取支付状态
   getStatus: () =>
     request<{ stripeConfigured: boolean }>('/payment/status'),
+
+  // 查询单笔支付状态（用于支付完成后刷新）
+  getByIdStatus: (paymentId: string) =>
+    request<PaymentStatusResult>(`/payment/status/${paymentId}`),
   
   // 获取所有支付产品
   getProducts: () =>

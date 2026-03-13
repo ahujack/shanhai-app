@@ -1,27 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, View, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
-import { paymentApi, PaymentProduct, CheckoutResult, pointsApi, PointsSummary } from '../../src/services/api';
+import { paymentApi, PaymentProduct, CheckoutResult, pointsApi, PointsSummary, userApi, chartApi } from '../../src/services/api';
 
 const colors = theme.dark;
 
 export default function PointsMallScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, loadUser } = useUserStore();
+  const params = useLocalSearchParams<{ focus?: string }>();
+  const { user } = useUserStore();
+  const scrollRef = React.useRef<ScrollView>(null);
 
   const [subscriptionProducts, setSubscriptionProducts] = useState<PaymentProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [creemConfigured, setCreemConfigured] = useState(true);
   const [pointsSummary, setPointsSummary] = useState<PointsSummary | null>(null);
+  const [vipSectionY, setVipSectionY] = useState(0);
+  const [highlightVip, setHighlightVip] = useState(false);
+
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const refreshMembershipAndChart = async () => {
+    if (!user?.id) return;
+    const latestUser = await userApi.get(user.id);
+    let latestChart: any = null;
+    try {
+      const chartResp = await chartApi.get(user.id);
+      if (chartResp.hasChart && chartResp.chart) {
+        latestChart = chartResp.chart;
+      }
+    } catch {
+      latestChart = null;
+    }
+    useUserStore.setState((state) => ({
+      user: latestUser,
+      chart: latestChart ?? state.chart,
+      hasChart: latestChart ? true : state.hasChart,
+    }));
+  };
+
+  const pollPaymentCompletion = async (paymentId: string) => {
+    for (let i = 0; i < 24; i++) {
+      await sleep(2000);
+      try {
+        const paymentStatus = await paymentApi.getByIdStatus(paymentId);
+        if (paymentStatus.status === 'completed') {
+          await refreshMembershipAndChart();
+          Alert.alert('支付成功', '会员权益已到账，八字高级解读已解锁。');
+          router.push({
+            pathname: '/(tabs)/bazi',
+            params: {
+              highlight: 'master',
+              fromPayment: '1',
+            },
+          });
+          return;
+        }
+        if (paymentStatus.status === 'failed' || paymentStatus.status === 'refunded') {
+          Alert.alert('支付未完成', `当前状态：${paymentStatus.status}`);
+          return;
+        }
+      } catch {
+        // 轮询过程中的瞬时错误忽略，继续下一轮
+      }
+    }
+  };
 
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (params.focus !== 'vip') return;
+    setHighlightVip(true);
+    const timer = setTimeout(() => setHighlightVip(false), 8000);
+    return () => clearTimeout(timer);
+  }, [params.focus]);
+
+  useEffect(() => {
+    if (!highlightVip || !vipSectionY) return;
+    scrollRef.current?.scrollTo({ y: Math.max(vipSectionY - 20, 0), animated: true });
+  }, [highlightVip, vipSectionY]);
 
   const loadProducts = async () => {
     try {
@@ -66,7 +130,14 @@ export default function PointsMallScreen() {
                 try {
                   await paymentApi.mockPayment(result.paymentId);
                   Alert.alert('成功', 'VIP会员已开通！');
-                  await loadUser();
+                  await refreshMembershipAndChart();
+                  router.push({
+                    pathname: '/(tabs)/bazi',
+                    params: {
+                      highlight: 'master',
+                      fromPayment: '1',
+                    },
+                  });
                 } catch (e) {
                   Alert.alert('错误', '支付处理失败');
                 }
@@ -78,6 +149,9 @@ export default function PointsMallScreen() {
         const supported = await Linking.canOpenURL(result.url);
         if (supported) {
           await Linking.openURL(result.url);
+          if (result.paymentId) {
+            pollPaymentCompletion(result.paymentId).catch(() => null);
+          }
         } else {
           Alert.alert('提示', `请在浏览器中打开: ${result.url}`);
         }
@@ -101,7 +175,7 @@ export default function PointsMallScreen() {
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
 
   return (
-    <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
+    <ScrollView ref={scrollRef} style={[styles.container, { paddingTop: insets.top }]}>
       {/* VIP状态卡片 */}
       <View style={[styles.vipCard, isVip && styles.vipCardActive]}>
         <View style={styles.vipCardContent}>
@@ -143,9 +217,13 @@ export default function PointsMallScreen() {
       </View>
 
       {/* VIP 订阅 */}
-      <View style={styles.section}>
+      <View
+        style={[styles.section, highlightVip ? styles.vipSectionHighlight : undefined]}
+        onLayout={(event) => setVipSectionY(event.nativeEvent.layout.y)}
+      >
         <Text style={styles.sectionTitle}>⭐ VIP 会员</Text>
         <Text style={styles.sectionSubtitle}>开通VIP，享无限次AI解读</Text>
+        {highlightVip ? <Text style={styles.focusTip}>👑 推荐：解锁八字老师傅批注与完整流年细化</Text> : null}
         
         {subscriptionProducts.map((product) => {
           const isPurchasing = purchasing === product.id;
@@ -303,6 +381,18 @@ const styles = StyleSheet.create({
   section: {
     padding: 16,
     paddingTop: 8,
+  },
+  vipSectionHighlight: {
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+    borderRadius: 12,
+    marginHorizontal: 10,
+    backgroundColor: '#1F1633',
+  },
+  focusTip: {
+    color: '#F8D05F',
+    fontSize: 12,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 20,

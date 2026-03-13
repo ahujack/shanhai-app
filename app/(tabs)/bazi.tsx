@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
@@ -102,10 +102,15 @@ const tenGodMeta: Record<
 export default function BaziScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ highlight?: string; fromPayment?: string }>();
   const { user, chart, hasChart, generateChart, isLoading } = useUserStore();
   const [godClicks, setGodClicks] = React.useState<Record<string, number>>({});
   const [activeGod, setActiveGod] = React.useState<string>('日主');
   const [storedGod, setStoredGod] = React.useState<string>('日主');
+  const [highlightMaster, setHighlightMaster] = React.useState(false);
+  const [showUnlockTip, setShowUnlockTip] = React.useState(false);
+  const [annualSectionY, setAnnualSectionY] = React.useState(0);
+  const scrollRef = React.useRef<ScrollView>(null);
 
   const trackGodClick = React.useCallback((god: string) => {
     setActiveGod(god);
@@ -155,6 +160,24 @@ export default function BaziScreen() {
       })
       .catch(() => null);
   }, [user?.id, dominantGod]);
+
+  React.useEffect(() => {
+    if (params.highlight === 'master') {
+      setHighlightMaster(true);
+      setShowUnlockTip(true);
+      const timer = setTimeout(() => setHighlightMaster(false), 8000);
+      const tipTimer = setTimeout(() => setShowUnlockTip(false), 5000);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(tipTimer);
+      };
+    }
+  }, [params.highlight]);
+
+  React.useEffect(() => {
+    if (!highlightMaster || !annualSectionY) return;
+    scrollRef.current?.scrollTo({ y: Math.max(annualSectionY - 24, 0), animated: true });
+  }, [highlightMaster, annualSectionY]);
 
   const goDeepChat = () => {
     const chatMessage: ChatMessage = {
@@ -214,6 +237,7 @@ export default function BaziScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
     >
@@ -283,6 +307,86 @@ export default function BaziScreen() {
         <Text style={styles.body}>财运：{chart.fortuneSummary?.wealth}</Text>
         <Text style={styles.body}>健康：{chart.fortuneSummary?.health}</Text>
       </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>详细解读</Text>
+        <Text style={styles.sectionHead}>核心格局</Text>
+        <Text style={styles.body}>{chart.detailedReading?.corePattern || '正在生成更细致的盘面解读...'}</Text>
+
+        <Text style={styles.sectionHead}>感情关系</Text>
+        <Text style={styles.body}>{chart.detailedReading?.relationship || '-'}</Text>
+
+        <Text style={styles.sectionHead}>事业发展</Text>
+        <Text style={styles.body}>{chart.detailedReading?.career || '-'}</Text>
+
+        <Text style={styles.sectionHead}>财务节奏</Text>
+        <Text style={styles.body}>{chart.detailedReading?.wealth || '-'}</Text>
+
+        <Text style={styles.sectionHead}>身心状态</Text>
+        <Text style={styles.body}>{chart.detailedReading?.health || '-'}</Text>
+
+        <Text style={styles.sectionHead}>阶段节奏参考</Text>
+        {(chart.detailedReading?.decadeRhythm || []).map((line, idx) => (
+          <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
+        ))}
+
+        <Text style={styles.sectionHead}>大运节奏（按起运推算）</Text>
+        <Text style={styles.bodyMuted}>
+          起运约在 {chart.detailedReading?.luckCycles?.startAge ?? '-'} 岁，
+          方向：{chart.detailedReading?.luckCycles?.direction === 'forward' ? '顺行' : '逆行'}
+        </Text>
+        {(chart.detailedReading?.luckCycles?.cycles || []).map((cycle, idx) => (
+          <Text key={`cycle_${idx}`} style={styles.bodyMuted}>
+            - {cycle.ageRange}（{cycle.ganZhi}）：{cycle.focus}
+          </Text>
+        ))}
+
+        <View
+          onLayout={(event) => setAnnualSectionY(event.nativeEvent.layout.y)}
+          style={highlightMaster ? styles.highlightPanel : undefined}
+        >
+          <Text style={styles.sectionHead}>近五年流年</Text>
+          {showUnlockTip ? <Text style={styles.unlockTip}>✨ 已解锁老师傅批注，以下为高级流年细化</Text> : null}
+          {(chart.detailedReading?.annualForecast || []).map((yearItem, idx) => (
+            <View key={`year_${idx}`} style={{ marginBottom: 6 }}>
+              <Text style={styles.bodyMuted}>
+                - {yearItem.year}（{yearItem.ganZhi} / {yearItem.tenGod}）：{yearItem.hint}
+              </Text>
+              <Text style={styles.bodyMuted}>  宜：{yearItem.favorable || '稳步推进主线事项'}</Text>
+              <Text style={styles.bodyMuted}>  忌：{yearItem.caution || '避免多线分散与情绪化决策'}</Text>
+              <Text style={styles.bodyMuted}>
+                {' '}
+                关键窗口月：{(yearItem.windowMonths || []).join('、') || '3-4月、9-10月'}
+              </Text>
+              {yearItem.masterCommentary ? (
+                <Text style={[styles.body, highlightMaster ? styles.masterCommentaryHighlight : undefined]}>
+                  {' '}
+                  {yearItem.masterCommentary}
+                </Text>
+              ) : null}
+            </View>
+          ))}
+        {chart.detailedReading?.paywallHint ? (
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: '/(tabs)/points',
+                params: { focus: 'vip' },
+              })
+            }
+          >
+            <Text style={[styles.bodyMuted, styles.paywallLink]}>🔒 {chart.detailedReading.paywallHint}（点此解锁）</Text>
+          </TouchableOpacity>
+        ) : null}
+        </View>
+
+        <Text style={styles.sectionHead}>年度提醒</Text>
+        {(chart.detailedReading?.yearlyTips || []).map((line, idx) => (
+          <Text key={`tip_${idx}`} style={styles.bodyMuted}>- {line}</Text>
+        ))}
+
+        <Text style={styles.disclaimer}>{chart.detailedReading?.disclaimer || ''}</Text>
+      </View>
     </ScrollView>
   );
 }
@@ -297,6 +401,7 @@ const styles = StyleSheet.create({
   cardTitle: { color: '#F8D05F', fontWeight: 'bold', fontSize: 15, marginBottom: 10 },
   body: { color: '#F2EEF9', fontSize: 14, lineHeight: 22, marginBottom: 4 },
   bodyMuted: { color: '#A89EBE', fontSize: 13, lineHeight: 20, marginBottom: 4 },
+  sectionHead: { color: '#E8DCFF', fontSize: 13, fontWeight: '700', marginTop: 8, marginBottom: 4 },
   personalizedLead: { color: '#E3D6FF', fontSize: 13, marginBottom: 4, fontWeight: '600' },
   pillarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pillar: { color: '#DDD4EE', fontSize: 13, backgroundColor: '#1F1730', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
@@ -347,6 +452,31 @@ const styles = StyleSheet.create({
     color: '#F7F6F0',
     fontSize: 12,
     fontWeight: '600',
+  },
+  highlightPanel: {
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+    borderRadius: 10,
+    padding: 8,
+    backgroundColor: '#221834',
+  },
+  unlockTip: {
+    color: '#F8D05F',
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  masterCommentaryHighlight: {
+    color: '#F8D05F',
+  },
+  paywallLink: {
+    textDecorationLine: 'underline',
+    color: '#D7C7FF',
+  },
+  disclaimer: {
+    marginTop: 10,
+    color: '#8E84A3',
+    fontSize: 12,
+    lineHeight: 18,
   },
   primaryBtn: { backgroundColor: '#F8D05F', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 12 },
   primaryBtnText: { color: '#1A0A18', fontWeight: 'bold', fontSize: 14 },

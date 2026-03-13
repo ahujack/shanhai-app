@@ -66,6 +66,14 @@ export default function ProfileScreen() {
   const [name, setName] = useState(user?.name || '');
   const [birthDate, setBirthDate] = useState(user?.birthDate || '');
   const [birthTime, setBirthTime] = useState(user?.birthTime || '');
+  const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>(
+    (user?.calendarType as 'solar' | 'lunar') || 'solar',
+  );
+  const [isLeapMonth, setIsLeapMonth] = useState(!!user?.isLeapMonth);
+  const [birthLocation, setBirthLocation] = useState(user?.birthLocation || '');
+  const [birthLongitude, setBirthLongitude] = useState(
+    user?.birthLongitude !== undefined && user?.birthLongitude !== null ? String(user.birthLongitude) : '',
+  );
   const [gender, setGender] = useState<'male' | 'female' | 'other'>(user?.gender || 'male');
   const [step, setStep] = useState<'input' | 'chart'>(() => {
     // 根据是否有命盘直接初始化正确的step，避免闪烁
@@ -164,6 +172,12 @@ export default function ProfileScreen() {
       setName(user.name);
       setBirthDate(user.birthDate || '');
       setBirthTime(user.birthTime || '');
+      setCalendarType((user.calendarType as 'solar' | 'lunar') || 'solar');
+      setIsLeapMonth(!!user.isLeapMonth);
+      setBirthLocation(user.birthLocation || '');
+      setBirthLongitude(
+        user.birthLongitude !== undefined && user.birthLongitude !== null ? String(user.birthLongitude) : '',
+      );
       setGender(user.gender || 'male');
       if (hasChart) {
         setStep('chart');
@@ -203,11 +217,21 @@ export default function ProfileScreen() {
       return;
     }
 
+    const parsedLongitude = birthLongitude.trim() ? Number(birthLongitude) : undefined;
+    if (birthLongitude.trim() && Number.isNaN(parsedLongitude)) {
+      Alert.alert('提示', '经度格式不正确，请输入数字');
+      return;
+    }
+
     try {
       await createUser({
         name: name.trim(),
         birthDate,
         birthTime,
+        calendarType,
+        isLeapMonth,
+        birthLocation: birthLocation.trim() || undefined,
+        birthLongitude: parsedLongitude,
         gender,
       });
       Alert.alert('成功', '信息已保存，正在生成命盘...');
@@ -664,11 +688,40 @@ export default function ProfileScreen() {
         <Text style={styles.inputLabel}>出生日期</Text>
         <TextInput
           style={styles.input}
-          placeholder="格式：1990-05-15"
+          placeholder={calendarType === 'lunar' ? '农历格式：1990-05-15' : '阳历格式：1990-05-15'}
           placeholderTextColor="#6F6287"
           value={birthDate}
           onChangeText={setBirthDate}
         />
+
+        <Text style={styles.inputLabel}>历法类型</Text>
+        <View style={styles.genderContainer}>
+          <TouchableOpacity
+            style={[styles.genderButton, calendarType === 'solar' && styles.genderButtonActive]}
+            onPress={() => {
+              setCalendarType('solar');
+              setIsLeapMonth(false);
+            }}
+          >
+            <Text style={[styles.genderText, calendarType === 'solar' && styles.genderTextActive]}>阳历</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.genderButton, calendarType === 'lunar' && styles.genderButtonActive]}
+            onPress={() => setCalendarType('lunar')}
+          >
+            <Text style={[styles.genderText, calendarType === 'lunar' && styles.genderTextActive]}>农历</Text>
+          </TouchableOpacity>
+        </View>
+        {calendarType === 'lunar' && (
+          <TouchableOpacity
+            style={[styles.genderButton, isLeapMonth && styles.genderButtonActive, { marginTop: 10 }]}
+            onPress={() => setIsLeapMonth((v) => !v)}
+          >
+            <Text style={[styles.genderText, isLeapMonth && styles.genderTextActive]}>
+              {isLeapMonth ? '闰月：是' : '闰月：否'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <Text style={styles.inputLabel}>出生时间</Text>
         <TextInput
@@ -677,6 +730,25 @@ export default function ProfileScreen() {
           placeholderTextColor="#6F6287"
           value={birthTime}
           onChangeText={setBirthTime}
+        />
+
+        <Text style={styles.inputLabel}>出生地（城市）</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="例：广东广州"
+          placeholderTextColor="#6F6287"
+          value={birthLocation}
+          onChangeText={setBirthLocation}
+        />
+
+        <Text style={styles.inputLabel}>出生地经度（可选，提升精度）</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="例：113.2644"
+          placeholderTextColor="#6F6287"
+          value={birthLongitude}
+          onChangeText={setBirthLongitude}
+          keyboardType="decimal-pad"
         />
 
         <Text style={styles.inputLabel}>性别</Text>
