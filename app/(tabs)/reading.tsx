@@ -24,6 +24,7 @@ export default function ReadingScreen() {
   const [category, setCategory] = useState<CreateReadingDto['category']>('general');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<DivinationResult | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const toSingle = (value?: string | string[]) =>
     Array.isArray(value) ? value[0] : value;
@@ -75,6 +76,7 @@ export default function ReadingScreen() {
   const handleReset = () => {
     setQuestion('');
     setResult(null);
+    setShowDetails(false);
   };
 
   const handleDeepConversation = () => {
@@ -129,6 +131,25 @@ export default function ReadingScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       >
         <Text style={styles.sectionTitle}>🔮 占卜结果</Text>
+
+        {/* 一屏结论 */}
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+          <Text style={styles.cardTitle}>🧿 一句话结论</Text>
+          <Text style={styles.conclusionVerdict}>{result.conclusion?.verdict || result.interpretation.overall}</Text>
+          <Text style={styles.conclusionMeta}>
+            情绪趋势：{result.conclusion?.emotionalTone || '中性'}  |  置信度：{result.conclusion?.confidence || confidence}%
+          </Text>
+          <Text style={styles.conclusionNext}>下一步：{result.conclusion?.nextStep || '先稳住节奏，再做决定。'}</Text>
+          <TouchableOpacity style={styles.quickChatBtn} onPress={handleDeepConversation}>
+            <Text style={styles.quickChatBtnText}>先聊聊我的感受</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toggleDetailsButton} onPress={() => setShowDetails((v) => !v)}>
+            <Text style={styles.toggleDetailsText}>{showDetails ? '收起详细解读' : '展开详细解读'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {showDetails && (
+          <>
         
         {/* 卦象信息 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -209,6 +230,8 @@ export default function ReadingScreen() {
           </TouchableOpacity>
           <Text style={styles.supportHint}>会把当前解读自然衔接到聊天里，不需要你重复描述。</Text>
         </View>
+          </>
+        )}
 
         {/* 再次占卜 */}
         <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
@@ -535,5 +558,47 @@ const styles = StyleSheet.create({
   supportHint: {
     color: '#8E84A3',
     fontSize: 12,
+  },
+  conclusionVerdict: {
+    color: '#F7F6F0',
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  conclusionMeta: {
+    color: '#A99EC2',
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  conclusionNext: {
+    color: '#CFC6DE',
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  toggleDetailsButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#2F2450',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  quickChatBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#604493',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  quickChatBtnText: {
+    color: '#F7F6F0',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  toggleDetailsText: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

@@ -108,6 +108,7 @@ export interface UserProfile {
   gender?: 'male' | 'female' | 'other';
   timezone?: string;
   location?: string;
+  focusGod?: string;
   phone?: string;
   email?: string;
   avatar?: string;
@@ -126,6 +127,7 @@ export interface CreateUserDto {
   gender?: 'male' | 'female' | 'other';
   timezone?: string;
   location?: string;
+  focusGod?: string;
 }
 
 // ========== Auth API ==========
@@ -208,6 +210,13 @@ export interface BaziChart {
   dayGanZhi: string;
   hourGanZhi: string;
   dayMaster: string;
+  tenGods: {
+    year: string;
+    month: string;
+    day: string;
+    hour: string;
+    summary: string[];
+  };
   sun: string;
   moon: string;
   wuxingStrength: {
@@ -225,6 +234,10 @@ export interface BaziChart {
     health: string;
   };
   suggestions: string[];
+  conclusion: {
+    overall: string;
+    mindset: string;
+  };
 }
 
 export const chartApi = {
@@ -296,6 +309,12 @@ export interface DivinationResult {
   id: string;
   question: string;
   category: string;
+  conclusion?: {
+    verdict: string;
+    confidence: number;
+    emotionalTone: string;
+    nextStep: string;
+  };
   hexagram: {
     original: string;
     originalName: string;

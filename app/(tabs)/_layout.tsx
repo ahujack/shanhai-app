@@ -42,6 +42,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="bazi"
+        options={{
+          title: '八字',
+          tabBarIcon: ({ color, size }) => <Ionicons name="reader-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="two"
         options={{
           title: '冥想',
