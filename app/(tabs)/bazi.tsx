@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
+import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { userApi } from '../../src/services/api';
 
 const colors = theme.dark;
@@ -106,6 +107,7 @@ export default function BaziScreen() {
   const [godClicks, setGodClicks] = React.useState<Record<string, number>>({});
   const [activeGod, setActiveGod] = React.useState<string>('日主');
   const [storedGod, setStoredGod] = React.useState<string>('日主');
+  const [viewMode, setViewMode] = React.useState<'compact' | 'pro'>('compact');
   const [highlightMaster, setHighlightMaster] = React.useState(false);
   const [showUnlockTip, setShowUnlockTip] = React.useState(false);
   const [annualSectionY, setAnnualSectionY] = React.useState(0);
@@ -141,6 +143,24 @@ export default function BaziScreen() {
   }, [user?.id, user?.focusGod]);
 
   React.useEffect(() => {
+    if (!user?.id) return;
+    const modeKey = `bazi_view_mode_${user.id}`;
+    AsyncStorage.getItem(modeKey)
+      .then((value) => {
+        if (value === 'compact' || value === 'pro') {
+          setViewMode(value);
+        }
+      })
+      .catch(() => null);
+  }, [user?.id]);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    const modeKey = `bazi_view_mode_${user.id}`;
+    AsyncStorage.setItem(modeKey, viewMode).catch(() => null);
+  }, [user?.id, viewMode]);
+
+  React.useEffect(() => {
     if (!user?.id || !dominantGod) return;
     const key = `bazi_focus_god_${user.id}`;
     AsyncStorage.setItem(key, dominantGod).catch(() => null);
@@ -174,6 +194,31 @@ export default function BaziScreen() {
     if (!highlightMaster || !annualSectionY) return;
     scrollRef.current?.scrollTo({ y: Math.max(annualSectionY - 24, 0), animated: true });
   }, [highlightMaster, annualSectionY]);
+
+  const goBaziDeepChat = () => {
+    if (!chart) return;
+    const conciseCycles = (chart.detailedReading?.luckCycles?.cycles || []).slice(0, 2);
+    const conciseYears = (chart.detailedReading?.annualForecast || []).slice(0, 2);
+    const summaryMessage =
+      `我们基于你的八字继续深聊：\n` +
+      `- 一句话总论：${chart.conclusion?.overall || '先稳后进。'}\n` +
+      `- 当前关注十神：${activeGod}\n` +
+      `- 近期大运参考：${conciseCycles.map((c) => `${c.ageRange}${c.ganZhi}`).join('、') || '暂无'}\n` +
+      `- 近两年流年：${conciseYears.map((y) => `${y.year}${y.ganZhi}`).join('、') || '暂无'}\n\n` +
+      `你可以告诉我：你最想先聊事业、感情、财务，还是当下最困扰你的情绪？`;
+
+    const chatMessage: ChatMessage = {
+      id: `bazi_followup_${Date.now()}`,
+      role: 'assistant',
+      content: summaryMessage,
+      timestamp: new Date(),
+    };
+
+    useChatStore.setState((state) => ({
+      messages: [...state.messages, chatMessage],
+    }));
+    router.push('/');
+  };
 
   const handleGenerate = async () => {
     if (!user?.id) {
@@ -218,6 +263,20 @@ export default function BaziScreen() {
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
     >
       <Text style={styles.title}>📜 八字看盘</Text>
+      <View style={styles.modeToggleRow}>
+        <TouchableOpacity
+          style={[styles.modeToggleBtn, viewMode === 'compact' && styles.modeToggleBtnActive]}
+          onPress={() => setViewMode('compact')}
+        >
+          <Text style={[styles.modeToggleText, viewMode === 'compact' && styles.modeToggleTextActive]}>简洁模式</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modeToggleBtn, viewMode === 'pro' && styles.modeToggleBtnActive]}
+          onPress={() => setViewMode('pro')}
+        >
+          <Text style={[styles.modeToggleText, viewMode === 'pro' && styles.modeToggleTextActive]}>专业模式</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>一屏总论</Text>
@@ -225,6 +284,9 @@ export default function BaziScreen() {
         <Text style={styles.bodyMuted}>{tenGodMeta[storedGod]?.empathy || '我们先从你最在意的感受聊起。'}</Text>
         <Text style={styles.body}>{chart.conclusion?.overall || '你的命盘呈现稳中有进的结构。'}</Text>
         <Text style={styles.bodyMuted}>{chart.conclusion?.mindset || '建议先稳住内在节奏，再扩展外部机会。'}</Text>
+        <TouchableOpacity style={styles.chatCtaBtn} onPress={goBaziDeepChat}>
+          <Text style={styles.chatCtaText}>去对话深入探讨这份八字</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.card}>
@@ -278,52 +340,63 @@ export default function BaziScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>详细解读</Text>
-        <View style={styles.moduleCard}>
-          <Text style={styles.sectionHead}>核心格局</Text>
+        <View style={[styles.moduleCard, styles.moduleCore]}>
+          <Text style={styles.sectionHead}>🧭 核心格局</Text>
           <Text style={styles.body}>{chart.detailedReading?.corePattern || '正在生成更细致的盘面解读...'}</Text>
         </View>
-        <View style={styles.moduleCard}>
-          <Text style={styles.sectionHead}>感情关系</Text>
-          <Text style={styles.body}>{chart.detailedReading?.relationship || '-'}</Text>
-        </View>
-        <View style={styles.moduleCard}>
-          <Text style={styles.sectionHead}>事业发展</Text>
+
+        {viewMode === 'pro' ? (
+          <View style={[styles.moduleCard, styles.moduleRelation]}>
+            <Text style={styles.sectionHead}>💕 感情关系</Text>
+            <Text style={styles.body}>{chart.detailedReading?.relationship || '-'}</Text>
+          </View>
+        ) : null}
+
+        <View style={[styles.moduleCard, styles.moduleCareer]}>
+          <Text style={styles.sectionHead}>💼 事业发展</Text>
           <Text style={styles.body}>{chart.detailedReading?.career || '-'}</Text>
         </View>
-        <View style={styles.moduleCard}>
-          <Text style={styles.sectionHead}>财务节奏</Text>
-          <Text style={styles.body}>{chart.detailedReading?.wealth || '-'}</Text>
-        </View>
-        <View style={styles.moduleCard}>
-          <Text style={styles.sectionHead}>身心状态</Text>
-          <Text style={styles.body}>{chart.detailedReading?.health || '-'}</Text>
-        </View>
-        <View style={styles.moduleCard}>
-          <Text style={styles.sectionHead}>阶段节奏参考</Text>
-          {(chart.detailedReading?.decadeRhythm || []).map((line, idx) => (
-            <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
-          ))}
-        </View>
-        <View style={styles.moduleCard}>
-          <Text style={styles.sectionHead}>大运节奏（按起运推算）</Text>
-          <Text style={styles.bodyMuted}>
-            起运约在 {chart.detailedReading?.luckCycles?.startAge ?? '-'} 岁，
-            方向：{chart.detailedReading?.luckCycles?.direction === 'forward' ? '顺行' : '逆行'}
-          </Text>
-          {(chart.detailedReading?.luckCycles?.cycles || []).map((cycle, idx) => (
-            <Text key={`cycle_${idx}`} style={styles.bodyMuted}>
-              - {cycle.ageRange}（{cycle.ganZhi}）：{cycle.focus}
-            </Text>
-          ))}
-        </View>
+
+        {viewMode === 'pro' ? (
+          <>
+            <View style={[styles.moduleCard, styles.moduleWealth]}>
+              <Text style={styles.sectionHead}>💰 财务节奏</Text>
+              <Text style={styles.body}>{chart.detailedReading?.wealth || '-'}</Text>
+            </View>
+            <View style={[styles.moduleCard, styles.moduleHealth]}>
+              <Text style={styles.sectionHead}>🫀 身心状态</Text>
+              <Text style={styles.body}>{chart.detailedReading?.health || '-'}</Text>
+            </View>
+            <View style={[styles.moduleCard, styles.moduleRhythm]}>
+              <Text style={styles.sectionHead}>⏳ 阶段节奏参考</Text>
+              {(chart.detailedReading?.decadeRhythm || []).map((line, idx) => (
+                <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
+              ))}
+            </View>
+            <View style={[styles.moduleCard, styles.moduleRhythm]}>
+              <Text style={styles.sectionHead}>🪐 大运节奏（按起运推算）</Text>
+              <Text style={styles.bodyMuted}>
+                起运约在 {chart.detailedReading?.luckCycles?.startAge ?? '-'} 岁，
+                方向：{chart.detailedReading?.luckCycles?.direction === 'forward' ? '顺行' : '逆行'}
+              </Text>
+              {(chart.detailedReading?.luckCycles?.cycles || []).map((cycle, idx) => (
+                <Text key={`cycle_${idx}`} style={styles.bodyMuted}>
+                  - {cycle.ageRange}（{cycle.ganZhi}）：{cycle.focus}
+                </Text>
+              ))}
+            </View>
+          </>
+        ) : null}
 
         <View
           onLayout={(event) => setAnnualSectionY(event.nativeEvent.layout.y)}
-          style={[styles.moduleCard, highlightMaster ? styles.highlightPanel : undefined]}
+          style={[styles.moduleCard, styles.moduleAnnual, highlightMaster ? styles.highlightPanel : undefined]}
         >
-          <Text style={styles.sectionHead}>近五年流年</Text>
+          <Text style={styles.sectionHead}>📅 近五年流年</Text>
           {showUnlockTip ? <Text style={styles.unlockTip}>✨ 已解锁老师傅批注，以下为高级流年细化</Text> : null}
-          {(chart.detailedReading?.annualForecast || []).map((yearItem, idx) => (
+          {(chart.detailedReading?.annualForecast || [])
+            .slice(0, viewMode === 'compact' ? 2 : 5)
+            .map((yearItem, idx) => (
             <View key={`year_${idx}`} style={{ marginBottom: 6 }}>
               <Text style={styles.bodyMuted}>
                 - {yearItem.year}（{yearItem.ganZhi} / {yearItem.tenGod}）：{yearItem.hint}
@@ -342,6 +415,7 @@ export default function BaziScreen() {
               ) : null}
             </View>
           ))}
+          {viewMode === 'compact' ? <Text style={styles.bodyMuted}>* 切换到「专业模式」可查看完整五年流年。</Text> : null}
         {chart.detailedReading?.paywallHint ? (
           <TouchableOpacity
             onPress={() =>
@@ -356,9 +430,11 @@ export default function BaziScreen() {
         ) : null}
         </View>
 
-        <View style={styles.moduleCard}>
-          <Text style={styles.sectionHead}>年度提醒</Text>
-          {(chart.detailedReading?.yearlyTips || []).map((line, idx) => (
+        <View style={[styles.moduleCard, styles.moduleAnnual]}>
+          <Text style={styles.sectionHead}>📝 年度提醒</Text>
+          {(chart.detailedReading?.yearlyTips || [])
+            .slice(0, viewMode === 'compact' ? 2 : 8)
+            .map((line, idx) => (
             <Text key={`tip_${idx}`} style={styles.bodyMuted}>- {line}</Text>
           ))}
         </View>
@@ -381,6 +457,27 @@ const styles = StyleSheet.create({
   bodyMuted: { color: '#A89EBE', fontSize: 13, lineHeight: 20, marginBottom: 4 },
   sectionHead: { color: '#E8DCFF', fontSize: 13, fontWeight: '700', marginTop: 8, marginBottom: 4 },
   personalizedLead: { color: '#E3D6FF', fontSize: 13, marginBottom: 4, fontWeight: '600' },
+  modeToggleRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  modeToggleBtn: {
+    borderWidth: 1,
+    borderColor: '#3A2B5A',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#1B1430',
+  },
+  modeToggleBtnActive: { borderColor: '#F8D05F', backgroundColor: '#2A1E42' },
+  modeToggleText: { color: '#B9ACD3', fontSize: 12 },
+  modeToggleTextActive: { color: '#F8D05F', fontWeight: '600' },
+  chatCtaBtn: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#6D50A6',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  chatCtaText: { color: '#F7F6F0', fontSize: 12, fontWeight: '600' },
   pillarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pillar: { color: '#DDD4EE', fontSize: 13, backgroundColor: '#1F1730', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
   tenGodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
@@ -409,9 +506,18 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#2E2340',
+    borderColor: '#3A2D52',
     backgroundColor: '#1B1430',
+    borderLeftWidth: 3,
+    borderLeftColor: '#5D4A89',
   },
+  moduleCore: { backgroundColor: '#201634', borderLeftColor: '#8E67D1' },
+  moduleRelation: { backgroundColor: '#211733', borderLeftColor: '#C96BAA' },
+  moduleCareer: { backgroundColor: '#1C1832', borderLeftColor: '#6DA1FF' },
+  moduleWealth: { backgroundColor: '#211A32', borderLeftColor: '#E0B861' },
+  moduleHealth: { backgroundColor: '#1A1C31', borderLeftColor: '#75C9A8' },
+  moduleRhythm: { backgroundColor: '#1D1833', borderLeftColor: '#9A82E8' },
+  moduleAnnual: { backgroundColor: '#1F1735', borderLeftColor: '#F8D05F' },
   highlightPanel: {
     borderWidth: 1,
     borderColor: '#F8D05F',
