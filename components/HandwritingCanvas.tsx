@@ -8,15 +8,33 @@ import {
   Text,
   Alert,
   Animated,
+  Platform,
 } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // 提升书写舒适度：放大书写区域
 const CANVAS_SIZE = Math.min(SCREEN_WIDTH - 32, 360);
+const PAPER_TEXTURE_POINTS = [
+  { x: 18, y: 22, s: 2 }, { x: 46, y: 60, s: 1.5 }, { x: 74, y: 34, s: 2.5 },
+  { x: 98, y: 92, s: 1.5 }, { x: 132, y: 48, s: 2 }, { x: 160, y: 74, s: 1.5 },
+  { x: 188, y: 28, s: 2.2 }, { x: 224, y: 56, s: 1.7 }, { x: 252, y: 84, s: 2.3 },
+  { x: 278, y: 40, s: 1.4 }, { x: 310, y: 70, s: 2.1 }, { x: 336, y: 30, s: 1.6 },
+  { x: 24, y: 132, s: 1.6 }, { x: 62, y: 160, s: 2.1 }, { x: 88, y: 196, s: 1.4 },
+  { x: 122, y: 142, s: 2.3 }, { x: 156, y: 178, s: 1.6 }, { x: 194, y: 148, s: 2.1 },
+  { x: 228, y: 188, s: 1.6 }, { x: 264, y: 154, s: 2.4 }, { x: 296, y: 202, s: 1.5 },
+  { x: 330, y: 172, s: 2.2 }, { x: 42, y: 244, s: 2.3 }, { x: 78, y: 282, s: 1.5 },
+  { x: 116, y: 250, s: 2.2 }, { x: 148, y: 296, s: 1.6 }, { x: 186, y: 266, s: 2.3 },
+  { x: 220, y: 308, s: 1.7 }, { x: 256, y: 272, s: 2.1 }, { x: 292, y: 316, s: 1.5 },
+  { x: 326, y: 286, s: 2.2 },
+];
 
 interface Point {
   x: number;
   y: number;
+}
+
+interface BrushTrailPoint extends Point {
+  id: string;
 }
 
 interface Stroke {
@@ -42,6 +60,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
   const [brushPoint, setBrushPoint] = useState<Point | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [brushTrail, setBrushTrail] = useState<BrushTrailPoint[]>([]);
   
   // 淡入动画
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -62,6 +81,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     setCurrentPoints([]);
     setBrushPoint(null);
     setIsDrawing(false);
+    setBrushTrail([]);
   }, []);
 
   const getWuxingTheme = useCallback((wx?: string) => {
@@ -104,6 +124,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         const newPoint = { x: locationX, y: locationY };
         setIsDrawing(true);
         setBrushPoint(newPoint);
+        setBrushTrail([{ ...newPoint, id: `trail_${Date.now()}_start` }]);
         currentPointsRef.current = [newPoint];
         setCurrentPoints([newPoint]);
       },
@@ -121,6 +142,10 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         
         setCurrentPoints([...currentPointsRef.current]);
         setBrushPoint(newPoint);
+        setBrushTrail((prev) => {
+          const next = [...prev, { ...newPoint, id: `trail_${Date.now()}_${prev.length}` }];
+          return next.slice(-6);
+        });
       },
       onPanResponderRelease: () => {
         if (currentPointsRef.current.length > 0) {
@@ -131,6 +156,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         setCurrentPoints([]);
         setIsDrawing(false);
         setBrushPoint(null);
+        setBrushTrail([]);
       },
       onPanResponderTerminate: () => {
         if (currentPointsRef.current.length > 0) {
@@ -141,6 +167,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         setCurrentPoints([]);
         setIsDrawing(false);
         setBrushPoint(null);
+        setBrushTrail([]);
       },
     }),
   ).current;
@@ -190,6 +217,11 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
       const dy = p2.y - p1.y;
       const length = Math.sqrt(dx * dx + dy * dy);
       const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+      const progress = i / Math.max(1, points.length - 2);
+      const taper = 1 - progress * 0.45; // 收笔更轻
+      const startBoost = 1 + Math.max(0, 0.22 - progress * 0.22); // 起笔更重
+      const speedFactor = Math.max(0.62, Math.min(1.18, 1.12 - length / 14)); // 快细慢粗
+      const thickness = Math.max(3, Math.min(12, 8 * taper * startBoost * speedFactor));
       
       segments.push(
         <View
@@ -198,8 +230,10 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
             styles.segment,
             {
               left: p1.x,
-              top: p1.y,
+              top: p1.y - thickness / 2,
               width: length + 1,
+              height: thickness,
+              borderRadius: thickness / 2,
               transform: [{ rotate: `${angle}deg` }],
               backgroundColor: isActive ? wuxingTheme.active : wuxingTheme.stroke,
             },
@@ -247,6 +281,23 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
       >
         {/* 背景 */}
         <View style={[styles.canvasBackground, { backgroundColor: '#fff' }]}>
+          <View style={styles.paperTextureLayer}>
+            {PAPER_TEXTURE_POINTS.map((dot, idx) => (
+              <View
+                key={`paper_dot_${idx}`}
+                style={[
+                  styles.paperDot,
+                  {
+                    left: dot.x,
+                    top: dot.y,
+                    width: dot.s,
+                    height: dot.s,
+                    borderRadius: dot.s / 2,
+                  },
+                ]}
+              />
+            ))}
+          </View>
           <View style={[styles.canvasGlow, { backgroundColor: wuxingTheme.glow }]} />
           {/* 田字格参考线 */}
           <View style={[styles.gridLine, { left: '50%' }]} />
@@ -257,18 +308,45 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         <View style={styles.strokesLayer}>
           {renderAllStrokes()}
         </View>
+        {isDrawing && brushTrail.length > 0 && (
+          <View style={styles.brushTrailLayer}>
+            {brushTrail.map((point, idx) => {
+              const alpha = (idx + 1) / brushTrail.length;
+              const size = 5 + alpha * 6;
+              return (
+                <View
+                  key={point.id}
+                  style={[
+                    styles.brushTrailDot,
+                    {
+                      left: point.x - size / 2,
+                      top: point.y - size / 2,
+                      width: size,
+                      height: size,
+                      borderRadius: size / 2,
+                      backgroundColor: `rgba(26,26,46,${0.1 + alpha * 0.22})`,
+                    },
+                  ]}
+                />
+              );
+            })}
+          </View>
+        )}
         {isDrawing && brushPoint && (
           <View
             style={[
-              styles.brushCursor,
+              styles.brushCursorWrap,
               {
-                left: brushPoint.x - 10,
-                top: brushPoint.y - 10,
-                borderColor: wuxingTheme.border,
-                backgroundColor: '#fff',
+                left: brushPoint.x - 12,
+                top: brushPoint.y - 14,
               },
             ]}
-          />
+          >
+            <View style={[styles.brushTail, { backgroundColor: wuxingTheme.border }]} />
+            <View style={[styles.brushHead, { borderColor: wuxingTheme.border }]}>
+              <View style={styles.brushCore} />
+            </View>
+          </View>
         )}
       </View>
       
@@ -315,9 +393,18 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
+    ...(Platform.OS === 'web' ? { cursor: 'none' as any } : {}),
   },
   canvasBackground: {
     ...StyleSheet.absoluteFillObject,
+  },
+  paperTextureLayer: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.26,
+  },
+  paperDot: {
+    position: 'absolute',
+    backgroundColor: '#d9d1c2',
   },
   canvasGlow: {
     ...StyleSheet.absoluteFillObject,
@@ -342,19 +429,49 @@ const styles = StyleSheet.create({
   strokeLayer: {
     ...StyleSheet.absoluteFillObject,
   },
+  brushTrailLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+  },
+  brushTrailDot: {
+    position: 'absolute',
+  },
   segment: {
     position: 'absolute',
     height: 8,
     borderRadius: 4,
     transformOrigin: 'left center',
   },
-  brushCursor: {
+  brushCursorWrap: {
     position: 'absolute',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    transform: [{ rotate: '-22deg' }],
+    opacity: 0.95,
+    zIndex: 3,
+  },
+  brushTail: {
+    width: 4,
+    height: 12,
+    borderRadius: 2,
+    marginBottom: -2,
+  },
+  brushHead: {
+    width: 16,
+    height: 16,
+    borderRadius: 3,
     borderWidth: 2,
-    opacity: 0.88,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brushCore: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#1a1a2e',
   },
   buttonRow: {
     flexDirection: 'row',

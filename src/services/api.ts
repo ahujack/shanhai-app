@@ -461,6 +461,15 @@ export interface ZiResult {
     wealth: string;
     health: string;
     advice: string[];
+    focusReading?: {
+      focus: string;
+      summary: string;
+      anchors: string[];
+      riskSignals: string[];
+      actionPlan: string[];
+      llmEnhanced?: boolean;
+    };
+    premiumHint?: string;
   };
   coldReadings: string[];
   followUpQuestions: string[];

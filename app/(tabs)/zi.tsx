@@ -28,7 +28,7 @@ export default function ZiScreen() {
   const [inputZi, setInputZi] = useState('');
   const [result, setResult] = useState<ZiResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showColdReading, setShowColdReading] = useState(false);
+  const [showColdReading, setShowColdReading] = useState(true);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
   // 用户选择的测字方向（单选）
@@ -195,6 +195,35 @@ export default function ZiScreen() {
     return jixiong === '吉' ? '#4CAF50' : jixiong === '凶' ? '#F44336' : '#FF9800';
   };
 
+  const parseGuaDetail = (text?: string) => {
+    const normalized = (text || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) {
+      return {
+        core: '卦义主线：当前卦象偏中性，先稳态观察。',
+        reminder: '当下提醒：先把关键变量看清，再决定推进节奏。',
+        action: '可执行动作：先做一件最小可执行动作，24小时内验证反馈。',
+      };
+    }
+    const parts = normalized
+      .split(/[。！？]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const core = parts[0] || normalized;
+    const reminder =
+      parts.find((item) => /当前|宜|忌|建议|窗口|风险|收敛|推进/.test(item)) ||
+      parts[1] ||
+      '先稳住节奏，再看外部反馈。';
+    const action =
+      parts.find((item) => /先|再|可以|适合|行动|执行|步骤|复盘/.test(item)) ||
+      parts[2] ||
+      '先做一件最小可执行动作，并在48小时内复盘。';
+    return {
+      core: `卦义主线：${core}`,
+      reminder: `当下提醒：${reminder}`,
+      action: `可执行动作：${action}`,
+    };
+  };
+
   const handleFocusedReanalyze = async () => {
     const zi = (result?.zi?.zi || inputZi || '').trim().charAt(0);
     if (!/[\u4e00-\u9fa5]/.test(zi)) {
@@ -208,6 +237,42 @@ export default function ZiScreen() {
     }
     await analyzeZiInput(zi, focus);
   };
+
+  const goProbingChat = () => {
+    if (!result) return;
+    const focus = getFocusAspect() || result.interpretation.focusReading?.focus || '综合';
+    const probing = result.zi.probingQuestion || `围绕「${focus}」，你最想先解决哪一步？`;
+    const aiMessage: ChatMessage = {
+      id: `ai_probe_${Date.now()}`,
+      role: 'assistant',
+      content: `我们围绕「${focus}」继续深聊。\n${probing}`,
+      timestamp: new Date(),
+    };
+    router.push('/');
+    setTimeout(() => {
+      useChatStore.setState((state) => ({
+        messages: [...state.messages, aiMessage],
+      }));
+    }, 450);
+  };
+  const goActionPlanChat = () => {
+    if (!result?.interpretation.focusReading) return;
+    const focus = result.interpretation.focusReading.focus;
+    const action = result.interpretation.focusReading.actionPlan[0] || '先从一件最小动作开始。';
+    const aiMessage: ChatMessage = {
+      id: `ai_action_${Date.now()}`,
+      role: 'assistant',
+      content: `我们围绕「${focus}」把行动计划落地。\n第一步建议：${action}\n你做完这一步后告诉我，我继续给你下一步。`,
+      timestamp: new Date(),
+    };
+    router.push('/');
+    setTimeout(() => {
+      useChatStore.setState((state) => ({
+        messages: [...state.messages, aiMessage],
+      }));
+    }, 450);
+  };
+  const guaDetail = parseGuaDetail(result?.zi?.guaXiang);
   
   // 点击继续聊聊，AI自动发送一个问题，等待用户回答
   const handleFollowUpQuestion = async (_question: string) => {
@@ -352,6 +417,23 @@ export default function ZiScreen() {
               placeholder="或输入其他方面..."
               placeholderTextColor="#666"
             />
+            <View style={styles.refineInlineWrap}>
+              <Text style={styles.refineInlineHint}>
+                {result
+                  ? `已识别「${result.zi.zi}」，可直接按方向重解读`
+                  : '先识别一个字，再按方向进行重解读'}
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.refineInlineBtn,
+                  (!result || isLoading) && styles.refineInlineBtnDisabled,
+                ]}
+                onPress={handleFocusedReanalyze}
+                disabled={!result || isLoading}
+              >
+                <Text style={styles.refineInlineBtnText}>{isLoading ? '重解读中...' : '按方向重解读'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           
           {isHandwritingMode ? (
@@ -393,22 +475,6 @@ export default function ZiScreen() {
         {/* 结果展示 */}
         {result && (
           <>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🎯 定向重解读</Text>
-              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                <Text style={styles.refineHint}>
-                  已识别「{result.zi.zi}」。选择你最关心的方向后，可重新生成更聚焦的解读。
-                </Text>
-                <TouchableOpacity
-                  style={[styles.refineButton, isLoading && styles.refineButtonDisabled]}
-                  onPress={handleFocusedReanalyze}
-                  disabled={isLoading}
-                >
-                  <Text style={styles.refineButtonText}>{isLoading ? '重解读中...' : '按方向重解读'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
             {/* 冷读话术 - 首先展示 */}
             <View style={styles.section}>
               <TouchableOpacity
@@ -439,29 +505,31 @@ export default function ZiScreen() {
                 </View>
                 
                 <View style={styles.ziInfo}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>笔画</Text>
-                    <Text style={styles.infoValue}>{result.zi.bihua} 画</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>部首</Text>
-                    <Text style={styles.infoValue}>{result.zi.bushou}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>五行</Text>
-                    <Text style={[styles.infoValue, { color: getWuxingColor(result.zi.wuxing) }]}>
-                      {result.zi.wuxing}
-                    </Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>阴阳</Text>
-                    <Text style={styles.infoValue}>{result.zi.yinyang}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>吉凶</Text>
-                    <Text style={[styles.infoValue, { color: getJixiongColor(result.zi.jixiong) }]}>
-                      {result.zi.jixiong}
-                    </Text>
+                  <View style={styles.infoGrid}>
+                    <View style={styles.infoCard}>
+                      <Text style={styles.infoLabel}>笔画</Text>
+                      <Text style={styles.infoValue}>{result.zi.bihua} 画</Text>
+                    </View>
+                    <View style={styles.infoCard}>
+                      <Text style={styles.infoLabel}>部首</Text>
+                      <Text style={styles.infoValue}>{result.zi.bushou}</Text>
+                    </View>
+                    <View style={styles.infoCard}>
+                      <Text style={styles.infoLabel}>五行</Text>
+                      <Text style={[styles.infoValue, { color: getWuxingColor(result.zi.wuxing) }]}>
+                        {result.zi.wuxing}
+                      </Text>
+                    </View>
+                    <View style={styles.infoCard}>
+                      <Text style={styles.infoLabel}>阴阳</Text>
+                      <Text style={styles.infoValue}>{result.zi.yinyang}</Text>
+                    </View>
+                    <View style={styles.infoCard}>
+                      <Text style={styles.infoLabel}>吉凶</Text>
+                      <Text style={[styles.infoValue, { color: getJixiongColor(result.zi.jixiong) }]}>
+                        {result.zi.jixiong}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -506,8 +574,49 @@ export default function ZiScreen() {
 
                 <Text style={styles.skillHead}>反问引导</Text>
                 <Text style={styles.skillText}>{result.zi.probingQuestion || '这个字里你最在意哪一部分？'}</Text>
+                <TouchableOpacity style={styles.probingChatBtn} onPress={goProbingChat}>
+                  <Text style={styles.probingChatText}>💬 去对话里深聊这个反问</Text>
+                </TouchableOpacity>
               </View>
             </View>
+
+            {result.interpretation.focusReading && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>🧭 方向详细解读：{result.interpretation.focusReading.focus}</Text>
+                <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                  <Text style={styles.focusSummary}>{result.interpretation.focusReading.summary}</Text>
+                  <Text style={styles.focusSubhead}>关键锚点</Text>
+                  {result.interpretation.focusReading.anchors.map((item, idx) => (
+                    <Text key={`anchor_${idx}`} style={styles.focusItem}>- {item}</Text>
+                  ))}
+                  <Text style={styles.focusSubhead}>风险信号</Text>
+                  {result.interpretation.focusReading.riskSignals.map((item, idx) => (
+                    <Text key={`risk_${idx}`} style={styles.focusItem}>- {item}</Text>
+                  ))}
+                  <Text style={styles.focusSubhead}>行动计划</Text>
+                  {result.interpretation.focusReading.actionPlan.map((item, idx) => (
+                    <Text key={`plan_${idx}`} style={styles.focusItem}>- {item}</Text>
+                  ))}
+                  <TouchableOpacity style={styles.focusChatBtn} onPress={goActionPlanChat}>
+                    <Text style={styles.focusChatBtnText}>💬 去对话里执行行动计划</Text>
+                  </TouchableOpacity>
+                  {!!result.interpretation.focusReading.llmEnhanced && (
+                    <Text style={styles.focusLlmTag}>已启用大模型定向增强</Text>
+                  )}
+                </View>
+              </View>
+            )}
+            {!!result.interpretation.premiumHint && (
+              <View style={styles.section}>
+                <TouchableOpacity
+                  style={styles.premiumHintCard}
+                  onPress={() => router.push('/(tabs)/points?focus=vip')}
+                >
+                  <Text style={styles.premiumHintText}>🔓 {result.interpretation.premiumHint}</Text>
+                  <Text style={styles.premiumHintLink}>点击升级解锁完整版方向推演</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* 甲骨文象形维度 */}
             <View style={styles.section}>
@@ -574,7 +683,20 @@ export default function ZiScreen() {
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.guaXiangText}>{result.zi.guaXiang}</Text>
+                <View style={styles.guaDetailWrap}>
+                  <View style={styles.guaDetailItemRow}>
+                    <Text style={styles.guaDetailIcon}>🧭</Text>
+                    <Text style={styles.guaDetailItem}>{guaDetail.core}</Text>
+                  </View>
+                  <View style={styles.guaDetailItemRow}>
+                    <Text style={styles.guaDetailIcon}>⚠️</Text>
+                    <Text style={styles.guaDetailItem}>{guaDetail.reminder}</Text>
+                  </View>
+                  <View style={styles.guaDetailItemRow}>
+                    <Text style={styles.guaDetailIcon}>✅</Text>
+                    <Text style={styles.guaDetailItem}>{guaDetail.action}</Text>
+                  </View>
+                </View>
               </View>
             </View>
 
@@ -837,25 +959,88 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 20,
   },
-  refineHint: {
-    color: '#BFC2D8',
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 10,
+  refineInlineWrap: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#2B2E45',
   },
-  refineButton: {
+  refineInlineHint: {
+    color: '#AEB3CE',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  refineInlineBtn: {
     backgroundColor: '#6D50A6',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     alignSelf: 'flex-start',
   },
-  refineButtonDisabled: {
-    backgroundColor: '#6C6880',
+  refineInlineBtnDisabled: {
+    backgroundColor: '#5A5870',
   },
-  refineButtonText: {
+  refineInlineBtnText: {
     color: '#F7F6F0',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  focusSummary: {
+    color: '#E6E7F2',
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  focusSubhead: {
+    color: '#FFD700',
     fontSize: 13,
+    fontWeight: '700',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  focusItem: {
+    color: '#D0D2E3',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 2,
+  },
+  focusLlmTag: {
+    marginTop: 8,
+    color: '#B6F3C9',
+    fontSize: 12,
+  },
+  focusChatBtn: {
+    marginTop: 10,
+    backgroundColor: 'rgba(72, 134, 244, 0.18)',
+    borderColor: 'rgba(72, 134, 244, 0.45)',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignSelf: 'flex-start',
+  },
+  focusChatBtnText: {
+    color: '#BFD8FF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  premiumHintCard: {
+    backgroundColor: '#241B3B',
+    borderColor: '#4D3A7A',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  premiumHintText: {
+    color: '#E8D4FF',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  premiumHintLink: {
+    marginTop: 6,
+    color: '#FFD700',
+    fontSize: 12,
     fontWeight: '700',
   },
   card: {
@@ -872,15 +1057,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   ziInfo: {
-    gap: 8,
+    alignItems: 'center',
   },
-  infoRow: {
+  infoGrid: {
+    width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  infoCard: {
+    width: 104,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2a2a40',
   },
   infoLabel: {
     color: '#999',
     fontSize: 14,
+    marginBottom: 4,
   },
   infoValue: {
     color: '#fff',
@@ -928,6 +1126,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     marginBottom: 2,
+  },
+  probingChatBtn: {
+    marginTop: 8,
+    backgroundColor: 'rgba(109,80,166,0.22)',
+    borderColor: 'rgba(109,80,166,0.55)',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignSelf: 'flex-start',
+  },
+  probingChatText: {
+    color: '#D7C8FF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   oracleTip: {
     color: '#999',
@@ -1007,6 +1220,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  guaDetailWrap: {
+    marginTop: 4,
+    gap: 8,
+  },
+  guaDetailItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  guaDetailIcon: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  guaDetailItem: {
+    color: '#C9CBDD',
+    fontSize: 13,
+    lineHeight: 20,
+    flex: 1,
   },
   collapseHeader: {
     flexDirection: 'row',
