@@ -325,7 +325,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.userInfoContent}>
                 <Text style={styles.userName}>{user.name}</Text>
-                <Text style={styles.userEmail}>{user.email}</Text>
+                <Text style={styles.userEmail}>{user.email?.endsWith('@example.com') ? '未绑定邮箱' : (user.email || '')}</Text>
                 <View style={styles.membershipBadge}>
                   <Text style={styles.membershipText}>
                     {membershipLabel}
@@ -685,7 +685,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.userInfoContent}>
               <Text style={styles.userName}>{user.name}</Text>
-              <Text style={styles.userEmail}>{user.email}</Text>
+              <Text style={styles.userEmail}>{user.email?.endsWith('@example.com') ? '未绑定邮箱' : (user.email || '')}</Text>
               <View style={styles.membershipBadge}>
                 <Text style={styles.membershipText}>
                   {membershipLabel}

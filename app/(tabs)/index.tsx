@@ -432,7 +432,7 @@ export default function HomeScreen() {
                 {/* 试试问我 - 示例问题 */}
                 <Text style={styles.suggestedTitle}>试试问我</Text>
                 <View style={styles.suggestedChips}>
-                  {['感情该不该继续？', '我的命盘'].map((q) => (
+                  {['感情该不该继续？', '我的命盘', '帮我占卜一下', '测「心」字'].map((q) => (
                     <TouchableOpacity
                       key={q}
                       style={styles.suggestedChip}
@@ -444,21 +444,6 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
-              {/* 快捷入口（运势/抽签/测字 已在 tab 和悬浮按钮，此处仅保留占卜/命盘/冥想） */}
-              <View style={styles.quickActions}>
-                <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/reading')}>
-                  <Text style={styles.quickActionIcon}>🔮</Text>
-                  <Text style={styles.quickActionText}>占卜</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickAction} onPress={() => hasChart ? router.push('/(tabs)/bazi') : setShowChartModal(true)}>
-                  <Text style={styles.quickActionIcon}>📊</Text>
-                  <Text style={styles.quickActionText}>命盘</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/meditation')}>
-                  <Text style={styles.quickActionIcon}>🧘</Text>
-                  <Text style={styles.quickActionText}>冥想</Text>
-                </TouchableOpacity>
               </View>
             </>
           )}
