@@ -427,12 +427,12 @@ export default function HomeScreen() {
                   {persona.greeting}
                 </Text>
                 <Text style={styles.welcomeHint}>
-                  你可以问我关于运势、占卜、命盘的问题，或者只是想聊聊。
+                  你可以问我关于占卜、命盘的问题，或者只是想聊聊。
                 </Text>
                 {/* 试试问我 - 示例问题 */}
                 <Text style={styles.suggestedTitle}>试试问我</Text>
                 <View style={styles.suggestedChips}>
-                  {['今日运势如何？', '帮我抽一签', '测「心」字', '感情该不该继续？', '我的命盘'].map((q) => (
+                  {['感情该不该继续？', '我的命盘'].map((q) => (
                     <TouchableOpacity
                       key={q}
                       style={styles.suggestedChip}
@@ -445,20 +445,8 @@ export default function HomeScreen() {
                   ))}
                 </View>
               </View>
-              {/* 快捷入口 */}
+              {/* 快捷入口（运势/抽签/测字 已在 tab 和悬浮按钮，此处仅保留占卜/命盘/冥想） */}
               <View style={styles.quickActions}>
-                <TouchableOpacity style={styles.quickAction} onPress={() => !isLoading && sendMessage('今日运势如何？', persona.id, 'calm')} disabled={isLoading}>
-                  <Text style={styles.quickActionIcon}>✨</Text>
-                  <Text style={styles.quickActionText}>运势</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickAction} onPress={openDrawModal}>
-                  <Text style={styles.quickActionIcon}>🎯</Text>
-                  <Text style={styles.quickActionText}>抽签</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickAction} onPress={goToZiPage}>
-                  <Text style={styles.quickActionIcon}>✍️</Text>
-                  <Text style={styles.quickActionText}>测字</Text>
-                </TouchableOpacity>
                 <TouchableOpacity style={styles.quickAction} onPress={() => router.push('/(tabs)/reading')}>
                   <Text style={styles.quickActionIcon}>🔮</Text>
                   <Text style={styles.quickActionText}>占卜</Text>

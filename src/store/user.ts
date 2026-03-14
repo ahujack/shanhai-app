@@ -68,6 +68,7 @@ interface UserState {
   createUser: (dto: CreateUserDto) => Promise<UserProfile>;
   updateUser: (id: string, dto: Partial<CreateUserDto>) => Promise<UserProfile>;
   generateChart: (gender: 'male' | 'female') => Promise<void>;
+  refreshChart: () => Promise<void>;
   loadDailyFortune: () => Promise<void>;
   clearUser: () => Promise<void>;
   
@@ -310,6 +311,19 @@ export const useUserStore = create<UserState>((set, get) => ({
       set({ chart, hasChart: true });
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  refreshChart: async () => {
+    const { user } = get();
+    if (!user) return;
+    try {
+      const chartData = await chartApi.get(user.id);
+      if (chartData.hasChart && chartData.chart) {
+        set({ chart: chartData.chart, hasChart: true });
+      }
+    } catch {
+      // ignore
     }
   },
   

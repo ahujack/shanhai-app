@@ -13,7 +13,7 @@ const colors = theme.dark;
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, chart, hasChart, isLoading, createUser, updateUser, generateChart, loadUser, clearUser, logout, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
+  const { user, chart, hasChart, isLoading, createUser, updateUser, generateChart, refreshChart, loadUser, clearUser, logout, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { personas, active: currentPersona, setActive } = usePersonaStore();
   const [isCheckingIn, setIsCheckingIn] = useState(false);
 
@@ -270,6 +270,8 @@ export default function ProfileScreen() {
       // 自动生成命盘（会从服务端拉取最新用户信息，含经度，用于真太阳时校准）
       const chartGender = gender === 'other' ? 'male' : gender;
       await generateChart(chartGender);
+      // 显式刷新命盘，确保前端展示与后端一致
+      await refreshChart();
       setStep('chart');
     } catch (error) {
       Alert.alert('错误', '保存失败，请重试');
@@ -295,11 +297,12 @@ export default function ProfileScreen() {
     );
   }
 
-  // 渲染命盘信息
+  // 渲染命盘信息（key 确保命盘更新时重新渲染）
   if (step === 'chart' && chart) {
     return (
       <>
       <ScrollView 
+        key={`chart-${chart.yearGanZhi}-${chart.monthGanZhi}-${chart.dayGanZhi}-${chart.hourGanZhi}`}
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       >
