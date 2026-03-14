@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
-import { ziApi, ZiResult, handwritingApi } from '../../src/services/api';
+import { ziApi, ZiResult, handwritingApi, pointsApi } from '../../src/services/api';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
@@ -124,27 +124,62 @@ export default function ZiScreen() {
     ],
   };
 
-  const analyzeZiInput = async (rawZi: string, focusAspect?: string) => {
+  const ZI_POINTS = 10;
+  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+
+  const analyzeZiInput = async (rawZi: string, focusAspect?: string): Promise<boolean> => {
     const zi = rawZi.trim().charAt(0);
     if (!/[\u4e00-\u9fa5]/.test(zi)) {
       Alert.alert('提示', '请输入一个有效的汉字');
-      return;
+      return false;
+    }
+    if (user && !isVip) {
+      try {
+        const { hasEnough } = await pointsApi.check(ZI_POINTS);
+        if (!hasEnough) {
+          Alert.alert(
+            '积分不足',
+            `测字需要 ${ZI_POINTS} 积分，请签到或前往积分商城获取`,
+            [
+              { text: '取消', style: 'cancel' },
+              { text: '去积分商城', onPress: () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } }) },
+            ]
+          );
+          return false;
+        }
+      } catch {
+        // 检查失败时仍尝试请求，由后端决定
+      }
     }
 
     setIsLoading(true);
     try {
       const data = await ziApi.analyze(zi, user?.id, focusAspect);
       setResult(data);
-    } catch (err) {
+      return true;
+    } catch (err: any) {
       console.error('测字失败:', err);
-      Alert.alert(
-        '测字失败',
-        '连接出现问题，请检查网络后重试',
-        [
-          { text: '知道了', style: 'cancel' },
-          { text: '重试', onPress: () => analyzeZiInput(rawZi, focusAspect) },
-        ]
-      );
+      const msg = err?.message || '';
+      if (msg.includes('积分不足')) {
+        Alert.alert(
+          '积分不足',
+          '请签到或前往积分商城获取积分',
+          [
+            { text: '知道了', style: 'cancel' },
+            { text: '去积分商城', onPress: () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } }) },
+          ]
+        );
+      } else {
+        Alert.alert(
+          '测字失败',
+          '连接出现问题，请检查网络后重试',
+          [
+            { text: '知道了', style: 'cancel' },
+            { text: '重试', onPress: () => analyzeZiInput(rawZi, focusAspect) },
+          ]
+        );
+      }
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -252,9 +287,8 @@ export default function ZiScreen() {
       }
       setInputZi(recognizedZi);
       setHandwritingStage('analyzing');
-      const analysis = await ziApi.analyze(recognizedZi, user?.id, getFocusAspect());
-      setResult(analysis);
-      Alert.alert('🎉 识别成功', `识别到汉字：${recognizedZi}\n\n当前已完成首轮解读，你可以继续做方向深挖。`);
+      const ok = await analyzeZiInput(recognizedZi, getFocusAspect());
+      if (ok) Alert.alert('🎉 识别成功', `识别到汉字：${recognizedZi}\n\n当前已完成首轮解读，你可以继续做方向深挖。`);
     } catch (error: any) {
       console.error('手写识别失败:', error);
       Alert.alert('错误', error?.message || '手写识别失败，请稍后重试');

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
-import { readingApi, CreateReadingDto, DivinationResult } from '../../src/services/api';
+import { readingApi, CreateReadingDto, DivinationResult, pointsApi } from '../../src/services/api';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
@@ -130,9 +130,31 @@ export default function ReadingScreen() {
     { value: 'growth', label: '成长' },
   ] as const;
 
+  const READING_POINTS = 15;
+  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+
   const handleSubmit = async () => {
     const q = question.trim();
     if (!q || q.length < 2) return;
+    
+    if (user && !isVip) {
+      try {
+        const { hasEnough } = await pointsApi.check(READING_POINTS);
+        if (!hasEnough) {
+          Alert.alert(
+            '积分不足',
+            `占卜需要 ${READING_POINTS} 积分，请签到或前往积分商城获取`,
+            [
+              { text: '取消', style: 'cancel' },
+              { text: '去积分商城', onPress: () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } }) },
+            ]
+          );
+          return;
+        }
+      } catch {
+        // 检查失败时仍尝试请求
+      }
+    }
     
     setIsLoading(true);
     setResult(null);
@@ -148,7 +170,18 @@ export default function ReadingScreen() {
       setResult(reading);
     } catch (err: any) {
       console.error('占卜失败:', err);
-      setError(err?.message || '占卜失败，请稍后重试');
+      const msg = err?.message || '';
+      if (msg.includes('积分不足')) {
+        Alert.alert(
+          '积分不足',
+          '请签到或前往积分商城获取积分',
+          [
+            { text: '知道了', style: 'cancel' },
+            { text: '去积分商城', onPress: () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } }) },
+          ]
+        );
+      }
+      setError(msg || '占卜失败，请稍后重试');
     } finally {
       setIsLoading(false);
     }

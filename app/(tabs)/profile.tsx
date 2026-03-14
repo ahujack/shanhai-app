@@ -89,13 +89,16 @@ export default function ProfileScreen() {
 
   const handleMembershipPress = () => {
     router.push({
-      pathname: '/points',
-      params: { focus: 'vip' },
+      pathname: '/(tabs)/points',
+      params: { tab: 'subscription', focus: 'vip' },
     });
   };
 
   const handleOpenPointsMall = () => {
-    router.push('/points');
+    router.push({
+      pathname: '/(tabs)/points',
+      params: { tab: 'mall' },
+    });
   };
   
   // 页面加载时获取用户信息
@@ -425,15 +428,15 @@ export default function ProfileScreen() {
           <View style={[styles.statsCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => router.push('/points')}
+              onPress={() => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } })}
             >
-              <Text style={styles.statValue}>{pointsSummary?.totalPoints || 0}</Text>
+              <Text style={styles.statValue}>{pointsSummary?.availablePoints ?? pointsSummary?.totalPoints ?? 0}</Text>
               <Text style={styles.statLabel}>积分</Text>
             </TouchableOpacity>
             <View style={[styles.statDivider, { backgroundColor: '#322243' }]} />
             <TouchableOpacity 
               style={styles.statItem}
-              onPress={() => router.push('/points')}
+              onPress={() => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } })}
             >
               <Text style={styles.statValue}>{achievements.filter(a => a.unlockedAt).length}</Text>
               <Text style={styles.statLabel}>成就</Text>
@@ -939,15 +942,16 @@ export default function ProfileScreen() {
           onChangeText={setBirthLocation}
         />
 
-        <Text style={styles.inputLabel}>出生地经度（可选，提升精度）</Text>
+        <Text style={styles.inputLabel}>出生地经度（真太阳时校准，影响时辰）</Text>
         <TextInput
           style={styles.input}
-          placeholder="例：113.2644"
+          placeholder="例：113.8（萍乡）、114.3（南昌）"
           placeholderTextColor="#6F6287"
           value={birthLongitude}
           onChangeText={setBirthLongitude}
           keyboardType="decimal-pad"
         />
+        <Text style={styles.inputHint}>如 7:06 出生在萍乡(113.8°E)，经校准后为卯时；不填则按北京时区</Text>
 
         <Text style={styles.inputLabel}>性别</Text>
         <View style={styles.genderContainer}>
@@ -1517,6 +1521,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
     marginTop: 12,
+  },
+  inputHint: {
+    color: '#6F6287',
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 4,
   },
   input: {
     backgroundColor: '#1A1328',

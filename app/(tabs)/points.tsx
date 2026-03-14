@@ -8,14 +8,18 @@ import { paymentApi, PaymentProduct, CheckoutResult, pointsApi, PointsSummary, u
 
 const colors = theme.dark;
 
+type TabType = 'subscription' | 'mall';
+
 export default function PointsMallScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ focus?: string }>();
+  const params = useLocalSearchParams<{ focus?: string; tab?: string }>();
   const { user } = useUserStore();
   const scrollRef = React.useRef<ScrollView>(null);
 
+  const [activeTab, setActiveTab] = useState<TabType>('subscription');
   const [subscriptionProducts, setSubscriptionProducts] = useState<PaymentProduct[]>([]);
+  const [pointsProducts, setPointsProducts] = useState<PaymentProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [creemConfigured, setCreemConfigured] = useState(true);
@@ -51,14 +55,18 @@ export default function PointsMallScreen() {
         const paymentStatus = await paymentApi.getByIdStatus(paymentId);
         if (paymentStatus.status === 'completed') {
           await refreshMembershipAndChart();
-          Alert.alert('支付成功', '会员权益已到账，八字高级解读已解锁。');
-          router.push({
-            pathname: '/(tabs)/bazi',
-            params: {
-              highlight: 'master',
-              fromPayment: '1',
-            },
-          });
+          if (paymentStatus.productType === 'subscription') {
+            Alert.alert('支付成功', '会员权益已到账，八字高级解读已解锁。');
+            router.push({
+              pathname: '/(tabs)/bazi',
+              params: { highlight: 'master', fromPayment: '1' },
+            });
+          } else {
+            const pts = await pointsApi.getSummary().catch(() => null);
+            setPointsSummary(pts);
+            Alert.alert('支付成功', '积分已到账！');
+            setActiveTab('mall');
+          }
           return;
         }
         if (paymentStatus.status === 'failed' || paymentStatus.status === 'refunded') {
@@ -74,6 +82,13 @@ export default function PointsMallScreen() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    const tab = params.tab as TabType | undefined;
+    const focusVip = params.focus === 'vip';
+    if (tab === 'mall') setActiveTab('mall');
+    else if (tab === 'subscription' || focusVip) setActiveTab('subscription');
+  }, [params.tab, params.focus]);
 
   useEffect(() => {
     if (params.focus !== 'vip') return;
@@ -95,8 +110,8 @@ export default function PointsMallScreen() {
         paymentApi.getStatus(),
         user ? pointsApi.getSummary().catch(() => null) : Promise.resolve(null),
       ]);
-      // 只保留订阅产品
       setSubscriptionProducts(productsData.filter((p: PaymentProduct) => p.type === 'subscription'));
+      setPointsProducts(productsData.filter((p: PaymentProduct) => p.type === 'points'));
       const paymentStatus = statusData as { creemConfigured?: boolean; stripeConfigured?: boolean };
       const paymentConfigured = paymentStatus.creemConfigured ?? paymentStatus.stripeConfigured ?? false;
       setCreemConfigured(paymentConfigured);
@@ -121,6 +136,7 @@ export default function PointsMallScreen() {
       const result: CheckoutResult = await paymentApi.createCheckout(product.id);
       
       if (result.mock) {
+        const isSubscription = product.type === 'subscription';
         Alert.alert(
           '测试模式',
           `Creem 未配置，这是一个模拟支付。\n\n产品: ${product.name}\n价格: $${product.price}`,
@@ -131,15 +147,19 @@ export default function PointsMallScreen() {
               onPress: async () => {
                 try {
                   await paymentApi.mockPayment(result.paymentId);
-                  Alert.alert('成功', 'VIP会员已开通！');
                   await refreshMembershipAndChart();
-                  router.push({
-                    pathname: '/(tabs)/bazi',
-                    params: {
-                      highlight: 'master',
-                      fromPayment: '1',
-                    },
-                  });
+                  if (isSubscription) {
+                    Alert.alert('成功', 'VIP会员已开通！');
+                    router.push({
+                      pathname: '/(tabs)/bazi',
+                      params: { highlight: 'master', fromPayment: '1' },
+                    });
+                  } else {
+                    const pts = await pointsApi.getSummary().catch(() => null);
+                    setPointsSummary(pts);
+                    Alert.alert('成功', '积分已到账！');
+                    setActiveTab('mall');
+                  }
                 } catch (e) {
                   Alert.alert('错误', '支付处理失败');
                 }
@@ -177,114 +197,193 @@ export default function PointsMallScreen() {
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
 
   return (
-    <ScrollView ref={scrollRef} style={[styles.container, { paddingTop: insets.top }]}>
-      {/* VIP状态卡片 */}
-      <View style={[styles.vipCard, isVip && styles.vipCardActive]}>
-        <View style={styles.vipCardContent}>
-          <Text style={styles.vipIcon}>👑</Text>
-          <View style={styles.vipInfo}>
-            <Text style={styles.vipTitle}>
-              {isVip ? 'VIP 会员' : '普通用户'}
-            </Text>
-            <Text style={styles.vipSubtitle}>
-              {isVip ? '有效期至：永久' : '开通VIP，解锁全部功能'}
-            </Text>
-          </View>
-        </View>
-        {isVip && (
-          <View style={styles.vipBadge}>
-            <Text style={styles.vipBadgeText}>已开通</Text>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Tab 切换 */}
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'subscription' && styles.tabActive]}
+          onPress={() => setActiveTab('subscription')}
+        >
+          <Text style={[styles.tabText, activeTab === 'subscription' && styles.tabTextActive]}>
+            👑 订阅
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'mall' && styles.tabActive]}
+          onPress={() => setActiveTab('mall')}
+        >
+          <Text style={[styles.tabText, activeTab === 'mall' && styles.tabTextActive]}>
+            🎁 积分商城
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView ref={scrollRef} style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {activeTab === 'subscription' ? (
+          <>
+            {/* VIP状态卡片 */}
+            <View style={[styles.vipCard, isVip && styles.vipCardActive]}>
+              <View style={styles.vipCardContent}>
+                <Text style={styles.vipIcon}>👑</Text>
+                <View style={styles.vipInfo}>
+                  <Text style={styles.vipTitle}>
+                    {isVip ? 'VIP 会员' : '普通用户'}
+                  </Text>
+                  <Text style={styles.vipSubtitle}>
+                    {isVip ? '有效期至：永久' : '开通VIP，解锁全部功能'}
+                  </Text>
+                </View>
+              </View>
+              {isVip && (
+                <View style={styles.vipBadge}>
+                  <Text style={styles.vipBadgeText}>已开通</Text>
+                </View>
+              )}
+            </View>
+
+            {/* VIP 订阅 */}
+            <View
+              style={[styles.section, highlightVip ? styles.vipSectionHighlight : undefined]}
+              onLayout={(event) => setVipSectionY(event.nativeEvent.layout.y)}
+            >
+              <Text style={styles.sectionTitle}>⭐ VIP 会员</Text>
+              <Text style={styles.sectionSubtitle}>开通VIP，享无限次AI解读</Text>
+              {highlightVip ? <Text style={styles.focusTip}>👑 推荐：解锁八字老师傅批注与完整流年细化</Text> : null}
+              
+              {subscriptionProducts.map((product) => {
+                const isPurchasing = purchasing === product.id;
+                const features = product.features ? JSON.parse(product.features) : [];
+                return (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={styles.vipProductCard}
+                    onPress={() => handlePurchase(product)}
+                    disabled={isPurchasing || !user || isVip}
+                  >
+                    <View style={styles.vipProductHeader}>
+                      <Text style={styles.vipProductName}>{product.name}</Text>
+                      <Text style={styles.vipProductPrice}>${product.price}</Text>
+                    </View>
+                    <Text style={styles.vipProductDesc}>{product.description}</Text>
+                    <View style={styles.featuresList}>
+                      {features.map((feature: string, index: number) => (
+                        <View key={index} style={styles.featureItem}>
+                          <Text style={styles.featureIcon}>✓</Text>
+                          <Text style={styles.featureText}>{feature}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.subscribeButton, (!user || isVip) && styles.subscribeButtonDisabled]}
+                      onPress={() => handlePurchase(product)}
+                      disabled={isPurchasing || !user || isVip}
+                    >
+                      {isPurchasing ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <Text style={styles.subscribeButtonText}>
+                          {!user ? '请先登录' : isVip ? '已是VIP' : '立即订阅'}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        ) : (
+          <>
+            {/* 积分余额 */}
+            <View style={styles.pointsBalanceCard}>
+              <Text style={styles.pointsBalanceLabel}>当前积分</Text>
+              <Text style={styles.pointsBalanceValue}>{pointsSummary?.availablePoints ?? 0}</Text>
+            </View>
+
+            {/* 积分获取 */}
+            <View style={styles.pointsCard}>
+              <Text style={styles.pointsTitle}>📝 积分获取方式</Text>
+              <View style={styles.pointsList}>
+                <View style={styles.pointItem}>
+                  <Text style={styles.pointIcon}>📅</Text>
+                  <Text style={styles.pointText}>每日签到 +10 积分</Text>
+                </View>
+                <View style={styles.pointItem}>
+                  <Text style={styles.pointIcon}>📤</Text>
+                  <Text style={styles.pointText}>分享解读 +5 积分</Text>
+                </View>
+                <View style={styles.pointItem}>
+                  <Text style={styles.pointIcon}>👥</Text>
+                  <Text style={styles.pointText}>邀请好友 +50 积分</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 积分消耗说明 */}
+            <View style={styles.pointsCard}>
+              <Text style={styles.pointsTitle}>💡 积分消耗规则</Text>
+              <View style={styles.pointsList}>
+                <View style={styles.pointItem}>
+                  <Text style={styles.pointIcon}>✍️</Text>
+                  <Text style={styles.pointText}>测字 10 积分/次（VIP 免费）</Text>
+                </View>
+                <View style={styles.pointItem}>
+                  <Text style={styles.pointIcon}>🔮</Text>
+                  <Text style={styles.pointText}>占卜 15 积分/次（VIP 免费）</Text>
+                </View>
+                <View style={styles.pointItem}>
+                  <Text style={styles.pointIcon}>📊</Text>
+                  <Text style={styles.pointText}>八字高级解读 50 积分/次（VIP 免费）</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 积分包购买 */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🛒 购买积分</Text>
+              <Text style={styles.sectionSubtitle}>充值积分，解锁更多解读</Text>
+              {pointsProducts.map((product) => {
+                const isPurchasing = purchasing === product.id;
+                return (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={styles.vipProductCard}
+                    onPress={() => handlePurchase(product)}
+                    disabled={isPurchasing || !user}
+                  >
+                    <View style={styles.vipProductHeader}>
+                      <Text style={styles.vipProductName}>{product.name}</Text>
+                      <Text style={styles.vipProductPrice}>${product.price}</Text>
+                    </View>
+                    <Text style={styles.vipProductDesc}>{product.description}</Text>
+                    <TouchableOpacity
+                      style={[styles.subscribeButton, !user && styles.subscribeButtonDisabled]}
+                      onPress={() => handlePurchase(product)}
+                      disabled={isPurchasing || !user}
+                    >
+                      {isPurchasing ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <Text style={styles.subscribeButtonText}>
+                          {!user ? '请先登录' : '立即购买'}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {!creemConfigured && (
+          <View style={styles.warningBanner}>
+            <Text style={styles.warningText}>⚠️ Creem 未配置，当前为测试模式</Text>
           </View>
         )}
-      </View>
 
-      {/* 积分说明 */}
-      <View style={styles.pointsCard}>
-        <Text style={styles.pointsTitle}>📝 积分获取方式</Text>
-        <View style={styles.pointsList}>
-          <View style={styles.pointItem}>
-            <Text style={styles.pointIcon}>📅</Text>
-            <Text style={styles.pointText}>每日签到 +10 积分</Text>
-          </View>
-          <View style={styles.pointItem}>
-            <Text style={styles.pointIcon}>📤</Text>
-            <Text style={styles.pointText}>分享解读 +5 积分</Text>
-          </View>
-          <View style={styles.pointItem}>
-            <Text style={styles.pointIcon}>👥</Text>
-            <Text style={styles.pointText}>邀请好友 +50 积分</Text>
-          </View>
-        </View>
-        <Text style={styles.pointsUsage}>💡 积分可用于解锁高级功能、查看详细解读等</Text>
-      </View>
-
-      {/* VIP 订阅 */}
-      <View
-        style={[styles.section, highlightVip ? styles.vipSectionHighlight : undefined]}
-        onLayout={(event) => setVipSectionY(event.nativeEvent.layout.y)}
-      >
-        <Text style={styles.sectionTitle}>⭐ VIP 会员</Text>
-        <Text style={styles.sectionSubtitle}>开通VIP，享无限次AI解读</Text>
-        {highlightVip ? <Text style={styles.focusTip}>👑 推荐：解锁八字老师傅批注与完整流年细化</Text> : null}
-        
-        {subscriptionProducts.map((product) => {
-          const isPurchasing = purchasing === product.id;
-          const features = product.features ? JSON.parse(product.features) : [];
-          
-          return (
-            <TouchableOpacity
-              key={product.id}
-              style={styles.vipProductCard}
-              onPress={() => handlePurchase(product)}
-              disabled={isPurchasing || !user || isVip}
-            >
-              <View style={styles.vipProductHeader}>
-                <Text style={styles.vipProductName}>{product.name}</Text>
-                <Text style={styles.vipProductPrice}>${product.price}</Text>
-              </View>
-              
-              <Text style={styles.vipProductDesc}>{product.description}</Text>
-              
-              <View style={styles.featuresList}>
-                {features.map((feature: string, index: number) => (
-                  <View key={index} style={styles.featureItem}>
-                    <Text style={styles.featureIcon}>✓</Text>
-                    <Text style={styles.featureText}>{feature}</Text>
-                  </View>
-                ))}
-              </View>
-              
-              <TouchableOpacity
-                style={[
-                  styles.subscribeButton, 
-                  (!user || isVip) && styles.subscribeButtonDisabled
-                ]}
-                onPress={() => handlePurchase(product)}
-                disabled={isPurchasing || !user || isVip}
-              >
-                {isPurchasing ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.subscribeButtonText}>
-                    {!user ? '请先登录' : isVip ? '已是VIP' : '立即订阅'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {!creemConfigured && (
-        <View style={styles.warningBanner}>
-          <Text style={styles.warningText}>
-            ⚠️ Creem 未配置，当前为测试模式
-          </Text>
-        </View>
-      )}
-
-      <View style={styles.bottomPadding} />
-    </ScrollView>
+        <View style={styles.bottomPadding} />
+      </ScrollView>
+    </View>
   );
 }
 
@@ -296,6 +395,54 @@ const styles = StyleSheet.create({
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  tabRow: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#16213E',
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  tabActive: {
+    backgroundColor: '#4C2F80',
+  },
+  tabText: {
+    fontSize: 14,
+    color: '#8D8DAA',
+  },
+  tabTextActive: {
+    color: '#F8D05F',
+    fontWeight: '600',
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  pointsBalanceCard: {
+    margin: 16,
+    marginBottom: 8,
+    padding: 24,
+    backgroundColor: '#16213E',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+    alignItems: 'center',
+  },
+  pointsBalanceLabel: {
+    fontSize: 14,
+    color: '#8D8DAA',
+    marginBottom: 4,
+  },
+  pointsBalanceValue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#F8D05F',
   },
   vipCard: {
     margin: 16,

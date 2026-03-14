@@ -19,10 +19,11 @@ const categoryEmojis: Record<string, string> = {
   anxiety: '😌',
 };
 
+// 使用 GitHub 托管的可访问音频（原 soundjay.com 已 404，MP3 兼容 iOS/Android）
 const noiseAudioUrls: Record<'rain' | 'stream' | 'wind', string> = {
-  rain: 'https://www.soundjay.com/nature/rain-01.mp3',
-  stream: 'https://www.soundjay.com/nature/creek-flowing-01.mp3',
-  wind: 'https://www.soundjay.com/nature/wind-01.mp3',
+  rain: 'https://raw.githubusercontent.com/isyuricunha/rain-for-relax/main/assets/rain-chill.mp3',
+  stream: 'https://raw.githubusercontent.com/Charmingdc/Relaxation-tracks/main/src/sounds/anxious/peaceful-place-anx.mp3',
+  wind: 'https://raw.githubusercontent.com/Charmingdc/Relaxation-tracks/main/src/sounds/lonely/feather-in-the-wind-lonely.mp3',
 };
 
 export default function MeditationScreen() {
