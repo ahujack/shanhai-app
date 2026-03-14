@@ -26,7 +26,7 @@ interface ChatState {
   currentIntent?: string;
   
   // Actions
-  sendMessage: (message: string, personaId?: string, userId?: string, mood?: string) => Promise<void>;
+  sendMessage: (message: string, personaId?: string, mood?: string) => Promise<void>;
   clearMessages: () => void;
   removeMessage: (id: string) => void;
   addSystemMessage: (content: string) => void;
@@ -36,7 +36,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isLoading: false,
   
-  sendMessage: async (message: string, personaId?: string, userId?: string, mood?: string) => {
+  sendMessage: async (message: string, personaId?: string, mood?: string) => {
     const userMessage: ChatMessage = {
       id: `user_${Date.now()}`,
       role: 'user',
@@ -58,7 +58,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       message,
       personaId,
       context: recentContext,
-      userId,
       mood: mood as any,
     };
 

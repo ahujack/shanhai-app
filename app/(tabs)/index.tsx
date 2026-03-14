@@ -226,12 +226,7 @@ export default function HomeScreen() {
     const message = inputText.trim();
     setInputText('');
     
-    await sendMessage(
-      message, 
-      persona.id, 
-      user?.id,
-      'calm'
-    );
+    await sendMessage(message, persona.id, 'calm');
 
     // 聊到具体问题时再轻量引导测字，不自动弹窗
     if (shouldSuggestZi(message)) {
@@ -302,7 +297,7 @@ export default function HomeScreen() {
     
     // 分享今日运势
     try {
-      const fortune = await fortuneApi.getDaily(user.id);
+      const fortune = await fortuneApi.getDaily();
       shareText += `✨ 今日运势：${fortune.poem.title}\n`;
       shareText += `📝 ${fortune.day}\n`;
       shareText += `💫 幸运数字：${fortune.lucky.number} | 幸运颜色：${fortune.lucky.color}\n\n`;
@@ -337,7 +332,7 @@ export default function HomeScreen() {
     
     // 添加今日运势
     try {
-      const fortune = await fortuneApi.getDaily(user.id);
+      const fortune = await fortuneApi.getDaily();
       shareText += `✨ 今日运势：${fortune.poem.title}\n`;
       shareText += `📝 ${fortune.day}\n`;
       shareText += `💫 幸运数字：${fortune.lucky.number} | 幸运颜色：${fortune.lucky.color}\n\n`;
@@ -441,7 +436,7 @@ export default function HomeScreen() {
                     <TouchableOpacity
                       key={q}
                       style={styles.suggestedChip}
-                      onPress={() => !isLoading && sendMessage(q, persona.id, user?.id, 'calm')}
+                      onPress={() => !isLoading && sendMessage(q, persona.id, 'calm')}
                       disabled={isLoading}
                       accessibilityLabel={`提问：${q}`}
                     >
@@ -452,7 +447,7 @@ export default function HomeScreen() {
               </View>
               {/* 快捷入口 */}
               <View style={styles.quickActions}>
-                <TouchableOpacity style={styles.quickAction} onPress={() => !isLoading && sendMessage('今日运势如何？', persona.id, user?.id, 'calm')} disabled={isLoading}>
+                <TouchableOpacity style={styles.quickAction} onPress={() => !isLoading && sendMessage('今日运势如何？', persona.id, 'calm')} disabled={isLoading}>
                   <Text style={styles.quickActionIcon}>✨</Text>
                   <Text style={styles.quickActionText}>运势</Text>
                 </TouchableOpacity>
@@ -485,7 +480,7 @@ export default function HomeScreen() {
             <ChatBubble
               key={msg.id}
               message={msg}
-              onRetry={msg.retryWith ? () => { removeMessage(msg.id); sendMessage(msg.retryWith!, persona.id, user?.id, 'calm'); } : undefined}
+              onRetry={msg.retryWith ? () => { removeMessage(msg.id); sendMessage(msg.retryWith!, persona.id, 'calm'); } : undefined}
             />
           ))}
           

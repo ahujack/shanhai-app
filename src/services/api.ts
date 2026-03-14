@@ -347,8 +347,7 @@ export interface FortuneSlip {
 }
 
 export const fortuneApi = {
-  getDaily: (userId?: string) => 
-    request<FortuneSlip>(`/fortunes/daily${userId ? `?userId=${userId}` : ''}`),
+  getDaily: () => request<FortuneSlip>('/fortunes/daily'),
   draw: () => request<FortuneSlip>('/fortunes/draw'),
 };
 
@@ -391,7 +390,6 @@ export interface DivinationResult {
 export interface CreateReadingDto {
   question: string;
   category?: 'career' | 'love' | 'wealth' | 'health' | 'growth' | 'general';
-  userId?: string;
 }
 
 export const readingApi = {
@@ -488,10 +486,10 @@ export interface ZiResult {
 }
 
 export const ziApi = {
-  analyze: (zi: string, userId?: string, focusAspect?: string) =>
+  analyze: (zi: string, focusAspect?: string, handwriting?: object) =>
     request<ZiResult>('/zi/analyze', {
       method: 'POST',
-      body: JSON.stringify({ zi, userId, focusAspect }),
+      body: JSON.stringify({ zi, focusAspect, handwriting }),
     }),
 };
 
@@ -501,12 +499,12 @@ export const handwritingApi = {
       method: 'POST',
       body: JSON.stringify({ image }),
     }),
-  analyze: (image: string, userId?: string, focusAspect?: string) =>
+  analyze: (image: string, focusAspect?: string) =>
     request<{ recognizedZi: string | null; confidence?: number; analysis?: ZiResult; error?: string }>(
       '/zi/analyze-handwriting',
       {
         method: 'POST',
-        body: JSON.stringify({ image, userId, focusAspect }),
+        body: JSON.stringify({ image, focusAspect }),
       },
     ),
 };
@@ -517,7 +515,6 @@ export interface AgentChatDto {
   personaId?: string;
   context?: string[];
   mood?: 'calm' | 'anxious' | 'sad' | 'excited';
-  userId?: string;
 }
 
 export interface AgentResponse {

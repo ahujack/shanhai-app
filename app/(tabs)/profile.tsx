@@ -13,7 +13,7 @@ const colors = theme.dark;
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, chart, hasChart, isLoading, createUser, generateChart, loadUser, clearUser, logout, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
+  const { user, chart, hasChart, isLoading, createUser, updateUser, generateChart, loadUser, clearUser, logout, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { personas, active: currentPersona, setActive } = usePersonaStore();
   const [isCheckingIn, setIsCheckingIn] = useState(false);
 
@@ -237,24 +237,37 @@ export default function ProfileScreen() {
     }
 
     const parsedLongitude = birthLongitude.trim() ? Number(birthLongitude) : undefined;
-    if (birthLongitude.trim() && Number.isNaN(parsedLongitude)) {
+    if (birthLongitude.trim() && Number.isNaN(parsedLongitude!)) {
       Alert.alert('提示', '经度格式不正确，请输入数字');
       return;
     }
 
     try {
-      await createUser({
-        name: name.trim(),
-        birthDate,
-        birthTime,
-        calendarType,
-        isLeapMonth,
-        birthLocation: birthLocation.trim() || undefined,
-        birthLongitude: parsedLongitude,
-        gender,
-      });
+      if (user?.id) {
+        await updateUser(user.id, {
+          name: name.trim(),
+          birthDate,
+          birthTime,
+          calendarType,
+          isLeapMonth,
+          birthLocation: birthLocation.trim() || undefined,
+          birthLongitude: parsedLongitude,
+          gender,
+        });
+      } else {
+        await createUser({
+          name: name.trim(),
+          birthDate,
+          birthTime,
+          calendarType,
+          isLeapMonth,
+          birthLocation: birthLocation.trim() || undefined,
+          birthLongitude: parsedLongitude,
+          gender,
+        });
+      }
       Alert.alert('成功', '信息已保存，正在生成命盘...');
-      // 自动生成命盘
+      // 自动生成命盘（会从服务端拉取最新用户信息，含经度，用于真太阳时校准）
       const chartGender = gender === 'other' ? 'male' : gender;
       await generateChart(chartGender);
       setStep('chart');

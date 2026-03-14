@@ -133,6 +133,13 @@ export default function ZiScreen() {
       Alert.alert('提示', '请输入一个有效的汉字');
       return false;
     }
+    if (!user) {
+      Alert.alert('请先登录', '测字需要登录后使用', [
+        { text: '取消', style: 'cancel' },
+        { text: '去登录', onPress: () => router.push('/login') },
+      ]);
+      return false;
+    }
     if (user && !isVip) {
       try {
         const { hasEnough } = await pointsApi.check(ZI_POINTS);
@@ -154,7 +161,7 @@ export default function ZiScreen() {
 
     setIsLoading(true);
     try {
-      const data = await ziApi.analyze(zi, user?.id, focusAspect);
+      const data = await ziApi.analyze(zi, focusAspect);
       setResult(data);
       return true;
     } catch (err: any) {

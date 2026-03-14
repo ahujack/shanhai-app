@@ -66,6 +66,7 @@ interface UserState {
   
   // User actions
   createUser: (dto: CreateUserDto) => Promise<UserProfile>;
+  updateUser: (id: string, dto: Partial<CreateUserDto>) => Promise<UserProfile>;
   generateChart: (gender: 'male' | 'female') => Promise<void>;
   loadDailyFortune: () => Promise<void>;
   clearUser: () => Promise<void>;
@@ -120,7 +121,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         
         // 加载每日运势
         try {
-          const fortune = await fortuneApi.getDaily(userId);
+          const fortune = await fortuneApi.getDaily();
           set({ dailyFortune: fortune });
         } catch (e) {
           // ignore
@@ -287,6 +288,17 @@ export const useUserStore = create<UserState>((set, get) => ({
       set({ isLoading: false });
     }
   },
+
+  updateUser: async (id, dto) => {
+    set({ isLoading: true });
+    try {
+      const user = await userApi.update(id, dto);
+      set((state) => ({ user: state.user ? { ...state.user, ...user } : user }));
+      return user;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
   
   generateChart: async (gender) => {
     const { user } = get();
@@ -304,7 +316,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   loadDailyFortune: async () => {
     const { user } = get();
     try {
-      const fortune = await fortuneApi.getDaily(user?.id);
+      const fortune = await fortuneApi.getDaily();
       set({ dailyFortune: fortune });
     } catch (e) {
       // ignore
