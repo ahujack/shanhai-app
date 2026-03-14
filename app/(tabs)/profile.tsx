@@ -13,7 +13,7 @@ const colors = theme.dark;
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, chart, hasChart, isLoading, createUser, updateUser, generateChart, refreshChart, loadUser, clearUser, logout, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
+  const { user, chart, hasChart, isLoading, createUser, updateUser, generateChart, loadUser, clearUser, logout, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { personas, active: currentPersona, setActive } = usePersonaStore();
   const [isCheckingIn, setIsCheckingIn] = useState(false);
 
@@ -270,8 +270,8 @@ export default function ProfileScreen() {
       // 自动生成命盘（会从服务端拉取最新用户信息，含经度，用于真太阳时校准）
       const chartGender = gender === 'other' ? 'male' : gender;
       await generateChart(chartGender);
-      // 显式刷新命盘，确保前端展示与后端一致
-      await refreshChart();
+      // 重新拉取用户和命盘，确保前端展示与后端一致
+      await loadUser();
       setStep('chart');
     } catch (error) {
       Alert.alert('错误', '保存失败，请重试');
@@ -325,7 +325,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.userInfoContent}>
                 <Text style={styles.userName}>{user.name}</Text>
-                <Text style={styles.userEmail}>{user.email?.endsWith('@example.com') ? '未绑定邮箱' : (user.email || '')}</Text>
+                <Text style={styles.userEmail}>{user.email || ''}</Text>
                 <View style={styles.membershipBadge}>
                   <Text style={styles.membershipText}>
                     {membershipLabel}
@@ -685,7 +685,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.userInfoContent}>
               <Text style={styles.userName}>{user.name}</Text>
-              <Text style={styles.userEmail}>{user.email?.endsWith('@example.com') ? '未绑定邮箱' : (user.email || '')}</Text>
+              <Text style={styles.userEmail}>{user.email || ''}</Text>
               <View style={styles.membershipBadge}>
                 <Text style={styles.membershipText}>
                   {membershipLabel}

@@ -114,10 +114,12 @@ export const useUserStore = create<UserState>((set, get) => ({
           const chartData = await chartApi.get(userId);
           if (chartData.hasChart && chartData.chart) {
             set({ chart: chartData.chart, hasChart: true });
+          } else {
+            set({ chart: null, hasChart: false });
           }
         } catch (e) {
           // 用户可能还没有命盘
-          set({ hasChart: false });
+          set({ chart: null, hasChart: false });
         }
         
         // 加载每日运势
