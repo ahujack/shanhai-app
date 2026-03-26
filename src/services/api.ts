@@ -116,7 +116,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       const errorMsg = data?.message || `请求失败: ${response.status}`;
       console.error(`[API Error] ${response.status}`, errorMsg);
       if (response.status === 401) {
-        await clearSessionOnAuthError(errorMsg);
+        // 积分预检未登录时不应清掉本地 token（后端已改为 200；此处兼容旧版或其它环境的 401）
+        const isPointsPrecheck = /^\/points\/check(\?|$)/.test(endpoint);
+        if (!isPointsPrecheck) {
+          await clearSessionOnAuthError(errorMsg);
+        }
       }
       throw new Error(errorMsg);
     }
