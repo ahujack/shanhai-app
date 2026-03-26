@@ -614,6 +614,11 @@ export default function ZiScreen() {
               </TouchableOpacity>
             </View>
           )}
+          {isLoading ? (
+            <Text style={styles.loadingHint}>
+              AI 深度解读约需 30 秒～2 分钟，请保持网络畅通、勿关闭页面
+            </Text>
+          ) : null}
         </View>
 
         {/* 结果展示 */}
@@ -1031,6 +1036,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     marginTop: 5,
+  },
+  loadingHint: {
+    fontSize: 12,
+    color: '#A89EBE',
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 8,
+    lineHeight: 18,
   },
   content: {
     flex: 1,
