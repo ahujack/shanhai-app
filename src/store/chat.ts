@@ -133,7 +133,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const msgs = [...state.messages];
         const idx = msgs.findIndex((m) => m.id === assistantId);
         const lastUserMsg = state.messages.filter((m) => m.role === 'user').pop();
-        const errorContent = '抱歉，连接出现问题。请稍后再试。';
+        const errStr = error instanceof Error ? error.message : String(error);
+        const errorContent =
+          /登录|请先登录|过期|重新登录|401/i.test(errStr)
+            ? '登录状态已失效，请点击顶部「登录」重新登录；不登录也可继续试用对话。'
+            : '抱歉，连接出现问题。请稍后再试。';
         const errorMsg = {
           id: idx >= 0 ? assistantId : `error_${Date.now()}`,
           role: 'assistant' as const,

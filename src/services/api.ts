@@ -1,3 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { emitAuthExpired } from '../lib/auth-expired';
+
 // API 配置
 // 开发环境使用 localhost，生产环境使用 Railway 提供的 URL
 // 可通过环境变量 NEXT_PUBLIC_API_URL 覆盖
@@ -35,6 +38,29 @@ if (typeof window !== 'undefined') {
 export function setGlobalAuthToken(token: string | null) {
   globalAuthToken = token;
   console.log('[API] 设置 globalAuthToken:', token ? 'exists' : 'null');
+}
+
+/** 401 且判定为登录态失效时清 token 并通知 UI（含 Native） */
+async function clearSessionOnAuthError(errorMsg: string): Promise<void> {
+  const msg = String(errorMsg);
+  const looksAuth =
+    /登录|认证|token|Token|过期|unauthorized|请先登录|未授权|Unauthorized/i.test(msg) ||
+    /请求失败:\s*401/.test(msg);
+  if (!looksAuth) return;
+  setGlobalAuthToken(null);
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('shanhai_auth_token');
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    await AsyncStorage.removeItem('shanhai_auth_token');
+  } catch {
+    /* ignore */
+  }
+  emitAuthExpired();
 }
 
 // 通用请求函数
@@ -89,6 +115,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       // HTTP 层面的错误
       const errorMsg = data?.message || `请求失败: ${response.status}`;
       console.error(`[API Error] ${response.status}`, errorMsg);
+      if (response.status === 401) {
+        await clearSessionOnAuthError(errorMsg);
+      }
       throw new Error(errorMsg);
     }
 
@@ -557,7 +586,19 @@ export const agentApi = {
       },
       body: JSON.stringify(dto),
     });
-    if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+    if (!res.ok) {
+      let errText = '';
+      try {
+        const j = await res.json();
+        errText = j?.message || '';
+      } catch {
+        /* ignore */
+      }
+      if (res.status === 401) {
+        await clearSessionOnAuthError(errText || `请求失败: ${res.status}`);
+      }
+      throw new Error(errText || `请求失败: ${res.status}`);
+    }
     const reader = res.body?.getReader();
     if (!reader) throw new Error('不支持流式响应');
     const decoder = new TextDecoder();

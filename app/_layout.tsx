@@ -2,8 +2,10 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { useColorScheme, View, ActivityIndicator } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, useColorScheme, View, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
+import { subscribeAuthExpired } from '../src/lib/auth-expired';
 import { useUserStore } from '../src/store/user';
 
 export {
@@ -47,6 +49,8 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const [isReady, setIsReady] = useState(false);
   const loadUser = useUserStore((state) => state.loadUser);
+  const router = useRouter();
+  const authPromptLockRef = useRef(false);
 
   useEffect(() => {
     // 延迟一下让 Zustand 初始化完成，然后加载用户
@@ -57,6 +61,32 @@ function RootLayoutNav() {
     };
     init();
   }, []);
+
+  useEffect(() => {
+    return subscribeAuthExpired(() => {
+      useUserStore.setState({ token: null });
+      const { user } = useUserStore.getState();
+      if (!user) return;
+      if (authPromptLockRef.current) return;
+      authPromptLockRef.current = true;
+      const dismiss = () => {
+        authPromptLockRef.current = false;
+      };
+      const goLogin = () => {
+        dismiss();
+        router.push('/login');
+      };
+      Alert.alert(
+        '登录已过期',
+        '您之前登录过，当前会话已失效。重新登录后可同步资料、签到与会员权益；也可稍后继续以游客方式使用部分功能。',
+        [
+          { text: '稍后', style: 'cancel', onPress: dismiss },
+          { text: '重新登录', onPress: goLogin },
+        ],
+        { cancelable: true, onDismiss: dismiss },
+      );
+    });
+  }, [router]);
 
   if (!isReady) {
     return (
