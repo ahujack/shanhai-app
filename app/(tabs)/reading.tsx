@@ -136,14 +136,7 @@ export default function ReadingScreen() {
   const handleSubmit = async () => {
     const q = question.trim();
     if (!q || q.length < 2) return;
-    if (!user) {
-      Alert.alert('请先登录', '占卜需要登录后使用', [
-        { text: '取消', style: 'cancel' },
-        { text: '去登录', onPress: () => router.push('/login') },
-      ]);
-      return;
-    }
-    if (!isVip) {
+    if (user && !isVip) {
       try {
         const { hasEnough } = await pointsApi.check(READING_POINTS);
         if (!hasEnough) {

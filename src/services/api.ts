@@ -309,7 +309,25 @@ export interface BaziChart {
   };
 }
 
+export interface ChartPreviewDto {
+  birthDate: string;
+  birthTime: string;
+  gender: 'male' | 'female';
+  calendarType?: 'solar' | 'lunar';
+  isLeapMonth?: boolean;
+  birthLongitude?: number;
+  birthLocation?: string;
+  timezone?: string;
+}
+
 export const chartApi = {
+  /** 游客试算，服务端不落库 */
+  preview: (dto: ChartPreviewDto) =>
+    request<BaziChart>('/charts/preview', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
   generate: (userId: string, gender: 'male' | 'female') =>
     request<BaziChart>(`/charts/${userId}`, { 
       method: 'POST', 

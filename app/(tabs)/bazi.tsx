@@ -1,12 +1,12 @@
 import React from 'react';
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
-import { userApi } from '../../src/services/api';
+import { userApi, chartApi, BaziChart } from '../../src/services/api';
 
 const colors = theme.dark;
 
@@ -114,6 +114,16 @@ export default function BaziScreen() {
   const [genError, setGenError] = React.useState<string | null>(null);
   const scrollRef = React.useRef<ScrollView>(null);
 
+  const [guestChart, setGuestChart] = React.useState<BaziChart | null>(null);
+  const [guestBirthDate, setGuestBirthDate] = React.useState('');
+  const [guestBirthTime, setGuestBirthTime] = React.useState('');
+  const [guestGender, setGuestGender] = React.useState<'male' | 'female'>('male');
+  const [guestCalendarType, setGuestCalendarType] = React.useState<'solar' | 'lunar'>('solar');
+  const [guestLeap, setGuestLeap] = React.useState(false);
+  const [guestPreviewLoading, setGuestPreviewLoading] = React.useState(false);
+
+  const effectiveChart = chart ?? guestChart;
+
   const trackGodClick = React.useCallback((god: string) => {
     setActiveGod(god);
     setGodClicks((prev) => ({
@@ -197,14 +207,15 @@ export default function BaziScreen() {
   }, [highlightMaster, annualSectionY]);
 
   const goBaziDeepChat = () => {
-    if (!chart) return;
-    const conciseCycles = (chart.detailedReading?.luckCycles?.cycles || []).slice(0, 2);
-    const conciseYears = (chart.detailedReading?.annualForecast || []).slice(0, 2);
+    const c = chart ?? guestChart;
+    if (!c) return;
+    const conciseCycles = (c.detailedReading?.luckCycles?.cycles || []).slice(0, 2);
+    const conciseYears = (c.detailedReading?.annualForecast || []).slice(0, 2);
     const summaryMessage =
       `我们基于你的八字继续深聊：\n` +
-      `- 一句话总论：${chart.conclusion?.overall || '先稳后进。'}\n` +
+      `- 一句话总论：${c.conclusion?.overall || '先稳后进。'}\n` +
       `- 当前关注十神：${activeGod}\n` +
-      `- 近期大运参考：${conciseCycles.map((c) => `${c.ageRange}${c.ganZhi}`).join('、') || '暂无'}\n` +
+      `- 近期大运参考：${conciseCycles.map((cycle) => `${cycle.ageRange}${cycle.ganZhi}`).join('、') || '暂无'}\n` +
       `- 近两年流年：${conciseYears.map((y) => `${y.year}${y.ganZhi}`).join('、') || '暂无'}\n\n` +
       `你可以告诉我：你最想先聊事业、感情、财务，还是当下最困扰你的情绪？`;
 
@@ -235,26 +246,115 @@ export default function BaziScreen() {
     }
   };
 
-  if (!user) {
-    return (
-      <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-        <Text style={styles.title}>📜 八字看盘</Text>
-        <Text style={styles.sub}>登录后可查看完整八字与十神解读</Text>
-        <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/login')}>
-          <Text style={styles.primaryBtnText}>去登录</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const handleGuestPreview = async () => {
+    const bd = guestBirthDate.trim();
+    const bt = guestBirthTime.trim();
+    if (!bd || !bt) {
+      Alert.alert('提示', '请填写出生日期与出生时间（日期 YYYY-MM-DD，时间 HH:mm）');
+      return;
+    }
+    setGuestPreviewLoading(true);
+    setGenError(null);
+    try {
+      const data = await chartApi.preview({
+        birthDate: bd,
+        birthTime: bt,
+        gender: guestGender,
+        calendarType: guestCalendarType,
+        isLeapMonth: guestLeap,
+        timezone: 'Asia/Shanghai',
+      });
+      setGuestChart(data);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '试算失败';
+      setGenError(msg);
+    } finally {
+      setGuestPreviewLoading(false);
+    }
+  };
 
-  if (!hasChart || !chart) {
+  if (!effectiveChart) {
+    if (!user) {
+      return (
+        <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+          <Text style={styles.title}>📜 八字看盘</Text>
+          <Text style={styles.sub}>未登录可试算（结果仅本次会话展示，不保存）</Text>
+          <Text style={styles.fieldLabel}>出生日期</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor="#6F6287"
+            value={guestBirthDate}
+            onChangeText={setGuestBirthDate}
+          />
+          <Text style={styles.fieldLabel}>出生时间</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="HH:mm（如 14:30）"
+            placeholderTextColor="#6F6287"
+            value={guestBirthTime}
+            onChangeText={setGuestBirthTime}
+          />
+          <Text style={styles.fieldLabel}>历法</Text>
+          <View style={styles.guestRow}>
+            <TouchableOpacity
+              style={[styles.guestChip, guestCalendarType === 'solar' && styles.guestChipActive]}
+              onPress={() => setGuestCalendarType('solar')}
+            >
+              <Text style={[styles.guestChipText, guestCalendarType === 'solar' && styles.guestChipTextActive]}>阳历</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.guestChip, guestCalendarType === 'lunar' && styles.guestChipActive]}
+              onPress={() => setGuestCalendarType('lunar')}
+            >
+              <Text style={[styles.guestChipText, guestCalendarType === 'lunar' && styles.guestChipTextActive]}>农历</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.guestChip, guestLeap && styles.guestChipActive]}
+              onPress={() => setGuestLeap((v) => !v)}
+            >
+              <Text style={[styles.guestChipText, guestLeap && styles.guestChipTextActive]}>闰月</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.fieldLabel}>性别</Text>
+          <View style={styles.guestRow}>
+            <TouchableOpacity
+              style={[styles.guestChip, guestGender === 'male' && styles.guestChipActive]}
+              onPress={() => setGuestGender('male')}
+            >
+              <Text style={[styles.guestChipText, guestGender === 'male' && styles.guestChipTextActive]}>男</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.guestChip, guestGender === 'female' && styles.guestChipActive]}
+              onPress={() => setGuestGender('female')}
+            >
+              <Text style={[styles.guestChipText, guestGender === 'female' && styles.guestChipTextActive]}>女</Text>
+            </TouchableOpacity>
+          </View>
+          {genError ? <Text style={styles.errorText}>{genError}</Text> : null}
+          <TouchableOpacity
+            style={[styles.primaryBtn, { marginTop: 8 }]}
+            onPress={handleGuestPreview}
+            disabled={guestPreviewLoading}
+          >
+            {guestPreviewLoading ? (
+              <ActivityIndicator color="#1A0A18" />
+            ) : (
+              <Text style={styles.primaryBtnText}>试算八字</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/login')} style={{ marginTop: 16 }}>
+            <Text style={styles.link}>登录后保存命盘</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     return (
       <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <Text style={styles.title}>📜 八字看盘</Text>
         <Text style={styles.sub}>先生成命盘，再查看十神与五行结构</Text>
-        {genError && (
-          <Text style={styles.errorText}>{genError}</Text>
-        )}
+        {genError && <Text style={styles.errorText}>{genError}</Text>}
         <TouchableOpacity style={styles.primaryBtn} onPress={handleGenerate} disabled={isLoading}>
           <Text style={styles.primaryBtnText}>{isLoading ? '生成中...' : '生成我的命盘'}</Text>
         </TouchableOpacity>
@@ -265,6 +365,8 @@ export default function BaziScreen() {
     );
   }
 
+  const c = effectiveChart;
+
   return (
     <ScrollView
       ref={scrollRef}
@@ -272,6 +374,11 @@ export default function BaziScreen() {
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
     >
       <Text style={styles.title}>📜 八字看盘</Text>
+      {!user && guestChart ? (
+        <View style={styles.guestBanner}>
+          <Text style={styles.guestBannerText}>试算模式：登录并完善资料后可保存命盘</Text>
+        </View>
+      ) : null}
       <View style={styles.modeToggleRow}>
         <TouchableOpacity
           style={[styles.modeToggleBtn, viewMode === 'compact' && styles.modeToggleBtnActive]}
@@ -291,8 +398,8 @@ export default function BaziScreen() {
         <Text style={styles.cardTitle}>一屏总论</Text>
         <Text style={styles.personalizedLead}>近期关注主题：{tenGodMeta[storedGod]?.title || storedGod}</Text>
         <Text style={styles.bodyMuted}>{tenGodMeta[storedGod]?.empathy || '我们先从你最在意的感受聊起。'}</Text>
-        <Text style={styles.body}>{chart.conclusion?.overall || '你的命盘呈现稳中有进的结构。'}</Text>
-        <Text style={styles.bodyMuted}>{chart.conclusion?.mindset || '建议先稳住内在节奏，再扩展外部机会。'}</Text>
+        <Text style={styles.body}>{c.conclusion?.overall || '你的命盘呈现稳中有进的结构。'}</Text>
+        <Text style={styles.bodyMuted}>{c.conclusion?.mindset || '建议先稳住内在节奏，再扩展外部机会。'}</Text>
         <TouchableOpacity style={styles.chatCtaBtn} onPress={goBaziDeepChat}>
           <Text style={styles.chatCtaText}>去对话深入探讨这份八字</Text>
         </TouchableOpacity>
@@ -301,31 +408,31 @@ export default function BaziScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>四柱八字</Text>
         <View style={styles.pillarRow}>
-          <Text style={styles.pillar}>年柱 {chart.yearGanZhi}</Text>
-          <Text style={styles.pillar}>月柱 {chart.monthGanZhi}</Text>
-          <Text style={styles.pillar}>日柱 {chart.dayGanZhi}</Text>
-          <Text style={styles.pillar}>时柱 {chart.hourGanZhi}</Text>
+          <Text style={styles.pillar}>年柱 {c.yearGanZhi}</Text>
+          <Text style={styles.pillar}>月柱 {c.monthGanZhi}</Text>
+          <Text style={styles.pillar}>日柱 {c.dayGanZhi}</Text>
+          <Text style={styles.pillar}>时柱 {c.hourGanZhi}</Text>
         </View>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>十神结构</Text>
         <View style={styles.tenGodRow}>
-          <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(chart.tenGods?.year || '日主')}>
+          <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(c.tenGods?.year || '日主')}>
             <Text style={styles.tenGodLabel}>年柱</Text>
-            <Text style={styles.tenGodValue}>{chart.tenGods?.year || '-'}</Text>
+            <Text style={styles.tenGodValue}>{c.tenGods?.year || '-'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(chart.tenGods?.month || '日主')}>
+          <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(c.tenGods?.month || '日主')}>
             <Text style={styles.tenGodLabel}>月柱</Text>
-            <Text style={styles.tenGodValue}>{chart.tenGods?.month || '-'}</Text>
+            <Text style={styles.tenGodValue}>{c.tenGods?.month || '-'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(chart.tenGods?.day || '日主')}>
+          <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(c.tenGods?.day || '日主')}>
             <Text style={styles.tenGodLabel}>日柱</Text>
-            <Text style={styles.tenGodValue}>{chart.tenGods?.day || '日主'}</Text>
+            <Text style={styles.tenGodValue}>{c.tenGods?.day || '日主'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(chart.tenGods?.hour || '日主')}>
+          <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(c.tenGods?.hour || '日主')}>
             <Text style={styles.tenGodLabel}>时柱</Text>
-            <Text style={styles.tenGodValue}>{chart.tenGods?.hour || '-'}</Text>
+            <Text style={styles.tenGodValue}>{c.tenGods?.hour || '-'}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.tenGodDetailCard}>
@@ -334,61 +441,61 @@ export default function BaziScreen() {
           <Text style={styles.bodyMuted}>优势：{tenGodMeta[activeGod]?.strengths || '在稳定场景有较好表现。'}</Text>
           <Text style={styles.bodyMuted}>提醒：{tenGodMeta[activeGod]?.risks || '注意情绪负荷和节奏管理。'}</Text>
         </View>
-        {(chart.tenGods?.summary || []).map((line, idx) => (
+        {(c.tenGods?.summary || []).map((line, idx) => (
           <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
         ))}
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>运势速览</Text>
-        <Text style={styles.body}>事业：{chart.fortuneSummary?.career}</Text>
-        <Text style={styles.body}>感情：{chart.fortuneSummary?.love}</Text>
-        <Text style={styles.body}>财运：{chart.fortuneSummary?.wealth}</Text>
-        <Text style={styles.body}>健康：{chart.fortuneSummary?.health}</Text>
+        <Text style={styles.body}>事业：{c.fortuneSummary?.career}</Text>
+        <Text style={styles.body}>感情：{c.fortuneSummary?.love}</Text>
+        <Text style={styles.body}>财运：{c.fortuneSummary?.wealth}</Text>
+        <Text style={styles.body}>健康：{c.fortuneSummary?.health}</Text>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>详细解读</Text>
         <View style={[styles.moduleCard, styles.moduleCore]}>
           <Text style={styles.sectionHead}>🧭 核心格局</Text>
-          <Text style={styles.body}>{chart.detailedReading?.corePattern || '正在生成更细致的盘面解读...'}</Text>
+          <Text style={styles.body}>{c.detailedReading?.corePattern || '正在生成更细致的盘面解读...'}</Text>
         </View>
 
         {viewMode === 'pro' ? (
           <View style={[styles.moduleCard, styles.moduleRelation]}>
             <Text style={styles.sectionHead}>💕 感情关系</Text>
-            <Text style={styles.body}>{chart.detailedReading?.relationship || '-'}</Text>
+            <Text style={styles.body}>{c.detailedReading?.relationship || '-'}</Text>
           </View>
         ) : null}
 
         <View style={[styles.moduleCard, styles.moduleCareer]}>
           <Text style={styles.sectionHead}>💼 事业发展</Text>
-          <Text style={styles.body}>{chart.detailedReading?.career || '-'}</Text>
+          <Text style={styles.body}>{c.detailedReading?.career || '-'}</Text>
         </View>
 
         {viewMode === 'pro' ? (
           <>
             <View style={[styles.moduleCard, styles.moduleWealth]}>
               <Text style={styles.sectionHead}>💰 财务节奏</Text>
-              <Text style={styles.body}>{chart.detailedReading?.wealth || '-'}</Text>
+              <Text style={styles.body}>{c.detailedReading?.wealth || '-'}</Text>
             </View>
             <View style={[styles.moduleCard, styles.moduleHealth]}>
               <Text style={styles.sectionHead}>🫀 身心状态</Text>
-              <Text style={styles.body}>{chart.detailedReading?.health || '-'}</Text>
+              <Text style={styles.body}>{c.detailedReading?.health || '-'}</Text>
             </View>
             <View style={[styles.moduleCard, styles.moduleRhythm]}>
               <Text style={styles.sectionHead}>⏳ 阶段节奏参考</Text>
-              {(chart.detailedReading?.decadeRhythm || []).map((line, idx) => (
+              {(c.detailedReading?.decadeRhythm || []).map((line, idx) => (
                 <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
               ))}
             </View>
             <View style={[styles.moduleCard, styles.moduleRhythm]}>
               <Text style={styles.sectionHead}>🪐 大运节奏（按起运推算）</Text>
               <Text style={styles.bodyMuted}>
-                起运约在 {chart.detailedReading?.luckCycles?.startAge ?? '-'} 岁，
-                方向：{chart.detailedReading?.luckCycles?.direction === 'forward' ? '顺行' : '逆行'}
+                起运约在 {c.detailedReading?.luckCycles?.startAge ?? '-'} 岁，
+                方向：{c.detailedReading?.luckCycles?.direction === 'forward' ? '顺行' : '逆行'}
               </Text>
-              {(chart.detailedReading?.luckCycles?.cycles || []).map((cycle, idx) => (
+              {(c.detailedReading?.luckCycles?.cycles || []).map((cycle, idx) => (
                 <Text key={`cycle_${idx}`} style={styles.bodyMuted}>
                   - {cycle.ageRange}（{cycle.ganZhi}）：{cycle.focus}
                 </Text>
@@ -403,7 +510,7 @@ export default function BaziScreen() {
         >
           <Text style={styles.sectionHead}>📅 近五年流年</Text>
           {showUnlockTip ? <Text style={styles.unlockTip}>✨ 已解锁老师傅批注，以下为高级流年细化</Text> : null}
-          {(chart.detailedReading?.annualForecast || [])
+          {(c.detailedReading?.annualForecast || [])
             .slice(0, viewMode === 'compact' ? 2 : 5)
             .map((yearItem, idx) => (
             <View key={`year_${idx}`} style={{ marginBottom: 6 }}>
@@ -425,7 +532,7 @@ export default function BaziScreen() {
             </View>
           ))}
           {viewMode === 'compact' ? <Text style={styles.bodyMuted}>* 切换到「专业模式」可查看完整五年流年。</Text> : null}
-        {chart.detailedReading?.paywallHint ? (
+        {c.detailedReading?.paywallHint ? (
           <TouchableOpacity
             onPress={() =>
               router.push({
@@ -434,21 +541,21 @@ export default function BaziScreen() {
               })
             }
           >
-            <Text style={[styles.bodyMuted, styles.paywallLink]}>🔒 {chart.detailedReading.paywallHint}（点此解锁）</Text>
+            <Text style={[styles.bodyMuted, styles.paywallLink]}>🔒 {c.detailedReading.paywallHint}（点此解锁）</Text>
           </TouchableOpacity>
         ) : null}
         </View>
 
         <View style={[styles.moduleCard, styles.moduleAnnual]}>
           <Text style={styles.sectionHead}>📝 年度提醒</Text>
-          {(chart.detailedReading?.yearlyTips || [])
+          {(c.detailedReading?.yearlyTips || [])
             .slice(0, viewMode === 'compact' ? 2 : 8)
             .map((line, idx) => (
             <Text key={`tip_${idx}`} style={styles.bodyMuted}>- {line}</Text>
           ))}
         </View>
 
-        <Text style={styles.disclaimer}>{chart.detailedReading?.disclaimer || ''}</Text>
+        <Text style={styles.disclaimer}>{c.detailedReading?.disclaimer || ''}</Text>
       </View>
     </ScrollView>
   );
@@ -556,4 +663,37 @@ const styles = StyleSheet.create({
   primaryBtn: { backgroundColor: '#F8D05F', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 12 },
   primaryBtnText: { color: '#1A0A18', fontWeight: 'bold', fontSize: 14 },
   link: { marginTop: 12, color: '#B8A8D8', fontSize: 13 },
+  fieldLabel: { alignSelf: 'stretch', color: '#A89EBE', fontSize: 12, marginTop: 10, marginBottom: 4 },
+  input: {
+    alignSelf: 'stretch',
+    backgroundColor: '#1B1430',
+    borderWidth: 1,
+    borderColor: '#3A2B5A',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#F2EEF9',
+    fontSize: 15,
+  },
+  guestRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6, marginBottom: 4 },
+  guestChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3A2B5A',
+    backgroundColor: '#1B1430',
+  },
+  guestChipActive: { borderColor: '#F8D05F', backgroundColor: '#2A1E42' },
+  guestChipText: { color: '#9D93B3', fontSize: 13 },
+  guestChipTextActive: { color: '#F8D05F', fontWeight: '600' },
+  guestBanner: {
+    backgroundColor: '#2A1E42',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#5D4A89',
+  },
+  guestBannerText: { color: '#D7C7FF', fontSize: 12, textAlign: 'center' },
 });
