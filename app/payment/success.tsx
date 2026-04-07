@@ -17,6 +17,8 @@ export default function PaymentSuccessScreen() {
 
   const [phase, setPhase] = useState<'polling' | 'done' | 'error' | 'missing'>('polling');
   const [message, setMessage] = useState('正在确认支付结果…');
+  /** 用于成功页主按钮：积分走灵石商城，订阅走订阅 Tab */
+  const [doneProductType, setDoneProductType] = useState<'subscription' | 'points' | null>(null);
 
   const paymentId = (() => {
     const a = params.paymentId ?? params.paymentid;
@@ -31,14 +33,12 @@ export default function PaymentSuccessScreen() {
       const u = useUserStore.getState().user;
       if (u?.id) {
         try {
-          const latest = await userApi.get(u.id);
+          const [latest, chartResp] = await Promise.all([
+            userApi.get(u.id),
+            chartApi.get(u.id).catch(() => ({ hasChart: false as const, chart: null as null })),
+          ]);
           let latestChart: BaziChart | null = null;
-          try {
-            const cr = await chartApi.get(u.id);
-            if (cr.hasChart && cr.chart) latestChart = cr.chart;
-          } catch {
-            /* ignore */
-          }
+          if (chartResp.hasChart && chartResp.chart) latestChart = chartResp.chart;
           useUserStore.setState((state) => ({
             user: latest,
             chart: latestChart ?? state.chart,
@@ -65,7 +65,12 @@ export default function PaymentSuccessScreen() {
           const st = await paymentApi.getByIdStatus(paymentId);
           if (st.status === 'completed') {
             if (!cancelled) {
-              setMessage('支付已确认，正在同步会员信息…');
+              setDoneProductType(st.productType);
+              setMessage(
+                st.productType === 'subscription'
+                  ? '支付已确认，正在同步会员信息…'
+                  : '支付已确认，正在同步积分与账户…',
+              );
               await syncUser();
               setPhase('done');
               let msg =
@@ -94,11 +99,13 @@ export default function PaymentSuccessScreen() {
         } catch {
           /* 继续轮询 */
         }
-        await sleep(2000);
+        await sleep(1000);
       }
       if (!cancelled) {
         setPhase('error');
-        setMessage('等待支付确认超时。若已扣款，会员通常会在 1～3 分钟内生效，请稍后在「灵石」订阅页下拉刷新，或从首页重新进入。');
+        setMessage(
+          '等待支付确认超时。若已扣款，会员或积分通常会在 1～3 分钟内到账，请稍后在「灵石」页下拉刷新，或从首页重新进入。',
+        );
       }
     };
 
@@ -111,6 +118,8 @@ export default function PaymentSuccessScreen() {
   const goHome = () => router.replace('/(tabs)/index' as any);
   const goSubscription = () =>
     router.replace({ pathname: '/(tabs)/points', params: { tab: 'subscription' } } as any);
+  const goPointsMall = () =>
+    router.replace({ pathname: '/(tabs)/points', params: { tab: 'mall' } } as any);
 
   return (
     <>
@@ -123,16 +132,32 @@ export default function PaymentSuccessScreen() {
         <Text style={styles.body}>{message}</Text>
         {phase !== 'polling' && (
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.primary} onPress={goSubscription} activeOpacity={0.85}>
-              <Text style={styles.primaryText}>查看订阅与到期时间</Text>
-            </TouchableOpacity>
+            {phase === 'done' && doneProductType === 'points' ? (
+              <TouchableOpacity style={styles.primary} onPress={goPointsMall} activeOpacity={0.85}>
+                <Text style={styles.primaryText}>查看积分</Text>
+              </TouchableOpacity>
+            ) : phase === 'done' && doneProductType === 'subscription' ? (
+              <TouchableOpacity style={styles.primary} onPress={goSubscription} activeOpacity={0.85}>
+                <Text style={styles.primaryText}>查看订阅与到期时间</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.primary}
+                onPress={() => router.replace('/(tabs)/points' as any)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryText}>前往灵石</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.secondary} onPress={goHome} activeOpacity={0.85}>
               <Text style={styles.secondaryText}>进入山海灵境</Text>
             </TouchableOpacity>
           </View>
         )}
         {Platform.OS === 'web' && phase === 'polling' && (
-          <Text style={styles.hint}>请勿关闭本页，正在与服务器同步…</Text>
+          <Text style={styles.hint}>
+            支付平台回调服务器可能需要几秒；本页约每秒自动刷新状态，请勿关闭。
+          </Text>
         )}
       </View>
     </>
