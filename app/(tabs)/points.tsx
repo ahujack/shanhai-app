@@ -10,6 +10,7 @@ import {
   Alert,
   RefreshControl,
   Switch,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -239,14 +240,23 @@ export default function PointsMallScreen() {
           ]
         );
       } else if (result.url) {
-        const supported = await Linking.canOpenURL(result.url);
-        if (supported) {
-          await Linking.openURL(result.url);
+        if (Platform.OS === 'web') {
+          if (typeof window !== 'undefined') {
+            window.location.assign(result.url);
+          }
           if (result.paymentId) {
             pollPaymentCompletion(result.paymentId).catch(() => null);
           }
         } else {
-          Alert.alert('提示', `请在浏览器中打开: ${result.url}`);
+          const supported = await Linking.canOpenURL(result.url);
+          if (supported) {
+            await Linking.openURL(result.url);
+            if (result.paymentId) {
+              pollPaymentCompletion(result.paymentId).catch(() => null);
+            }
+          } else {
+            Alert.alert('提示', `请在浏览器中打开: ${result.url}`);
+          }
         }
       }
     } catch (error: any) {
@@ -403,6 +413,19 @@ export default function PointsMallScreen() {
               <Text style={styles.pointsBalanceValue}>{pointsSummary?.availablePoints ?? 0}</Text>
             </View>
 
+            <View style={styles.mallExplainCard}>
+              <Text style={styles.mallExplainTitle}>订阅 和 积分 怎么选？</Text>
+              <Text style={styles.mallExplainBody}>
+                <Text style={styles.mallExplainEm}>VIP 订阅</Text>
+                ：在会员有效期内，按规则使用测字、占卜、八字高级解读等可免扣积分，适合常用用户。
+                {'\n\n'}
+                <Text style={styles.mallExplainEm}>积分充值</Text>
+                ：单次付费、按次扣积分，不买会员也能用高级功能；适合偶尔用几次、或会员过期后临时补几单。
+                {'\n\n'}
+                积分包需在支付平台（Creem）里各建一个「一次性付款」商品，并把产品 ID 配到服务器环境变量后，下方购买才会跳转收银台。
+              </Text>
+            </View>
+
             {/* 积分获取 */}
             <View style={styles.pointsCard}>
               <Text style={styles.pointsTitle}>📝 积分获取方式</Text>
@@ -551,6 +574,30 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: '#F8D05F',
+  },
+  mallExplainCard: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 14,
+    backgroundColor: '#1a1530',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+  },
+  mallExplainTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#E8E4F5',
+    marginBottom: 8,
+  },
+  mallExplainBody: {
+    fontSize: 13,
+    lineHeight: 21,
+    color: '#9AA0C0',
+  },
+  mallExplainEm: {
+    color: '#F8D05F',
+    fontWeight: '600',
   },
   vipCard: {
     margin: 16,
