@@ -64,6 +64,7 @@ export default function ProfileScreen() {
     }
   };
 
+  const [profileEmail, setProfileEmail] = useState(user?.email || '');
   const [name, setName] = useState(user?.name || '');
   const [birthDate, setBirthDate] = useState(user?.birthDate || '');
   const [birthTime, setBirthTime] = useState(user?.birthTime || '');
@@ -200,6 +201,7 @@ export default function ProfileScreen() {
         user.birthLongitude !== undefined && user.birthLongitude !== null ? String(user.birthLongitude) : '',
       );
       setGender(user.gender || 'male');
+      setProfileEmail(user.email || '');
       if (hasChart) {
         setStep('chart');
       } else {
@@ -213,6 +215,7 @@ export default function ProfileScreen() {
     const doLogout = async () => {
       await logout();
       setName('');
+      setProfileEmail('');
       setBirthDate('');
       setBirthTime('');
       setGender('male');
@@ -236,6 +239,12 @@ export default function ProfileScreen() {
       return;
     }
 
+    const emailTrim = profileEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
+      Alert.alert('提示', '请填写有效邮箱（与注册邮箱一致）');
+      return;
+    }
+
     const parsedLongitude = birthLongitude.trim() ? Number(birthLongitude) : undefined;
     if (birthLongitude.trim() && Number.isNaN(parsedLongitude!)) {
       Alert.alert('提示', '经度格式不正确，请输入数字');
@@ -246,6 +255,7 @@ export default function ProfileScreen() {
       if (user?.id) {
         await updateUser(user.id, {
           name: name.trim(),
+          email: emailTrim,
           birthDate,
           birthTime,
           calendarType,
@@ -257,6 +267,7 @@ export default function ProfileScreen() {
       } else {
         await createUser({
           name: name.trim(),
+          email: emailTrim,
           birthDate,
           birthTime,
           calendarType,
@@ -900,6 +911,18 @@ export default function ProfileScreen() {
           placeholderTextColor="#6F6287"
           value={name}
           onChangeText={setName}
+        />
+
+        <Text style={styles.inputLabel}>邮箱</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="注册或登录时使用的邮箱"
+          placeholderTextColor="#6F6287"
+          value={profileEmail}
+          onChangeText={setProfileEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
 
         <Text style={styles.inputLabel}>出生日期</Text>

@@ -192,6 +192,8 @@ export interface UserProfile {
 
 export interface CreateUserDto {
   name: string;
+  /** 必填：与注册/登录邮箱一致，用于资料与找回 */
+  email?: string;
   birthDate?: string;
   birthTime?: string;
   calendarType?: 'solar' | 'lunar';
