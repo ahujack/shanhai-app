@@ -25,6 +25,9 @@ export default function ProfileScreen() {
   const [isSharing, setIsSharing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [achievementUnlock, setAchievementUnlock] = useState<{ name: string; description: string; icon: string } | null>(null);
+  /** 点击顶部「成就」数字时展示已解锁成就详情（不再误跳积分商城） */
+  const [achievementsPanelOpen, setAchievementsPanelOpen] = useState(false);
+  const [selectedUserAchievement, setSelectedUserAchievement] = useState<UserAchievement | null>(null);
 
   // 分享功能
   const handleShare = async () => {
@@ -108,9 +111,7 @@ export default function ProfileScreen() {
     
     const init = async () => {
       try {
-        await loadUser();
-        // 加载签到状态
-        await loadCheckInStatus();
+        await Promise.all([loadUser(), loadCheckInStatus()]);
       } catch (e) {
         console.error('加载用户失败:', e);
       } finally {
@@ -450,33 +451,33 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* 积分和成就卡片 - 完整显示 */}
+        {/* 积分（突出）+ 成就 / 签到 */}
         {isLoggedIn && (
           <View style={[styles.statsCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
-            <TouchableOpacity 
-              style={styles.statItem}
-              onPress={() => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } })}
-            >
-              <Text style={styles.statValue}>{pointsSummary?.availablePoints ?? pointsSummary?.totalPoints ?? 0}</Text>
-              <Text style={styles.statLabel}>积分</Text>
-            </TouchableOpacity>
-            <View style={[styles.statDivider, { backgroundColor: '#322243' }]} />
-            <TouchableOpacity 
-              style={styles.statItem}
-              onPress={() => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } })}
-            >
-              <Text style={styles.statValue}>{achievements.filter(a => a.unlockedAt).length}</Text>
-              <Text style={styles.statLabel}>成就</Text>
-            </TouchableOpacity>
-            <View style={[styles.statDivider, { backgroundColor: '#322243' }]} />
-            <TouchableOpacity style={styles.statItem} onPress={handleCheckIn} disabled={isCheckingIn || checkInStatus?.todayCheckedIn}>
-              <Text style={[styles.statValue, checkInStatus?.todayCheckedIn && { color: '#4CAF50' }]}>
-                {checkInStatus?.todayCheckedIn ? '✓' : '+10'}
+            <TouchableOpacity style={styles.pointsHero} onPress={handleOpenPointsMall} activeOpacity={0.88}>
+              <Text style={styles.pointsHeroLabel}>可用积分</Text>
+              <Text style={styles.pointsHeroValue}>
+                {isLoadingData ? '…' : pointsSummary?.availablePoints ?? pointsSummary?.totalPoints ?? 0}
               </Text>
-              <Text style={styles.statLabel}>
-                {checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
-              </Text>
+              <Text style={styles.pointsHeroHint}>充值 / 明细 ›</Text>
             </TouchableOpacity>
+            <View style={[styles.statsRowSecond, { borderTopColor: '#322243' }]}>
+              <TouchableOpacity style={styles.statItemHalf} onPress={() => setAchievementsPanelOpen(true)} activeOpacity={0.88}>
+                <Text style={styles.statValue}>{achievements.filter((a) => a.unlockedAt).length}</Text>
+                <Text style={styles.statLabel}>成就</Text>
+              </TouchableOpacity>
+              <View style={[styles.statDivider, { backgroundColor: '#322243' }]} />
+              <TouchableOpacity
+                style={styles.statItemHalf}
+                onPress={handleCheckIn}
+                disabled={isCheckingIn || checkInStatus?.todayCheckedIn}
+              >
+                <Text style={[styles.statValue, checkInStatus?.todayCheckedIn && { color: '#4CAF50' }]}>
+                  {checkInStatus?.todayCheckedIn ? '✓' : '+10'}
+                </Text>
+                <Text style={styles.statLabel}>{checkInStatus?.todayCheckedIn ? '已签到' : '签到'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -626,6 +627,58 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {isLoggedIn && (
+          <>
+            <Text style={styles.sectionTitle}>🏆 成就徽章</Text>
+            <View style={[styles.achievementsCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
+              <View style={styles.achievementProgress}>
+                <View style={styles.achievementProgressInfo}>
+                  <Text style={styles.achievementProgressText}>
+                    已解锁 {achievementProgress?.unlocked || 0} / {achievementProgress?.total || 0}
+                  </Text>
+                  <Text style={styles.achievementProgressPoints}>
+                    成就积分: {achievementProgress?.unlockedPoints || 0}
+                  </Text>
+                </View>
+                <View style={styles.achievementProgressBar}>
+                  <View
+                    style={[
+                      styles.achievementProgressFill,
+                      {
+                        width: `${achievementProgress?.total ? (achievementProgress.unlocked / achievementProgress.total) * 100 : 0}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+              {achievements.length > 0 ? (
+                <View style={styles.achievementGrid}>
+                  {achievements.slice(0, 12).map((ua) => (
+                    <TouchableOpacity
+                      key={ua.id}
+                      style={[styles.achievementBadge, !ua.unlockedAt && styles.achievementBadgeLocked]}
+                      onPress={() => {
+                        if (ua.unlockedAt) setSelectedUserAchievement(ua);
+                      }}
+                      activeOpacity={ua.unlockedAt ? 0.85 : 1}
+                      disabled={!ua.unlockedAt}
+                    >
+                      <Text style={styles.achievementIcon}>{ua.achievement.icon || '🏆'}</Text>
+                      <Text style={styles.achievementName} numberOfLines={2}>
+                        {ua.achievement.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.achievementEmpty}>
+                  <Text style={styles.achievementEmptyText}>完成登录、签到等任务解锁成就</Text>
+                </View>
+              )}
+            </View>
+          </>
+        )}
+
         {/* 编辑信息按钮 */}
         <TouchableOpacity style={styles.editButton} onPress={() => setStep('input')}>
           <Text style={styles.editButtonText}>修改信息</Text>
@@ -657,21 +710,73 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={achievementsPanelOpen} animationType="fade" transparent onRequestClose={() => setAchievementsPanelOpen(false)}>
+        <View style={styles.achievementOverlay}>
+          <View style={[styles.achievementModalContent, styles.achievementListModal]}>
+            <Text style={styles.achievementModalTitle}>我的成就</Text>
+            <Text style={styles.achievementListSub}>已解锁的成就如下，点击徽章可查看详情</Text>
+            <ScrollView style={styles.achievementListScroll} showsVerticalScrollIndicator={false}>
+              {achievements
+                .filter((a) => a.unlockedAt)
+                .map((ua) => (
+                  <TouchableOpacity
+                    key={ua.id}
+                    style={styles.achievementListRow}
+                    onPress={() => {
+                      setAchievementsPanelOpen(false);
+                      setSelectedUserAchievement(ua);
+                    }}
+                  >
+                    <Text style={styles.achievementListIcon}>{ua.achievement.icon || '🏆'}</Text>
+                    <View style={styles.achievementListTextCol}>
+                      <Text style={styles.achievementListName}>{ua.achievement.name}</Text>
+                      <Text style={styles.achievementListDesc} numberOfLines={2}>
+                        {ua.achievement.description}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              {achievements.filter((a) => a.unlockedAt).length === 0 ? (
+                <Text style={styles.achievementEmptyText}>暂无已解锁成就，多来使用应用即可解锁</Text>
+              ) : null}
+            </ScrollView>
+            <TouchableOpacity style={styles.achievementModalButton} onPress={() => setAchievementsPanelOpen(false)}>
+              <Text style={styles.achievementModalButtonText}>关闭</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={!!selectedUserAchievement} animationType="fade" transparent onRequestClose={() => setSelectedUserAchievement(null)}>
+        <View style={styles.achievementOverlay}>
+          <View style={styles.achievementModalContent}>
+            <Text style={styles.achievementModalBadge}>{selectedUserAchievement?.achievement.icon || '🏆'}</Text>
+            <Text style={styles.achievementModalTitle}>成就详情</Text>
+            <Text style={styles.achievementModalName}>{selectedUserAchievement?.achievement.name}</Text>
+            <Text style={styles.achievementModalDesc}>{selectedUserAchievement?.achievement.description}</Text>
+            {selectedUserAchievement?.unlockedAt ? (
+              <Text style={styles.achievementUnlockedAt}>
+                解锁于{' '}
+                {new Date(selectedUserAchievement.unlockedAt).toLocaleString('zh-CN', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            ) : null}
+            <TouchableOpacity style={styles.achievementModalButton} onPress={() => setSelectedUserAchievement(null)}>
+              <Text style={styles.achievementModalButtonText}>好的</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </>
     );
   }
 
-  // 渲染输入表单（未登录状态）
-  // 加载中显示空状态
-  if (isInitializing) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', flex: 1 }]}>
-        <ActivityIndicator size="large" color="#4C2F80" />
-        <Text style={[styles.loadingText, { marginTop: 16 }]}>加载中...</Text>
-      </View>
-    );
-  }
-  
   return (
     <ScrollView 
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -1023,10 +1128,8 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 灵伴选择 */}
       <Text style={styles.sectionTitle}>🏆 成就徽章</Text>
       <View style={[styles.achievementsCard, { backgroundColor: colors.surface }]}>
-        {/* 成就进度 */}
         <View style={styles.achievementProgress}>
           <View style={styles.achievementProgressInfo}>
             <Text style={styles.achievementProgressText}>
@@ -1037,37 +1140,39 @@ export default function ProfileScreen() {
             </Text>
           </View>
           <View style={styles.achievementProgressBar}>
-            <View 
+            <View
               style={[
-                styles.achievementProgressFill, 
-                { 
-                  width: `${achievementProgress?.total ? (achievementProgress.unlocked / achievementProgress.total * 100) : 0}%` 
-                }
-              ]} 
+                styles.achievementProgressFill,
+                {
+                  width: `${achievementProgress?.total ? (achievementProgress.unlocked / achievementProgress.total) * 100 : 0}%`,
+                },
+              ]}
             />
           </View>
         </View>
-        
-        {/* 成就徽章网格 */}
+
         {achievements.length > 0 ? (
           <View style={styles.achievementGrid}>
-            {achievements.slice(0, 6).map((ua) => (
-              <View key={ua.id} style={styles.achievementBadge}>
+            {achievements.slice(0, 12).map((ua) => (
+              <TouchableOpacity
+                key={ua.id}
+                style={[styles.achievementBadge, !ua.unlockedAt && styles.achievementBadgeLocked]}
+                onPress={() => {
+                  if (ua.unlockedAt) setSelectedUserAchievement(ua);
+                }}
+                activeOpacity={ua.unlockedAt ? 0.85 : 1}
+                disabled={!ua.unlockedAt}
+              >
                 <Text style={styles.achievementIcon}>{ua.achievement.icon || '🏆'}</Text>
-                <Text style={styles.achievementName} numberOfLines={1}>
+                <Text style={styles.achievementName} numberOfLines={2}>
                   {ua.achievement.name}
                 </Text>
-              </View>
-            ))}
-            {achievements.length > 6 && (
-              <TouchableOpacity style={styles.achievementMore}>
-                <Text style={styles.achievementMoreText}>+{achievements.length - 6}</Text>
               </TouchableOpacity>
-            )}
+            ))}
           </View>
         ) : (
           <View style={styles.achievementEmpty}>
-            <Text style={styles.achievementEmptyText}>完成登录、抽签等任务解锁成就</Text>
+            <Text style={styles.achievementEmptyText}>完成登录、签到等任务解锁成就</Text>
           </View>
         )}
       </View>
@@ -1138,6 +1243,69 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={achievementsPanelOpen} animationType="fade" transparent onRequestClose={() => setAchievementsPanelOpen(false)}>
+        <View style={styles.achievementOverlay}>
+          <View style={[styles.achievementModalContent, styles.achievementListModal]}>
+            <Text style={styles.achievementModalTitle}>我的成就</Text>
+            <Text style={styles.achievementListSub}>已解锁的成就如下，点击可查看详情</Text>
+            <ScrollView style={styles.achievementListScroll} showsVerticalScrollIndicator={false}>
+              {achievements
+                .filter((a) => a.unlockedAt)
+                .map((ua) => (
+                  <TouchableOpacity
+                    key={ua.id}
+                    style={styles.achievementListRow}
+                    onPress={() => {
+                      setAchievementsPanelOpen(false);
+                      setSelectedUserAchievement(ua);
+                    }}
+                  >
+                    <Text style={styles.achievementListIcon}>{ua.achievement.icon || '🏆'}</Text>
+                    <View style={styles.achievementListTextCol}>
+                      <Text style={styles.achievementListName}>{ua.achievement.name}</Text>
+                      <Text style={styles.achievementListDesc} numberOfLines={2}>
+                        {ua.achievement.description}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              {achievements.filter((a) => a.unlockedAt).length === 0 ? (
+                <Text style={styles.achievementEmptyText}>暂无已解锁成就</Text>
+              ) : null}
+            </ScrollView>
+            <TouchableOpacity style={styles.achievementModalButton} onPress={() => setAchievementsPanelOpen(false)}>
+              <Text style={styles.achievementModalButtonText}>关闭</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={!!selectedUserAchievement} animationType="fade" transparent onRequestClose={() => setSelectedUserAchievement(null)}>
+        <View style={styles.achievementOverlay}>
+          <View style={styles.achievementModalContent}>
+            <Text style={styles.achievementModalBadge}>{selectedUserAchievement?.achievement.icon || '🏆'}</Text>
+            <Text style={styles.achievementModalTitle}>成就详情</Text>
+            <Text style={styles.achievementModalName}>{selectedUserAchievement?.achievement.name}</Text>
+            <Text style={styles.achievementModalDesc}>{selectedUserAchievement?.achievement.description}</Text>
+            {selectedUserAchievement?.unlockedAt ? (
+              <Text style={styles.achievementUnlockedAt}>
+                解锁于{' '}
+                {new Date(selectedUserAchievement.unlockedAt).toLocaleString('zh-CN', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            ) : null}
+            <TouchableOpacity style={styles.achievementModalButton} onPress={() => setSelectedUserAchievement(null)}>
+              <Text style={styles.achievementModalButtonText}>好的</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -1178,11 +1346,47 @@ const styles = StyleSheet.create({
   statsCard: {
     backgroundColor: '#161126',
     borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    padding: 0,
+    overflow: 'hidden',
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#3D2F55',
+  },
+  pointsHero: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    backgroundColor: 'rgba(248, 208, 95, 0.06)',
+  },
+  pointsHeroLabel: {
+    color: '#C4B8E0',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  pointsHeroValue: {
+    color: '#F8D05F',
+    fontSize: 42,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  pointsHeroHint: {
+    color: '#9A8FB8',
+    fontSize: 13,
+    marginTop: 10,
+  },
+  statsRowSecond: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderTopWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+  },
+  statItemHalf: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 4,
   },
   statItem: {
     alignItems: 'center',
@@ -1974,6 +2178,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#F8D05F',
+  },
+  achievementBadgeLocked: {
+    opacity: 0.4,
+    borderColor: '#322243',
+  },
+  achievementListModal: {
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: 520,
+  },
+  achievementListSub: {
+    fontSize: 12,
+    color: '#9AA0C0',
+    textAlign: 'center',
+    marginBottom: 4,
+    paddingHorizontal: 8,
+  },
+  achievementListScroll: {
+    maxHeight: 320,
+    marginVertical: 12,
+    width: '100%',
+  },
+  achievementListRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#3D2F55',
+  },
+  achievementListIcon: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  achievementListTextCol: {
+    flex: 1,
+  },
+  achievementListName: {
+    color: '#F7F6F0',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  achievementListDesc: {
+    color: '#9AA0C0',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  achievementUnlockedAt: {
+    fontSize: 12,
+    color: '#8D8DAA',
+    marginTop: 14,
+    textAlign: 'center',
   },
   achievementIcon: {
     fontSize: 28,
