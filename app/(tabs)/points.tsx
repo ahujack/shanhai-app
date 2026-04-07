@@ -20,6 +20,12 @@ import { paymentApi, PaymentProduct, CheckoutResult, pointsApi, PointsSummary, u
 
 const colors = theme.dark;
 
+const formatUsd = (price: number) => {
+  const n = Number(price);
+  if (!Number.isFinite(n)) return '—';
+  return n.toFixed(2);
+};
+
 const MEMBERSHIP_RENEWAL_NUDGE_KEY = 'shanhai_membership_renewal_nudge';
 
 function membershipExpiryDate(user: { membershipExpiryAt?: string | null } | null | undefined): Date | null {
@@ -204,7 +210,7 @@ export default function PointsMallScreen() {
         const isSubscription = product.type === 'subscription';
         Alert.alert(
           '测试模式',
-          `Creem 未配置，这是一个模拟支付。\n\n产品: ${product.name}\n价格: $${product.price}`,
+          `Creem 未配置，这是一个模拟支付。\n\n产品: ${product.name}\n价格: $${formatUsd(product.price)}`,
           [
             { text: '取消', style: 'cancel' },
             {
@@ -360,7 +366,7 @@ export default function PointsMallScreen() {
                   >
                     <View style={styles.vipProductHeader}>
                       <Text style={styles.vipProductName}>{product.name}</Text>
-                      <Text style={styles.vipProductPrice}>${product.price}</Text>
+                      <Text style={styles.vipProductPrice}>${formatUsd(product.price)}</Text>
                     </View>
                     <Text style={styles.vipProductDesc}>{product.description}</Text>
                     <View style={styles.featuresList}>
@@ -450,7 +456,7 @@ export default function PointsMallScreen() {
                   >
                     <View style={styles.vipProductHeader}>
                       <Text style={styles.vipProductName}>{product.name}</Text>
-                      <Text style={styles.vipProductPrice}>${product.price}</Text>
+                      <Text style={styles.vipProductPrice}>${formatUsd(product.price)}</Text>
                     </View>
                     <Text style={styles.vipProductDesc}>{product.description}</Text>
                     <TouchableOpacity
