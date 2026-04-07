@@ -63,29 +63,44 @@ async function clearSessionOnAuthError(errorMsg: string): Promise<void> {
   emitAuthExpired();
 }
 
+/** 可选：fetch 超时（识字/测字等 LLM 链路较慢，避免浏览器默认过早断开） */
+export type RequestExtraOptions = { timeoutMs?: number };
+
 // 通用请求函数
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  extra?: RequestExtraOptions,
+): Promise<T> {
   const fullUrl = `${API_BASE_URL}${endpoint}`;
-  
+  const timeoutMs = extra?.timeoutMs;
+
   // 调试日志
   console.log(`[API Request] ${options.method || 'GET'} ${fullUrl}`, options.body);
-  
+
   // 获取 token（优先使用 globalAuthToken，然后尝试 localStorage）
   let token: string | null = globalAuthToken;
   if (!token && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
     try {
-        token = localStorage.getItem('shanhai_auth_token');
+      token = localStorage.getItem('shanhai_auth_token');
     } catch (e) {
       // ignore
     }
   }
 
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  if (timeoutMs != null && timeoutMs > 0 && !options.signal) {
+    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  }
+
   try {
     const response = await fetch(fullUrl, {
       ...options,
+      ...(timeoutMs != null && timeoutMs > 0 && !options.signal ? { signal: controller.signal } : {}),
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
     });
@@ -128,7 +143,24 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     return data;
   } catch (error) {
     console.error(`[API Request Failed] ${fullUrl}:`, error);
+    const err = error as Error;
+    if (err?.name === 'AbortError') {
+      const sec = timeoutMs ? Math.round(timeoutMs / 1000) : 0;
+      throw new Error(
+        sec > 0
+          ? `请求超时（>${sec}s），识别需要调用 AI，请稍后重试或检查网络`
+          : '请求已取消',
+      );
+    }
+    const msg = String(err?.message || error);
+    if (/Failed to fetch|NetworkError|network error|load failed|ERR_CONNECTION|timed out|TIMEOUT/i.test(msg)) {
+      throw new Error(
+        '网络异常或服务器响应超时。手写识别需调用云端 AI，请稍后重试；若持续失败请检查网络或稍后再试。',
+      );
+    }
     throw error;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }
 
@@ -536,20 +568,33 @@ export interface ZiResult {
   };
 }
 
+/** 手写识字 + 多模态较慢，单独放宽超时（毫秒） */
+const ZI_RECOGNIZE_TIMEOUT_MS = 120_000;
+const ZI_ANALYZE_HANDWRITING_TIMEOUT_MS = 180_000;
+const ZI_TEXT_ANALYZE_TIMEOUT_MS = 120_000;
+
 export const ziApi = {
   analyze: (zi: string, focusAspect?: string, handwriting?: object) =>
-    request<ZiResult>('/zi/analyze', {
-      method: 'POST',
-      body: JSON.stringify({ zi, focusAspect, handwriting }),
-    }),
+    request<ZiResult>(
+      '/zi/analyze',
+      {
+        method: 'POST',
+        body: JSON.stringify({ zi, focusAspect, handwriting }),
+      },
+      { timeoutMs: ZI_TEXT_ANALYZE_TIMEOUT_MS },
+    ),
 };
 
 export const handwritingApi = {
   recognize: (image: string) =>
-    request<{ recognizedZi: string | null; confidence?: number }>('/zi/recognize', {
-      method: 'POST',
-      body: JSON.stringify({ image }),
-    }),
+    request<{ recognizedZi: string | null; confidence?: number }>(
+      '/zi/recognize',
+      {
+        method: 'POST',
+        body: JSON.stringify({ image }),
+      },
+      { timeoutMs: ZI_RECOGNIZE_TIMEOUT_MS },
+    ),
   analyze: (image: string, focusAspect?: string) =>
     request<{ recognizedZi: string | null; confidence?: number; analysis?: ZiResult; error?: string }>(
       '/zi/analyze-handwriting',
@@ -557,6 +602,7 @@ export const handwritingApi = {
         method: 'POST',
         body: JSON.stringify({ image, focusAspect }),
       },
+      { timeoutMs: ZI_ANALYZE_HANDWRITING_TIMEOUT_MS },
     ),
 };
 

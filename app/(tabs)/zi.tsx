@@ -275,6 +275,8 @@ export default function ZiScreen() {
       return;
     }
     console.log('开始手写识别，SVG长度:', svgString.length);
+    // 清除上一轮解读，避免识别超时/失败时界面仍显示上一字（如「测」）
+    setResult(null);
     setIsLoading(true);
     setHandwritingStage('recognizing');
     try {
@@ -282,6 +284,7 @@ export default function ZiScreen() {
       const recognized = await handwritingApi.recognize(svgString);
       const recognizedZi = recognized.recognizedZi?.trim().charAt(0);
       if (!recognizedZi || !/[\u4e00-\u9fa5]/.test(recognizedZi)) {
+        setResult(null);
         Alert.alert('😔 识别失败', '未能识别出汉字，请重新书写');
         return;
       }
@@ -291,6 +294,7 @@ export default function ZiScreen() {
       if (ok) Alert.alert('🎉 识别成功', `识别到汉字：${recognizedZi}\n\n当前已完成首轮解读，你可以继续做方向深挖。`);
     } catch (error: any) {
       console.error('手写识别失败:', error);
+      setResult(null);
       Alert.alert('错误', error?.message || '手写识别失败，请稍后重试');
     } finally {
       setHandwritingStage('idle');
