@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { paymentApi, userApi, chartApi, type BaziChart } from '../../src/services/api';
@@ -17,8 +17,20 @@ export default function PaymentSuccessScreen() {
 
   const [phase, setPhase] = useState<'polling' | 'done' | 'error' | 'missing'>('polling');
   const [message, setMessage] = useState('正在确认支付结果…');
-  /** 用于成功页主按钮：积分走灵石商城，订阅走订阅 Tab */
-  const [doneProductType, setDoneProductType] = useState<'subscription' | 'points' | null>(null);
+  /**
+   * 支付完成时的商品类型：必须在 await 之前同步写入 ref，避免 setState 批处理与异步间隔导致
+   * 「文案已是积分、按钮仍显示订阅」的错配。
+   */
+  const paymentKindRef = useRef<'points' | 'subscription' | null>(null);
+
+  const donePrimaryKind = useMemo((): 'points' | 'subscription' | 'neutral' => {
+    if (phase !== 'done') return 'neutral';
+    const r = paymentKindRef.current;
+    if (r === 'points' || r === 'subscription') return r;
+    if (message.includes('积分已到账')) return 'points';
+    if (message.includes('会员权益已生效')) return 'subscription';
+    return 'neutral';
+  }, [phase, message]);
 
   const paymentId = (() => {
     const a = params.paymentId ?? params.paymentid;
@@ -53,6 +65,7 @@ export default function PaymentSuccessScreen() {
     };
 
     const run = async () => {
+      paymentKindRef.current = null;
       if (!paymentId) {
         setPhase('missing');
         setMessage('缺少支付单号，请在山海灵境内打开「灵石」页的订阅查看订单状态，或联系客服。');
@@ -65,19 +78,20 @@ export default function PaymentSuccessScreen() {
           const st = await paymentApi.getByIdStatus(paymentId);
           if (st.status === 'completed') {
             if (!cancelled) {
-              setDoneProductType(st.productType);
+              const kind = st.productType === 'subscription' ? 'subscription' : 'points';
+              paymentKindRef.current = kind;
               setMessage(
-                st.productType === 'subscription'
+                kind === 'subscription'
                   ? '支付已确认，正在同步会员信息…'
                   : '支付已确认，正在同步积分与账户…',
               );
               await syncUser();
               setPhase('done');
               let msg =
-                st.productType === 'subscription'
+                kind === 'subscription'
                   ? '会员权益已生效，感谢支持！'
                   : '积分已到账，感谢支持！';
-              if (st.productType === 'subscription' && st.membershipExpiryAt) {
+              if (kind === 'subscription' && st.membershipExpiryAt) {
                 const zh = new Date(st.membershipExpiryAt).toLocaleDateString('zh-CN', {
                   year: 'numeric',
                   month: 'long',
@@ -132,11 +146,11 @@ export default function PaymentSuccessScreen() {
         <Text style={styles.body}>{message}</Text>
         {phase !== 'polling' && (
           <View style={styles.actions}>
-            {phase === 'done' && doneProductType === 'points' ? (
+            {phase === 'done' && donePrimaryKind === 'points' ? (
               <TouchableOpacity style={styles.primary} onPress={goPointsMall} activeOpacity={0.85}>
                 <Text style={styles.primaryText}>查看积分</Text>
               </TouchableOpacity>
-            ) : phase === 'done' && doneProductType === 'subscription' ? (
+            ) : phase === 'done' && donePrimaryKind === 'subscription' ? (
               <TouchableOpacity style={styles.primary} onPress={goSubscription} activeOpacity={0.85}>
                 <Text style={styles.primaryText}>查看订阅与到期时间</Text>
               </TouchableOpacity>
