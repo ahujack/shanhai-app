@@ -10,7 +10,7 @@ export default function PaymentCancelScreen() {
       <Stack.Screen options={{ title: '已取消支付' }} />
       <View style={styles.container}>
         <Text style={styles.title}>支付已取消</Text>
-        <Text style={styles.body}>未扣款。如需开通 VIP 或充值积分，可随时返回灵石页继续操作。</Text>
+        <Text style={styles.body}>未扣款。如需开通 VIP 或充值积分，可在山海灵境内打开「灵石」订阅继续操作。</Text>
         <TouchableOpacity
           style={styles.btn}
           onPress={() => router.replace({ pathname: '/(tabs)/points', params: { tab: 'subscription' } } as any)}

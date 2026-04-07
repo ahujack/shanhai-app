@@ -55,7 +55,7 @@ export default function PaymentSuccessScreen() {
     const run = async () => {
       if (!paymentId) {
         setPhase('missing');
-        setMessage('缺少支付单号，请从「灵石 → 订阅」查看订单状态，或联系客服。');
+        setMessage('缺少支付单号，请在山海灵境内打开「灵石」页的订阅查看订单状态，或联系客服。');
         return;
       }
 
@@ -98,7 +98,7 @@ export default function PaymentSuccessScreen() {
       }
       if (!cancelled) {
         setPhase('error');
-        setMessage('等待支付确认超时。若已扣款，会员通常会在 1～3 分钟内生效，请稍后在「灵石」页下拉刷新。');
+        setMessage('等待支付确认超时。若已扣款，会员通常会在 1～3 分钟内生效，请稍后在「灵石」订阅页下拉刷新，或从首页重新进入。');
       }
     };
 
@@ -108,13 +108,13 @@ export default function PaymentSuccessScreen() {
     };
   }, [paymentId, loadUser]);
 
-  const goHome = () => router.replace('/(tabs)/points' as any);
+  const goHome = () => router.replace('/(tabs)/index' as any);
   const goSubscription = () =>
     router.replace({ pathname: '/(tabs)/points', params: { tab: 'subscription' } } as any);
 
   return (
     <>
-      <Stack.Screen options={{ title: '支付结果' }} />
+      <Stack.Screen options={{ title: '支付结果 · 山海灵境' }} />
       <View style={styles.container}>
         {phase === 'polling' && <ActivityIndicator size="large" color="#F8D05F" style={{ marginBottom: 20 }} />}
         <Text style={styles.title}>
@@ -127,7 +127,7 @@ export default function PaymentSuccessScreen() {
               <Text style={styles.primaryText}>查看订阅与到期时间</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.secondary} onPress={goHome} activeOpacity={0.85}>
-              <Text style={styles.secondaryText}>返回灵石</Text>
+              <Text style={styles.secondaryText}>进入山海灵境</Text>
             </TouchableOpacity>
           </View>
         )}
