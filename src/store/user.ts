@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserProfile, BaziChart, FortuneSlip, userApi, chartApi, fortuneApi, CreateUserDto, authApi, checkInApi, CheckInStatus, setGlobalAuthToken } from '../services/api';
+import {
+  UserProfile,
+  BaziChart,
+  FortuneSlip,
+  userApi,
+  chartApi,
+  fortuneApi,
+  CreateUserDto,
+  authApi,
+  checkInApi,
+  CheckInStatus,
+  setGlobalAuthToken,
+  apiDebugLog,
+} from '../services/api';
 
 const USER_ID_KEY = 'shanhai_user_id';
 const AUTH_TOKEN_KEY = 'shanhai_auth_token';
@@ -43,7 +56,7 @@ if (typeof window !== 'undefined') {
   // 同步从localStorage读取token，确保store初始化时token已加载
   const storedToken = typeof localStorage !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
   globalAuthToken = storedToken;
-  console.log('[Store] 初始化加载token:', storedToken ? 'exists' : 'null');
+  apiDebugLog('[Store] 初始化加载token:', storedToken ? 'exists' : 'null');
 }
 
 interface UserState {
@@ -73,7 +86,13 @@ interface UserState {
   clearUser: () => Promise<void>;
   
   // 签到
-  checkIn: () => Promise<{ success: boolean; message?: string; points?: number; reward?: string } | null>;
+  checkIn: () => Promise<{
+    success: boolean;
+    message?: string;
+    points?: number;
+    reward?: string;
+    achievement?: { name: string; description: string; icon: string } | null;
+  } | null>;
   loadCheckInStatus: () => Promise<void>;
 }
 
@@ -100,7 +119,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       globalAuthToken = token;
       setGlobalAuthToken(token);
       
-      console.log('[loadUser] userId:', userId, 'token:', token ? 'exists' : 'null');
+      apiDebugLog('[loadUser] userId:', userId, 'token:', token ? 'exists' : 'null');
       // 仅有 userId 无 token 时，公开接口仍能拉到用户资料，但命盘/成就等需 JWT，会导致「界面像已登录、操作全 401」
       if (userId && !token?.trim()) {
         await storage.removeItem(USER_ID_KEY);
@@ -111,33 +130,23 @@ export const useUserStore = create<UserState>((set, get) => ({
         return;
       }
       if (userId) {
-        const user = await userApi.get(userId);
-        console.log('[loadUser] user loaded:', user);
-        
-        // 更新全局token和store状态
-        set({ user, token: token });
+        const [user, chartData, fortune] = await Promise.all([
+          userApi.get(userId),
+          chartApi.get(userId).catch(() => ({ hasChart: false as const })),
+          fortuneApi.getDaily().catch(() => null),
+        ]);
+        apiDebugLog('[loadUser] user loaded:', user);
+
         globalAuthToken = token;
-        
-        // 加载命盘
-        try {
-          const chartData = await chartApi.get(userId);
-          if (chartData.hasChart && chartData.chart) {
-            set({ chart: chartData.chart, hasChart: true });
-          } else {
-            set({ chart: null, hasChart: false });
-          }
-        } catch (e) {
-          // 用户可能还没有命盘
-          set({ chart: null, hasChart: false });
-        }
-        
-        // 加载每日运势
-        try {
-          const fortune = await fortuneApi.getDaily();
-          set({ dailyFortune: fortune });
-        } catch (e) {
-          // ignore
-        }
+        const hasChartOk = !!(chartData.hasChart && chartData.chart);
+        const prevFortune = get().dailyFortune;
+        set({
+          user,
+          token,
+          chart: hasChartOk ? chartData.chart! : null,
+          hasChart: hasChartOk,
+          dailyFortune: fortune != null ? fortune : prevFortune,
+        });
       }
     } catch (e) {
       console.error('加载用户失败:', e);
@@ -196,11 +205,11 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   // 密码登录
   loginWithPassword: async (email: string, password: string) => {
-    console.log('[Login] Starting password login for:', email);
+    apiDebugLog('[Login] Starting password login for:', email);
     set({ isLoading: true });
     try {
       const result = await authApi.login({ email, password });
-      console.log('[Login] Password login result:', result);
+      apiDebugLog('[Login] Password login result:', result);
       if (result.success && result.token && result.user) {
         // 同步存储到localStorage
         if (typeof localStorage !== 'undefined') {
@@ -211,7 +220,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         globalAuthToken = result.token;
         setGlobalAuthToken(result.token);
         set({ user: result.user, token: result.token });
-        console.log('[Login] Password login success, user:', result.user);
+        apiDebugLog('[Login] Password login success, user:', result.user);
         return { success: true, message: '登录成功' };
       }
       // 返回错误消息，让UI层显示
@@ -225,11 +234,11 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
   
   loginWithCode: async (email?: string, code?: string) => {
-    console.log('[Login] Starting code login for:', email, 'code:', code);
+    apiDebugLog('[Login] Starting code login for:', email, 'code:', code);
     set({ isLoading: true });
     try {
       const result = await authApi.login({ email: email || '', code: code || '' });
-      console.log('[Login] Code login result:', result);
+      apiDebugLog('[Login] Code login result:', result);
       if (result.success && result.token && result.user) {
           // 同步存储到localStorage
           if (typeof localStorage !== 'undefined') {
@@ -239,7 +248,7 @@ export const useUserStore = create<UserState>((set, get) => ({
           globalAuthToken = result.token;
           setGlobalAuthToken(result.token);
         set({ user: result.user, token: result.token });
-        console.log('[Login] Code login success, user:', result.user);
+        apiDebugLog('[Login] Code login success, user:', result.user);
         return { success: true, message: '登录成功' };
       }
       // 返回错误消息，让UI层显示

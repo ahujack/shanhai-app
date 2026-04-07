@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, Modal } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, Modal, InteractionManager } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
@@ -105,13 +105,20 @@ export default function ProfileScreen() {
     });
   };
   
-  // 页面加载时获取用户信息
+  // 页面加载：根布局已 loadUser 时只拉签到并后台刷新，避免重复串行请求拖慢首屏
   React.useEffect(() => {
     let isMounted = true;
-    
+
     const init = async () => {
       try {
-        await Promise.all([loadUser(), loadCheckInStatus()]);
+        const hadUser = !!useUserStore.getState().user;
+        if (hadUser) {
+          await loadCheckInStatus();
+          loadUser().catch((err) => console.error('后台刷新用户失败:', err));
+        } else {
+          await loadUser();
+          await loadCheckInStatus();
+        }
       } catch (e) {
         console.error('加载用户失败:', e);
       } finally {
@@ -120,28 +127,27 @@ export default function ProfileScreen() {
         }
       }
     };
-    
+
     init();
-    
+
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadUser, loadCheckInStatus]);
 
-  // 加载积分和成就数据
+  // 积分/成就：首屏后再拉，避免与 loadUser 争带宽
   useEffect(() => {
     if (!user) return;
-    
+
     const loadData = async () => {
       setIsLoadingData(true);
       try {
-        // 并行加载积分和成就数据
         const [pointsData, achievementsData, progressData] = await Promise.all([
           pointsApi.getSummary().catch(() => null),
           achievementApi.getUserAchievements().catch(() => []),
           achievementApi.getProgress().catch(() => null),
         ]);
-        
+
         setPointsSummary(pointsData);
         setAchievements(achievementsData);
         setAchievementProgress(progressData);
@@ -151,8 +157,11 @@ export default function ProfileScreen() {
         setIsLoadingData(false);
       }
     };
-    
-    loadData();
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      loadData();
+    });
+    return () => task.cancel();
   }, [user]);
 
   // 签到处理函数

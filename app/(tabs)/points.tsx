@@ -17,7 +17,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
-import { paymentApi, PaymentProduct, CheckoutResult, pointsApi, PointsSummary, userApi, chartApi } from '../../src/services/api';
+import {
+  paymentApi,
+  PaymentProduct,
+  CheckoutResult,
+  pointsApi,
+  PointsSummary,
+  PointRecord,
+  userApi,
+  chartApi,
+} from '../../src/services/api';
 
 const colors = theme.dark;
 
@@ -53,6 +62,39 @@ function formatMembershipExpiryZh(iso: string | null | undefined): string {
   return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+/** 与后端 PointRecord.type 常见取值对齐，便于列表展示 */
+const POINT_RECORDS_LIMIT = 30;
+const POINT_TYPE_LABELS: Record<string, string> = {
+  checkin: '签到',
+  reward: '奖励',
+  recharge: '充值入账',
+  referral_bonus: '受邀奖励',
+  referral_reward: '邀请好友',
+  register_bonus: '注册奖励',
+  achievement: '成就奖励',
+  exchange: '兑换消耗',
+  draw: '占卜消耗',
+  zi: '测字消耗',
+  reading: '解读消耗',
+  chart: '八字/命盘',
+};
+
+function labelPointType(type: string): string {
+  if (!type) return '其他';
+  return POINT_TYPE_LABELS[type] ?? type;
+}
+
+function formatPointRecordTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 type TabType = 'subscription' | 'mall';
 
 export default function PointsMallScreen() {
@@ -73,8 +115,25 @@ export default function PointsMallScreen() {
   const [highlightVip, setHighlightVip] = useState(false);
   const [renewalNudgeEnabled, setRenewalNudgeEnabled] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [recordsExpanded, setRecordsExpanded] = useState(false);
+  const [pointRecords, setPointRecords] = useState<PointRecord[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const loadPointRecords = React.useCallback(async () => {
+    if (!user?.id) return;
+    setRecordsLoading(true);
+    try {
+      const list = await pointsApi.getRecords(POINT_RECORDS_LIMIT);
+      setPointRecords(list);
+    } catch (e) {
+      console.error('加载积分流水失败:', e);
+      setPointRecords([]);
+    } finally {
+      setRecordsLoading(false);
+    }
+  }, [user?.id]);
 
   const refreshMembershipAndChart = async () => {
     if (!user?.id) return;
@@ -150,6 +209,9 @@ export default function PointsMallScreen() {
     try {
       await loadProducts();
       await refreshMembershipAndChart();
+      if (recordsExpanded) {
+        await loadPointRecords();
+      }
     } finally {
       setRefreshing(false);
     }
@@ -411,7 +473,70 @@ export default function PointsMallScreen() {
             <View style={styles.pointsBalanceCard}>
               <Text style={styles.pointsBalanceLabel}>当前积分</Text>
               <Text style={styles.pointsBalanceValue}>{pointsSummary?.availablePoints ?? 0}</Text>
+              {user ? (
+                <Text style={styles.pointsBalanceSub}>
+                  累计获得 {pointsSummary?.totalEarned ?? 0} · 累计消耗 {pointsSummary?.totalSpent ?? 0}
+                </Text>
+              ) : (
+                <Text style={styles.pointsBalanceSub}>登录后可查看收支汇总与流水</Text>
+              )}
             </View>
+
+            {user ? (
+              <View style={styles.ledgerCard}>
+                <TouchableOpacity
+                  style={styles.ledgerHeader}
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    const next = !recordsExpanded;
+                    setRecordsExpanded(next);
+                    if (next) {
+                      void loadPointRecords();
+                    }
+                  }}
+                >
+                  <View style={styles.ledgerHeaderTextWrap}>
+                    <Text style={styles.ledgerTitle}>📒 收支明细</Text>
+                    <Text style={styles.ledgerSubtitle}>
+                      {recordsExpanded ? '点击收起' : `展开查看最近 ${POINT_RECORDS_LIMIT} 笔流水`}
+                    </Text>
+                  </View>
+                  <Text style={styles.ledgerChevron}>{recordsExpanded ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+                {recordsExpanded ? (
+                  recordsLoading ? (
+                    <ActivityIndicator color={colors.accent} style={styles.ledgerSpinner} />
+                  ) : pointRecords.length === 0 ? (
+                    <Text style={styles.ledgerEmpty}>暂无流水（消费/奖励入账后会出现在这里）</Text>
+                  ) : (
+                    <View style={styles.ledgerList}>
+                      {pointRecords.map((r) => (
+                        <View key={r.id} style={styles.ledgerRow}>
+                          <View style={styles.ledgerRowLeft}>
+                            <Text style={styles.ledgerRowTitle} numberOfLines={2}>
+                              {(r.description && r.description.trim()) || labelPointType(r.type)}
+                            </Text>
+                            <Text style={styles.ledgerRowMeta}>
+                              {labelPointType(r.type)} · {formatPointRecordTime(r.createdAt)}
+                            </Text>
+                          </View>
+                          <Text
+                            style={[
+                              styles.ledgerPoints,
+                              r.points >= 0 ? styles.ledgerPointsIn : styles.ledgerPointsOut,
+                            ]}
+                          >
+                            {r.points >= 0 ? '+' : ''}
+                            {r.points}
+                          </Text>
+                        </View>
+                      ))}
+                      <Text style={styles.ledgerFootnote}>仅展示最近 {POINT_RECORDS_LIMIT} 条，完整对账以服务端记录为准。</Text>
+                    </View>
+                  )
+                ) : null}
+              </View>
+            ) : null}
 
             <View style={styles.mallExplainCard}>
               <Text style={styles.mallExplainTitle}>订阅 和 积分 怎么选？</Text>
@@ -574,6 +699,103 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: '#F8D05F',
+  },
+  pointsBalanceSub: {
+    marginTop: 10,
+    fontSize: 12,
+    color: '#8D8DAA',
+    textAlign: 'center',
+  },
+  ledgerCard: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: '#16213E',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+    overflow: 'hidden',
+  },
+  ledgerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  ledgerHeaderTextWrap: {
+    flex: 1,
+    marginRight: 8,
+  },
+  ledgerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#E8E4F5',
+  },
+  ledgerSubtitle: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#7A7A9A',
+  },
+  ledgerChevron: {
+    fontSize: 12,
+    color: '#F8D05F',
+  },
+  ledgerSpinner: {
+    marginVertical: 16,
+  },
+  ledgerList: {
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#2D2D44',
+  },
+  ledgerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#2D2D44',
+  },
+  ledgerRowLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  ledgerRowTitle: {
+    fontSize: 14,
+    color: '#E8E6F0',
+    lineHeight: 20,
+  },
+  ledgerRowMeta: {
+    marginTop: 4,
+    fontSize: 11,
+    color: '#6B6B8A',
+  },
+  ledgerPoints: {
+    fontSize: 15,
+    fontWeight: '700',
+    minWidth: 52,
+    textAlign: 'right',
+  },
+  ledgerPointsIn: {
+    color: '#7CFCA7',
+  },
+  ledgerPointsOut: {
+    color: '#FFB4A8',
+  },
+  ledgerEmpty: {
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+    fontSize: 13,
+    color: '#8D8DAA',
+    borderTopWidth: 1,
+    borderTopColor: '#2D2D44',
+  },
+  ledgerFootnote: {
+    marginTop: 10,
+    fontSize: 11,
+    color: '#5C5C78',
+    lineHeight: 16,
   },
   mallExplainCard: {
     marginHorizontal: 16,

@@ -1,18 +1,45 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { emitAuthExpired } from '../lib/auth-expired';
 
-// API 配置
-// 开发环境使用 localhost，生产环境使用 Railway 提供的 URL
-// 可通过环境变量 NEXT_PUBLIC_API_URL 覆盖
-// 注意：在 React Native 中，需要使用 expo 插件来读取环境变量
-const API_BASE_URL = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL 
-  ? process.env.NEXT_PUBLIC_API_URL 
-  : 'https://shanhai-production.up.railway.app/api';
-
-// 调试日志
-if (typeof window !== 'undefined') {
-  console.log('API_BASE_URL:', API_BASE_URL);
+/** 与 Metro/Expo 一致：开发包为 true，Release 为 false */
+function isDevBundle(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof (globalThis as any).__DEV__ !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return !!(globalThis as any).__DEV__;
+    }
+  } catch {
+    /* ignore */
+  }
+  return typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
 }
+
+/** 供 store 等与 API 同环境的调试输出（生产 Release 不打印） */
+export function apiDebugLog(...args: unknown[]) {
+  if (isDevBundle()) {
+    console.log(...args);
+  }
+}
+
+export { isDevBundle };
+
+/**
+ * 生产构建必须设置 NEXT_PUBLIC_API_URL（完整 base，含 /api 后缀与部署一致）。
+ * 开发包未设置时沿用原默认线上 API，便于真机连生产。
+ */
+function resolveApiBaseUrl(): string {
+  const raw = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_API_URL?.trim() : '';
+  if (raw) return raw.replace(/\/$/, '');
+  if (isDevBundle()) {
+    return 'https://shanhai-production.up.railway.app/api';
+  }
+  throw new Error(
+    'NEXT_PUBLIC_API_URL 未配置：生产构建请在 .env 或 CI 中设置（例如 https://your-api.example.com/api）',
+  );
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 // 全局 token 变量
 let globalAuthToken: string | null = null;
@@ -22,22 +49,22 @@ if (typeof window !== 'undefined') {
   try {
     // 优先尝试使用 globalAuthToken（由 store 设置）
     if (globalAuthToken) {
-      console.log('[API] 使用 globalAuthToken');
+      apiDebugLog('[API] 使用 globalAuthToken');
     } else if (typeof localStorage !== 'undefined') {
       // Web 环境使用 localStorage
       const stored = localStorage.getItem('shanhai_auth_token');
       globalAuthToken = stored;
-      console.log('[API] 从 localStorage 初始化 token:', stored ? 'exists' : 'null', 'key: shanhai_auth_token');
+      apiDebugLog('[API] 从 localStorage 初始化 token:', stored ? 'exists' : 'null');
     }
   } catch (e) {
-    console.log('[API] 读取 token 失败:', e);
+    apiDebugLog('[API] 读取 token 失败:', e);
   }
 }
 
 // 导出设置 token 的函数
 export function setGlobalAuthToken(token: string | null) {
   globalAuthToken = token;
-  console.log('[API] 设置 globalAuthToken:', token ? 'exists' : 'null');
+  apiDebugLog('[API] 设置 globalAuthToken:', token ? 'exists' : 'null');
 }
 
 /** 401 且判定为登录态失效时清 token 并通知 UI（含 Native） */
@@ -77,8 +104,7 @@ async function request<T>(
   const fullUrl = `${API_BASE_URL}${endpoint}`;
   const timeoutMs = extra?.timeoutMs;
 
-  // 调试日志
-  console.log(`[API Request] ${options.method || 'GET'} ${fullUrl}`, options.body);
+  apiDebugLog(`[API Request] ${options.method || 'GET'} ${fullUrl}`, options.body);
 
   // 获取 token（优先使用 globalAuthToken，然后尝试 localStorage）
   let token: string | null = globalAuthToken;
@@ -120,7 +146,7 @@ async function request<T>(
       throw new Error('服务器响应格式错误');
     }
 
-    console.log(`[API Response] ${response.status}`, data);
+    apiDebugLog(`[API Response] ${response.status}`, data);
 
     // 即使 HTTP 状态码是 200，也要检查业务层面的 success
     if (response.ok && data.success === false) {
