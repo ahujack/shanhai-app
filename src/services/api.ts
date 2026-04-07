@@ -51,12 +51,14 @@ async function clearSessionOnAuthError(errorMsg: string): Promise<void> {
   try {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('shanhai_auth_token');
+      localStorage.removeItem('shanhai_user_id');
     }
   } catch {
     /* ignore */
   }
   try {
     await AsyncStorage.removeItem('shanhai_auth_token');
+    await AsyncStorage.removeItem('shanhai_user_id');
   } catch {
     /* ignore */
   }

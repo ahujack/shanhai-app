@@ -242,7 +242,10 @@ export default function BaziScreen() {
     try {
       await generateChart(gender);
     } catch (err) {
-      setGenError('生成命盘失败，请检查网络后重试');
+      const msg = err instanceof Error ? err.message : '';
+      setGenError(
+        /请先登录|登录/.test(msg) ? '登录状态无效或已过期，请重新登录后再生成命盘' : '生成命盘失败，请检查网络后重试',
+      );
     }
   };
 

@@ -101,6 +101,15 @@ export const useUserStore = create<UserState>((set, get) => ({
       setGlobalAuthToken(token);
       
       console.log('[loadUser] userId:', userId, 'token:', token ? 'exists' : 'null');
+      // 仅有 userId 无 token 时，公开接口仍能拉到用户资料，但命盘/成就等需 JWT，会导致「界面像已登录、操作全 401」
+      if (userId && !token?.trim()) {
+        await storage.removeItem(USER_ID_KEY);
+        await storage.removeItem(AUTH_TOKEN_KEY);
+        globalAuthToken = null;
+        setGlobalAuthToken(null);
+        set({ user: null, token: null, chart: null, hasChart: false });
+        return;
+      }
       if (userId) {
         const user = await userApi.get(userId);
         console.log('[loadUser] user loaded:', user);
@@ -169,6 +178,8 @@ export const useUserStore = create<UserState>((set, get) => ({
       if (result.success && result.token && result.user) {
         await storage.setItem(USER_ID_KEY, result.user.id);
         await storage.setItem(AUTH_TOKEN_KEY, result.token);
+        globalAuthToken = result.token;
+        setGlobalAuthToken(result.token);
         set({ user: result.user, token: result.token });
         return { success: true };
       }
@@ -225,8 +236,8 @@ export const useUserStore = create<UserState>((set, get) => ({
             localStorage.setItem(USER_ID_KEY, result.user.id);
             localStorage.setItem(AUTH_TOKEN_KEY, result.token);
           }
-          // 同步设置全局token
           globalAuthToken = result.token;
+          setGlobalAuthToken(result.token);
         set({ user: result.user, token: result.token });
         console.log('[Login] Code login success, user:', result.user);
         return { success: true, message: '登录成功' };
@@ -306,7 +317,21 @@ export const useUserStore = create<UserState>((set, get) => ({
   generateChart: async (gender) => {
     const { user } = get();
     if (!user) return;
-    
+
+    let token = get().token;
+    if (!token?.trim() && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (stored?.trim()) {
+        token = stored;
+        globalAuthToken = stored;
+        setGlobalAuthToken(stored);
+        set({ token: stored });
+      }
+    }
+    if (!token?.trim()) {
+      throw new Error('请先登录后再生成命盘');
+    }
+
     set({ isLoading: true });
     try {
       const chart = await chartApi.generate(user.id, gender);

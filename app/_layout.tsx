@@ -64,9 +64,16 @@ function RootLayoutNav() {
 
   useEffect(() => {
     return subscribeAuthExpired(() => {
-      useUserStore.setState({ token: null });
-      const { user } = useUserStore.getState();
-      if (!user) return;
+      const hadUser = !!useUserStore.getState().user;
+      useUserStore.setState({
+        user: null,
+        token: null,
+        chart: null,
+        hasChart: false,
+        dailyFortune: null,
+        checkInStatus: null,
+      });
+      if (!hadUser) return;
       if (authPromptLockRef.current) return;
       authPromptLockRef.current = true;
       const dismiss = () => {
