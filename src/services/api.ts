@@ -186,6 +186,8 @@ export interface UserProfile {
   avatar?: string;
   role: 'user' | 'admin';
   membership: 'free' | 'premium' | 'vip';
+  /** ISO 8601，有值时与后端权益判断一致 */
+  membershipExpiryAt?: string | null;
   referralCode?: string; // 推荐码
   referredBy?: string;   // 推荐人ID
   createdAt?: string;
@@ -874,6 +876,7 @@ export interface PaymentStatusResult {
   status: 'pending' | 'completed' | 'failed' | 'refunded';
   productType: 'points' | 'subscription';
   membership: 'free' | 'premium' | 'vip';
+  membershipExpiryAt?: string | null;
   completedAt: string | null;
 }
 

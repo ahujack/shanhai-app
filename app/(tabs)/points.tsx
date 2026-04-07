@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Alert } from 'react-native';
+import {
+  ScrollView,
+  Text,
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Linking,
+  Alert,
+  RefreshControl,
+  Switch,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
@@ -7,6 +19,32 @@ import { useUserStore } from '../../src/store/user';
 import { paymentApi, PaymentProduct, CheckoutResult, pointsApi, PointsSummary, userApi, chartApi } from '../../src/services/api';
 
 const colors = theme.dark;
+
+const MEMBERSHIP_RENEWAL_NUDGE_KEY = 'shanhai_membership_renewal_nudge';
+
+function membershipExpiryDate(user: { membershipExpiryAt?: string | null } | null | undefined): Date | null {
+  if (!user?.membershipExpiryAt) return null;
+  const d = new Date(user.membershipExpiryAt);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isMembershipActive(
+  user: { membership?: string; membershipExpiryAt?: string | null } | null | undefined,
+): boolean {
+  if (!user) return false;
+  const tier = user.membership === 'vip' || user.membership === 'premium';
+  if (!tier) return false;
+  const exp = membershipExpiryDate(user);
+  if (exp === null) return true;
+  return exp.getTime() > Date.now();
+}
+
+function formatMembershipExpiryZh(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+}
 
 type TabType = 'subscription' | 'mall';
 
@@ -26,6 +64,8 @@ export default function PointsMallScreen() {
   const [pointsSummary, setPointsSummary] = useState<PointsSummary | null>(null);
   const [vipSectionY, setVipSectionY] = useState(0);
   const [highlightVip, setHighlightVip] = useState(false);
+  const [renewalNudgeEnabled, setRenewalNudgeEnabled] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -82,6 +122,31 @@ export default function PointsMallScreen() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(MEMBERSHIP_RENEWAL_NUDGE_KEY).then((v) => {
+      if (alive) setRenewalNudgeEnabled(v === '1');
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const setRenewalNudgePreference = async (enabled: boolean) => {
+    setRenewalNudgeEnabled(enabled);
+    await AsyncStorage.setItem(MEMBERSHIP_RENEWAL_NUDGE_KEY, enabled ? '1' : '0');
+  };
+
+  const onPullRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadProducts();
+      await refreshMembershipAndChart();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     const tab = params.tab as TabType | undefined;
@@ -194,7 +259,10 @@ export default function PointsMallScreen() {
     );
   }
 
-  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+  const tierVip = user?.membership === 'vip' || user?.membership === 'premium';
+  const membershipActive = isMembershipActive(user);
+  const expiredTier = tierVip && !membershipActive;
+  const expiryZh = formatMembershipExpiryZh(user?.membershipExpiryAt ?? undefined);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -218,27 +286,57 @@ export default function PointsMallScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView ref={scrollRef} style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor={colors.accent} />}
+      >
         {activeTab === 'subscription' ? (
           <>
             {/* VIP状态卡片 */}
-            <View style={[styles.vipCard, isVip && styles.vipCardActive]}>
+            <View style={[styles.vipCard, membershipActive && styles.vipCardActive, expiredTier && styles.vipCardExpired]}>
               <View style={styles.vipCardContent}>
                 <Text style={styles.vipIcon}>👑</Text>
                 <View style={styles.vipInfo}>
                   <Text style={styles.vipTitle}>
-                    {isVip ? 'VIP 会员' : '普通用户'}
+                    {membershipActive ? 'VIP 会员' : expiredTier ? '会员已过期' : '普通用户'}
                   </Text>
                   <Text style={styles.vipSubtitle}>
-                    {isVip ? '有效期至：永久' : '开通VIP，解锁全部功能'}
+                    {membershipActive
+                      ? expiryZh
+                        ? `有效期至：${expiryZh}`
+                        : '会员权益生效中'
+                      : expiredTier
+                        ? '请于下方续费以恢复 VIP 权益'
+                        : '开通VIP，解锁全部功能'}
                   </Text>
                 </View>
               </View>
-              {isVip && (
+              {membershipActive && (
                 <View style={styles.vipBadge}>
                   <Text style={styles.vipBadgeText}>已开通</Text>
                 </View>
               )}
+            </View>
+
+            <View style={styles.renewalCard}>
+              <Text style={styles.renewalTitle}>续费说明</Text>
+              <Text style={styles.renewalBody}>
+                当前为单次购买：支付成功后获得对应时长，到期前需手动续订。支付平台侧「自动扣款 / 自动续订」若后续开放，将在此处提供开关。
+              </Text>
+              <View style={styles.renewalRow}>
+                <View style={styles.renewalRowTextWrap}>
+                  <Text style={styles.renewalRowTitle}>到期续费提醒</Text>
+                  <Text style={styles.renewalRowSub}>在本机记录偏好，便于后续在应用内提醒你（不涉及自动扣款）。</Text>
+                </View>
+                <Switch
+                  value={renewalNudgeEnabled}
+                  onValueChange={setRenewalNudgePreference}
+                  trackColor={{ false: '#3d3d5c', true: 'rgba(248, 208, 95, 0.45)' }}
+                  thumbColor={renewalNudgeEnabled ? colors.accent : '#888'}
+                />
+              </View>
             </View>
 
             {/* VIP 订阅 */}
@@ -258,7 +356,7 @@ export default function PointsMallScreen() {
                     key={product.id}
                     style={styles.vipProductCard}
                     onPress={() => handlePurchase(product)}
-                    disabled={isPurchasing || !user || isVip}
+                    disabled={isPurchasing || !user}
                   >
                     <View style={styles.vipProductHeader}>
                       <Text style={styles.vipProductName}>{product.name}</Text>
@@ -274,15 +372,15 @@ export default function PointsMallScreen() {
                       ))}
                     </View>
                     <TouchableOpacity
-                      style={[styles.subscribeButton, (!user || isVip) && styles.subscribeButtonDisabled]}
+                      style={[styles.subscribeButton, !user && styles.subscribeButtonDisabled]}
                       onPress={() => handlePurchase(product)}
-                      disabled={isPurchasing || !user || isVip}
+                      disabled={isPurchasing || !user}
                     >
                       {isPurchasing ? (
                         <ActivityIndicator color="#fff" size="small" />
                       ) : (
                         <Text style={styles.subscribeButtonText}>
-                          {!user ? '请先登录' : isVip ? '已是VIP' : '立即订阅'}
+                          {!user ? '请先登录' : membershipActive ? '续费 / 延长会员' : '立即订阅'}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -460,6 +558,50 @@ const styles = StyleSheet.create({
   vipCardActive: {
     backgroundColor: 'linear-gradient(135deg, #4C2F80 0%, #2D1B5E 100%)',
     borderColor: '#F8D05F',
+  },
+  vipCardExpired: {
+    borderColor: '#8D6B4A',
+    opacity: 0.95,
+  },
+  renewalCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    backgroundColor: '#16213E',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+  },
+  renewalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#F7F6F0',
+    marginBottom: 8,
+  },
+  renewalBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#8D8DAA',
+    marginBottom: 14,
+  },
+  renewalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  renewalRowTextWrap: {
+    flex: 1,
+  },
+  renewalRowTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E8E6F0',
+  },
+  renewalRowSub: {
+    fontSize: 12,
+    color: '#7A7A9A',
+    marginTop: 4,
+    lineHeight: 18,
   },
   vipCardContent: {
     flexDirection: 'row',
