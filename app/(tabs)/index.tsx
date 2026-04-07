@@ -488,12 +488,11 @@ export default function HomeScreen() {
               </View>
             </View>
           )}
-
-          <SiteComplianceFooter variant="compact" />
         </ScrollView>
 
-        {/* 输入区域 */}
+        {/* 输入区域（合规链接固定在输入框上方，避免在聊天空白区居中悬浮） */}
         <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 10 }]}>
+          <SiteComplianceFooter variant="dock" />
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
@@ -1459,7 +1458,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 6,
     backgroundColor: '#0A0716',
     borderTopWidth: 1,
     borderTopColor: '#2F2342',
