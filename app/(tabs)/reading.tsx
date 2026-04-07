@@ -138,8 +138,8 @@ export default function ReadingScreen() {
     if (!q || q.length < 2) return;
     if (user && !isVip) {
       try {
-        const { hasEnough } = await pointsApi.check(READING_POINTS);
-        if (!hasEnough) {
+        const checkRes = await pointsApi.check(READING_POINTS);
+        if (checkRes.hasEnough === false) {
           Alert.alert(
             '积分不足',
             `占卜需要 ${READING_POINTS} 积分，请签到或前往积分商城获取`,

@@ -137,8 +137,9 @@ export default function ZiScreen() {
     }
     if (user && !isVip) {
       try {
-        const { hasEnough } = await pointsApi.check(ZI_POINTS);
-        if (!hasEnough) {
+        const checkRes = await pointsApi.check(ZI_POINTS);
+        // 仅当明确 false 才拦截；避免 hasEnough 缺失或与门闸关闭时后端行为不一致导致误判
+        if (checkRes.hasEnough === false) {
           Alert.alert(
             '积分不足',
             `测字需要 ${ZI_POINTS} 积分，请签到或前往积分商城获取`,
