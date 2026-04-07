@@ -9,7 +9,7 @@ WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_CLIENT_ID = '737727918661-m4sk7shhlk7t5s5jk9b1e8rmov9saop4.apps.googleusercontent.com';
 
 // 生产环境 Web 重定向 URI
-const GOOGLE_WEB_REDIRECT_URI = 'https://shanhai-app.vercel.app/oauth/google';
+const GOOGLE_WEB_REDIRECT_URI = 'https://www.shanhai.app/oauth/google';
 
 // 开发环境 Web 重定向 URI
 const GOOGLE_WEB_DEV_REDIRECT_URI = 'http://localhost:8081/oauth/google';
@@ -39,7 +39,7 @@ const getFacebookRedirectUri = (): string => {
     if (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost') {
       return 'http://localhost:8081/oauth/facebook';
     }
-    return 'https://shanhai-app.vercel.app/oauth/facebook';
+    return 'https://www.shanhai.app/oauth/facebook';
   }
   return 'shanhai://oauth/facebook';
 };

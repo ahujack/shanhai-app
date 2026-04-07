@@ -342,7 +342,7 @@ export default function HomeScreen() {
     }
     
     shareText += '🌟 加入我，一起探索命运的奥秘！\n';
-    shareText += '🔗 https://shanhai.app';
+    shareText += '🔗 https://www.shanhai.app';
     
     try {
       await Share.share({

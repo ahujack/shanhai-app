@@ -38,7 +38,7 @@ export default function ProfileScreen() {
     try {
       // 使用 referralCode 生成邀请链接
       const referralCode = user.referralCode || user.id;
-      const shareUrl = `https://shanhai.app?ref=${referralCode}`;
+      const shareUrl = `https://www.shanhai.app?ref=${referralCode}`;
       const shareMessage = `🔮 山海灵境 - 探索你的命运之旅\n\n邀请码: ${referralCode}\n使用我的邀请链接注册，你得50积分，我也得50积分！\n\n立即注册: ${shareUrl}`;
       
       // 优先使用剪贴板复制
@@ -53,7 +53,7 @@ export default function ProfileScreen() {
       // 尝试回退到剪贴板
       try {
         const referralCode = user.referralCode || user.id;
-        const shareUrl = `https://shanhai.app?ref=${referralCode}`;
+        const shareUrl = `https://www.shanhai.app?ref=${referralCode}`;
         await Clipboard.setStringAsync(shareUrl);
         Alert.alert('✅ 复制成功', '链接已复制到剪贴板\n\n邀请成功各得50积分！');
       } catch (e) {
