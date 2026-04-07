@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, createElement } from 'react';
 import {
   ScrollView,
   Text,
@@ -11,6 +11,7 @@ import {
   Image,
   Animated,
   Easing,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,6 +22,19 @@ import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
 import HandwritingCanvas from '../../components/HandwritingCanvas';
+
+/** Web 上 RN Image 对 raw.githubusercontent.com 等外链偶发不显示，用原生 img + no-referrer 更稳 */
+function OracleGlyphImage({ uri, ziChar, style }: { uri: string; ziChar: string; style: { width: number; height: number } }) {
+  if (Platform.OS === 'web') {
+    return createElement('img', {
+      src: uri,
+      alt: `「${ziChar}」甲骨字形示意`,
+      referrerPolicy: 'no-referrer',
+      style: { width: style.width, height: style.height, objectFit: 'contain' as const },
+    });
+  }
+  return <Image source={{ uri }} style={style} resizeMode="contain" />;
+}
 
 export default function ZiScreen() {
   const insets = useSafeAreaInsets();
@@ -794,25 +808,93 @@ export default function ZiScreen() {
               </View>
             </View>
 
+            {/* 甲骨文象形：紧接部件，图片置顶便于第一眼看到字形 */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🪨 甲骨文·字形示意</Text>
+              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                {!!result.zi.oracleBone?.imageUrls?.length && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.oracleImageRow}
+                  >
+                    {result.zi.oracleBone.imageUrls.map((url, idx) => (
+                      <View key={`${url}_${idx}`} style={styles.oracleImageBox}>
+                        <OracleGlyphImage uri={url} ziChar={result.zi.zi} style={styles.oracleImage} />
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+                {!result.zi.oracleBone?.imageUrls?.length && (
+                  <View style={styles.oracleEmptyHint}>
+                    <Text style={styles.oracleEmptyHintText}>
+                      字表暂未收录「{result.zi.zi}」独体甲骨图，已用部件检索或文字说明辅助；常见字会逐渐补全。
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.oracleInterpretLead}>
+                  {result.zi.oracleBone?.interpretation || '暂以部件与意象做辅助解读。'}
+                </Text>
+                <Text style={styles.oracleTip}>
+                  {result.zi.oracleBone?.note || '说明：甲骨字形来源为开源字表，仅作文化示意，非书法范本。'}
+                </Text>
+                {!!result.zi.oracleBone?.totalImages && (
+                  <Text style={styles.oracleCounter}>
+                    已展示 {result.zi.oracleBone.shownImages}/{result.zi.oracleBone.totalImages} 张字形样本
+                  </Text>
+                )}
+                {shouldShowOracleUnlock && (
+                  <>
+                    <Text style={styles.oracleRemainText}>还差 {lockedImageCount} 张未解锁</Text>
+                    <Animated.View style={oracleUnlockAnimStyle}>
+                      <TouchableOpacity
+                        style={styles.oracleUnlockBtn}
+                        onPress={() => router.push({ pathname: '/points', params: { focus: 'vip' } })}
+                      >
+                        <Text style={styles.oracleUnlockText}>查看完整异体图与差异解读</Text>
+                      </TouchableOpacity>
+                    </Animated.View>
+                  </>
+                )}
+                <Text style={styles.oracleSource}>
+                  图源：{result.zi.oracleBone?.source || 'JiaGuWen 开源字表'}
+                </Text>
+              </View>
+            </View>
+
             {/* 技法细化 */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>🧠 技法细化（离合 / 填字 / 投射）</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                <Text style={styles.skillHead}>离合法</Text>
-                {(result.zi.lihefa || []).map((line, index) => (
-                  <Text key={`lihefa_${index}`} style={styles.skillText}>- {line}</Text>
-                ))}
-
-                <Text style={styles.skillHead}>填字格</Text>
-                {(result.zi.tianziGe || []).map((line, index) => (
-                  <Text key={`tianzi_${index}`} style={styles.skillText}>- {line}</Text>
-                ))}
-
-                <Text style={styles.skillHead}>象形投射</Text>
-                <Text style={styles.skillText}>{result.zi.imageryInference || '当前暂无象形投射结果。'}</Text>
-
-                <Text style={styles.skillHead}>反问引导</Text>
-                <Text style={styles.skillText}>{result.zi.probingQuestion || '这个字里你最在意哪一部分？'}</Text>
+                <View style={styles.skillGroup}>
+                  <Text style={styles.skillHead}>离合法</Text>
+                  <Text style={styles.skillHint}>把字拆开看意象，再合起来看整体</Text>
+                  {(result.zi.lihefa || []).map((line, index) => (
+                    <Text key={`lihefa_${index}`} style={styles.skillText}>
+                      {line}
+                    </Text>
+                  ))}
+                </View>
+                <View style={styles.skillDivider} />
+                <View style={styles.skillGroup}>
+                  <Text style={styles.skillHead}>填字格</Text>
+                  <Text style={styles.skillHint}>中心 / 边界 / 落点，对应你心里最在意的位置</Text>
+                  {(result.zi.tianziGe || []).map((line, index) => (
+                    <Text key={`tianzi_${index}`} style={styles.skillText}>
+                      {line}
+                    </Text>
+                  ))}
+                </View>
+                <View style={styles.skillDivider} />
+                <View style={styles.skillGroup}>
+                  <Text style={styles.skillHead}>象形投射</Text>
+                  <Text style={styles.skillTextBlock}>{result.zi.imageryInference || '当前暂无象形投射结果。'}</Text>
+                </View>
+                <View style={styles.skillDivider} />
+                <View style={styles.skillGroup}>
+                  <Text style={styles.skillHead}>反问引导</Text>
+                  <Text style={styles.skillTextEmphasis}>{result.zi.probingQuestion || '这个字里你最在意哪一部分？'}</Text>
+                </View>
                 <TouchableOpacity style={styles.probingChatBtn} onPress={goProbingChat}>
                   <Text style={styles.probingChatText}>💬 去对话里深聊这个反问</Text>
                 </TouchableOpacity>
@@ -821,27 +903,36 @@ export default function ZiScreen() {
 
             {result.interpretation.focusReading && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🧭 方向详细解读：{result.interpretation.focusReading.focus}</Text>
+                <Text style={styles.sectionTitle}>🧭 方向详解 · {result.interpretation.focusReading.focus}</Text>
                 <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                  <Text style={styles.focusSummary}>{result.interpretation.focusReading.summary}</Text>
+                  <View style={styles.focusSummaryBox}>
+                    <Text style={styles.focusSummaryLabel}>核心结论</Text>
+                    <Text style={styles.focusSummary}>{result.interpretation.focusReading.summary}</Text>
+                  </View>
                   <Text style={styles.focusSubhead}>关键锚点</Text>
                   {result.interpretation.focusReading.anchors.map((item, idx) => (
-                    <Text key={`anchor_${idx}`} style={styles.focusItem}>- {item}</Text>
+                    <View key={`anchor_${idx}`} style={styles.focusBulletRow}>
+                      <Text style={styles.focusBulletDot}>●</Text>
+                      <Text style={styles.focusItem}>{item}</Text>
+                    </View>
                   ))}
                   <Text style={styles.focusSubhead}>风险信号</Text>
                   {result.interpretation.focusReading.riskSignals.map((item, idx) => (
-                    <Text key={`risk_${idx}`} style={styles.focusItem}>- {item}</Text>
+                    <View key={`risk_${idx}`} style={styles.focusBulletRow}>
+                      <Text style={styles.focusBulletDotWarn}>!</Text>
+                      <Text style={styles.focusItem}>{item}</Text>
+                    </View>
                   ))}
                   <Text style={styles.focusSubhead}>行动计划</Text>
                   {result.interpretation.focusReading.actionPlan.map((item, idx) => (
-                    <Text key={`plan_${idx}`} style={styles.focusItem}>- {item}</Text>
+                    <View key={`plan_${idx}`} style={styles.focusBulletRow}>
+                      <Text style={styles.focusBulletNum}>{idx + 1}</Text>
+                      <Text style={styles.focusItem}>{item}</Text>
+                    </View>
                   ))}
                   <TouchableOpacity style={styles.focusChatBtn} onPress={goActionPlanChat}>
                     <Text style={styles.focusChatBtnText}>💬 去对话里执行行动计划</Text>
                   </TouchableOpacity>
-                  {!!result.interpretation.focusReading.llmEnhanced && (
-                    <Text style={styles.focusLlmTag}>已启用大模型定向增强</Text>
-                  )}
                 </View>
               </View>
             )}
@@ -856,55 +947,6 @@ export default function ZiScreen() {
                 </TouchableOpacity>
               </View>
             )}
-
-            {/* 甲骨文象形维度 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🪨 甲骨文象形</Text>
-              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                <Text style={styles.skillText}>
-                  {result.zi.oracleBone?.interpretation || '甲骨象形：当前暂无该字图像，先用部件与意象进行辅助解读。'}
-                </Text>
-                <Text style={styles.oracleTip}>
-                  {result.zi.oracleBone?.note || '说明：部分字暂无公开甲骨图像。'}
-                </Text>
-                {!!result.zi.oracleBone?.imageUrls?.length && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.oracleImageRow}
-                  >
-                    {result.zi.oracleBone.imageUrls.map((url, idx) => (
-                      <View key={`${url}_${idx}`} style={styles.oracleImageBox}>
-                        <Image source={{ uri: url }} style={styles.oracleImage} resizeMode="contain" />
-                      </View>
-                    ))}
-                  </ScrollView>
-                )}
-                {!!result.zi.oracleBone?.totalImages && (
-                  <Text style={styles.oracleCounter}>
-                    已展示 {result.zi.oracleBone.shownImages}/{result.zi.oracleBone.totalImages} 张异体图
-                  </Text>
-                )}
-                {shouldShowOracleUnlock && (
-                    <>
-                      <Text style={styles.oracleRemainText}>
-                        还差 {lockedImageCount} 张未解锁
-                      </Text>
-                      <Animated.View style={oracleUnlockAnimStyle}>
-                        <TouchableOpacity
-                          style={styles.oracleUnlockBtn}
-                          onPress={() => router.push({ pathname: '/points', params: { focus: 'vip' } })}
-                        >
-                          <Text style={styles.oracleUnlockText}>查看完整异体图与差异解读</Text>
-                        </TouchableOpacity>
-                      </Animated.View>
-                    </>
-                  )}
-                <Text style={styles.oracleSource}>
-                  图源：{result.zi.oracleBone?.source || 'JiaGuWen 开源字表'}
-                </Text>
-              </View>
-            </View>
 
             {/* 易经对应 */}
             <View style={styles.section}>
@@ -1008,7 +1050,7 @@ export default function ZiScreen() {
                   <Text style={styles.fortuneLabel}>💰 财运</Text>
                   <Text style={styles.fortuneText}>{result.interpretation.wealth}</Text>
                 </View>
-                <View style={styles.fortuneItem}>
+                <View style={[styles.fortuneItem, styles.fortuneItemLast]}>
                   <Text style={styles.fortuneLabel}>🏥 健康</Text>
                   <Text style={styles.fortuneText}>{result.interpretation.health}</Text>
                 </View>
@@ -1383,29 +1425,67 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  focusSummaryBox: {
+    backgroundColor: 'rgba(248, 208, 95, 0.08)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#F8D05F',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 14,
+  },
+  focusSummaryLabel: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
   focusSummary: {
     color: '#E6E7F2',
-    fontSize: 14,
-    lineHeight: 22,
-    marginBottom: 8,
+    fontSize: 15,
+    lineHeight: 24,
+    fontWeight: '500',
   },
   focusSubhead: {
     color: '#FFD700',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  focusBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 8,
+    paddingRight: 4,
+  },
+  focusBulletDot: {
+    color: '#8BE38B',
+    fontSize: 10,
+    marginTop: 4,
+    width: 14,
+  },
+  focusBulletDotWarn: {
+    color: '#FF8A65',
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 0,
+    width: 14,
+  },
+  focusBulletNum: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 2,
+    width: 18,
   },
   focusItem: {
     color: '#D0D2E3',
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 2,
-  },
-  focusLlmTag: {
-    marginTop: 8,
-    color: '#B6F3C9',
-    fontSize: 12,
+    fontSize: 14,
+    lineHeight: 22,
+    flex: 1,
   },
   focusChatBtn: {
     marginTop: 10,
@@ -1518,18 +1598,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
-  skillHead: {
-    color: '#FFD700',
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 8,
+  skillGroup: {
     marginBottom: 4,
   },
+  skillHead: {
+    color: '#FFD700',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  skillHint: {
+    color: '#8D8DAA',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
   skillText: {
-    color: '#DDD',
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 2,
+    color: '#E2E3ED',
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 8,
+    paddingLeft: 2,
+  },
+  skillTextBlock: {
+    color: '#E2E3ED',
+    fontSize: 14,
+    lineHeight: 23,
+  },
+  skillTextEmphasis: {
+    color: '#F0E6FF',
+    fontSize: 15,
+    lineHeight: 24,
+    fontStyle: 'italic',
+  },
+  skillDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginVertical: 14,
   },
   probingChatBtn: {
     marginTop: 8,
@@ -1546,11 +1651,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  oracleInterpretLead: {
+    color: '#E2E3ED',
+    fontSize: 14,
+    lineHeight: 23,
+    marginTop: 12,
+  },
+  oracleEmptyHint: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  oracleEmptyHintText: {
+    color: '#AEB3CE',
+    fontSize: 13,
+    lineHeight: 20,
+  },
   oracleTip: {
-    color: '#999',
+    color: '#8D8DAA',
     fontSize: 12,
-    marginTop: 6,
-    marginBottom: 10,
+    lineHeight: 18,
+    marginTop: 10,
+    marginBottom: 6,
   },
   oracleImageRow: {
     gap: 10,
@@ -1709,18 +1832,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   fortuneItem: {
-    marginBottom: 12,
+    marginBottom: 14,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  fortuneItemLast: {
+    borderBottomWidth: 0,
+    marginBottom: 0,
+    paddingBottom: 0,
   },
   fortuneLabel: {
     color: '#FFD700',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 3,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 8,
   },
   fortuneText: {
-    color: '#ddd',
-    fontSize: 13,
-    lineHeight: 20,
+    color: '#D8D9E5',
+    fontSize: 14,
+    lineHeight: 23,
   },
   adviceText: {
     color: '#fff',
