@@ -1081,7 +1081,7 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {/* 法律链接 */}
+      {/* 法律与合规（Creem 等支付审核需站内可访问链接 + 明码标价 + 客服邮箱） */}
       <View style={styles.legalLinks}>
         <TouchableOpacity onPress={() => router.push('/privacy')}>
           <Text style={styles.legalLinkText}>隐私政策</Text>
@@ -1091,10 +1091,15 @@ export default function ProfileScreen() {
           <Text style={styles.legalLinkText}>服务条款</Text>
         </TouchableOpacity>
         <Text style={styles.legalSeparator}>|</Text>
+        <TouchableOpacity onPress={() => router.push('/pricing')}>
+          <Text style={styles.legalLinkText}>价格说明</Text>
+        </TouchableOpacity>
+        <Text style={styles.legalSeparator}>|</Text>
         <TouchableOpacity onPress={() => router.push('/faq')}>
           <Text style={styles.legalLinkText}>常见问题</Text>
         </TouchableOpacity>
       </View>
+      <Text style={styles.supportEmailLine}>客服邮箱：support@shanhai.app</Text>
 
       {/* 成就解锁弹窗 */}
       <Modal visible={!!achievementUnlock} animationType="fade" transparent onRequestClose={() => setAchievementUnlock(null)}>
@@ -1412,15 +1417,25 @@ const styles = StyleSheet.create({
   },
   legalLinks: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 16,
-    marginBottom: 40,
+    marginBottom: 8,
     paddingVertical: 12,
+    gap: 4,
+  },
+  supportEmailLine: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 36,
   },
   legalLinkText: {
     color: '#8D8DAA',
     fontSize: 13,
+    textDecorationLine: 'underline',
   },
   legalSeparator: {
     color: '#3D3D5C',

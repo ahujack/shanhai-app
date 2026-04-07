@@ -16,6 +16,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useUserStore } from '../src/store/user';
+import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -253,6 +254,8 @@ export default function RegisterScreen() {
           {' '}和{' '}
           <Text style={styles.termsLink}>《隐私政策》</Text>
         </Text>
+
+        <SiteComplianceFooter variant="full" />
       </ScrollView>
     </KeyboardAvoidingView>
   );

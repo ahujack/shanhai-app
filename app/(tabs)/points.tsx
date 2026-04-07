@@ -381,6 +381,10 @@ export default function PointsMallScreen() {
           </View>
         )}
 
+        <TouchableOpacity style={styles.pricingLinkWrap} onPress={() => router.push('/pricing')} activeOpacity={0.7}>
+          <Text style={styles.pricingLinkText}>📋 价格公示：查看全站明码标价与说明</Text>
+        </TouchableOpacity>
+
         <View style={styles.bottomPadding} />
       </ScrollView>
     </View>
@@ -624,6 +628,17 @@ const styles = StyleSheet.create({
   warningText: {
     color: '#fff',
     fontSize: 14,
+  },
+  pricingLinkWrap: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  pricingLinkText: {
+    color: '#F8D05F',
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
   bottomPadding: {
     height: 40,

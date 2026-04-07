@@ -11,6 +11,7 @@ import { useDivinationStore } from '../../src/store/divination';
 import { fortuneApi, FortuneSlip } from '../../src/services/api';
 import PersonaPicker from '../../components/PersonaPicker';
 import OnboardingModal from '../../components/OnboardingModal';
+import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 
 // 主题颜色
 const colors = theme.dark;
@@ -487,6 +488,8 @@ export default function HomeScreen() {
               </View>
             </View>
           )}
+
+          <SiteComplianceFooter variant="compact" />
         </ScrollView>
 
         {/* 输入区域 */}

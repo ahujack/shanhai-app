@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useUserStore } from '../src/store/user';
 import { signInWithGoogle } from '../src/services/auth';
+import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -421,6 +422,8 @@ export default function LoginScreen() {
         <TouchableOpacity style={[styles.guestButton, styles.webCursor]} onPress={handleGuestMode} activeOpacity={0.7}>
           <Text style={styles.guestText}>暂不登录，先逛逛</Text>
         </TouchableOpacity>
+
+        <SiteComplianceFooter variant="full" />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
