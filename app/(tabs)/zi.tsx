@@ -36,6 +36,8 @@ export default function ZiScreen() {
   const [showColdReading, setShowColdReading] = useState(true);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
+  /** 手写识别成功后的预览（手写 Tab 无输入框，需单独展示；积分不足时仍有字可看） */
+  const [handwritingPreview, setHandwritingPreview] = useState<{ zi: string; confidence: number } | null>(null);
   // 用户选择的测字方向（单选）
   const [selectedAspect, setSelectedAspect] = useState('');
   const [customAspect, setCustomAspect] = useState('');
@@ -156,6 +158,7 @@ export default function ZiScreen() {
     try {
       const data = await ziApi.analyze(zi, focusAspect);
       setResult(data);
+      setHandwritingPreview(null);
       return true;
     } catch (err: any) {
       console.error('测字失败:', err);
@@ -205,6 +208,7 @@ export default function ZiScreen() {
         const parsed = JSON.parse(raw) as {
           inputZi?: string;
           result?: ZiResult | null;
+          handwritingPreview?: { zi: string; confidence: number } | null;
           selectedAspect?: string;
           customAspect?: string;
           isHandwritingMode?: boolean;
@@ -212,6 +216,7 @@ export default function ZiScreen() {
         };
         if (parsed.inputZi) setInputZi(parsed.inputZi);
         if (parsed.result) setResult(parsed.result);
+        if (parsed.handwritingPreview?.zi) setHandwritingPreview(parsed.handwritingPreview);
         if (parsed.selectedAspect) setSelectedAspect(parsed.selectedAspect);
         if (parsed.customAspect) setCustomAspect(parsed.customAspect);
         if (typeof parsed.isHandwritingMode === 'boolean') setIsHandwritingMode(parsed.isHandwritingMode);
@@ -230,13 +235,14 @@ export default function ZiScreen() {
     const payload = {
       inputZi,
       result,
+      handwritingPreview,
       selectedAspect,
       customAspect,
       isHandwritingMode,
       showColdReading,
     };
     AsyncStorage.setItem(ziStateStorageKey, JSON.stringify(payload)).catch(() => null);
-  }, [ziStateStorageKey, inputZi, result, selectedAspect, customAspect, isHandwritingMode, showColdReading]);
+  }, [ziStateStorageKey, inputZi, result, handwritingPreview, selectedAspect, customAspect, isHandwritingMode, showColdReading]);
 
   React.useEffect(() => {
     if (!isHandwritingMode) return;
@@ -277,6 +283,7 @@ export default function ZiScreen() {
     console.log('开始手写识别，SVG长度:', svgString.length);
     // 清除上一轮解读，避免识别超时/失败时界面仍显示上一字（如「测」）
     setResult(null);
+    setHandwritingPreview(null);
     setIsLoading(true);
     setHandwritingStage('recognizing');
     try {
@@ -285,9 +292,12 @@ export default function ZiScreen() {
       const recognizedZi = recognized.recognizedZi?.trim().charAt(0);
       if (!recognizedZi || !/[\u4e00-\u9fa5]/.test(recognizedZi)) {
         setResult(null);
+        setHandwritingPreview(null);
         Alert.alert('😔 识别失败', '未能识别出汉字，请重新书写');
         return;
       }
+      const conf = typeof recognized.confidence === 'number' ? recognized.confidence : 0.9;
+      setHandwritingPreview({ zi: recognizedZi, confidence: conf });
       setInputZi(recognizedZi);
       setHandwritingStage('analyzing');
       const ok = await analyzeZiInput(recognizedZi, getFocusAspect());
@@ -295,6 +305,7 @@ export default function ZiScreen() {
     } catch (error: any) {
       console.error('手写识别失败:', error);
       setResult(null);
+      setHandwritingPreview(null);
       Alert.alert('错误', error?.message || '手写识别失败，请稍后重试');
     } finally {
       setHandwritingStage('idle');
@@ -590,6 +601,27 @@ export default function ZiScreen() {
                   <View style={styles.progressTrack}>
                     <View style={[styles.progressFill, { width: `${handwritingProgress}%` }]} />
                   </View>
+                </View>
+              )}
+              {handwritingPreview && !result && (
+                <View style={styles.handwritingPreviewCard}>
+                  <Text style={styles.handwritingPreviewLabel}>识别结果</Text>
+                  <Text style={styles.handwritingPreviewZi}>「{handwritingPreview.zi}」</Text>
+                  <Text style={styles.handwritingPreviewMeta}>
+                    置信度约 {Math.round(Math.min(1, Math.max(0, handwritingPreview.confidence)) * 100)}%
+                  </Text>
+                  <Text style={styles.handwritingPreviewHint}>
+                    下方「深度解读」需消耗积分。若刚才提示积分不足，请先签到或前往「灵石」获取积分，再点按钮重试。
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.handwritingPreviewBtn, isLoading && styles.handwritingPreviewBtnDisabled]}
+                    onPress={() => analyzeZiInput(handwritingPreview.zi, getFocusAspect())}
+                    disabled={isLoading}
+                  >
+                    <Text style={styles.handwritingPreviewBtnText}>
+                      {isLoading ? '解读中…' : '生成深度解读'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -1229,6 +1261,54 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#2A2D44',
     overflow: 'hidden',
+  },
+  handwritingPreviewCard: {
+    width: '92%',
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#1B1530',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.35)',
+  },
+  handwritingPreviewLabel: {
+    color: '#C8A6FF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  handwritingPreviewZi: {
+    color: '#F8D05F',
+    fontSize: 36,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  handwritingPreviewMeta: {
+    color: '#8D8DAA',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  handwritingPreviewHint: {
+    color: '#BFC8E8',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  handwritingPreviewBtn: {
+    backgroundColor: '#F8D05F',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  handwritingPreviewBtnDisabled: {
+    opacity: 0.55,
+  },
+  handwritingPreviewBtnText: {
+    color: '#1A0A18',
+    fontSize: 15,
+    fontWeight: '700',
   },
   progressFill: {
     height: 6,
