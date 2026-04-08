@@ -107,6 +107,17 @@ async function clearSessionOnAuthError(errorMsg: string): Promise<void> {
 /** 可选：fetch 超时（识字/测字等 LLM 链路较慢，避免浏览器默认过早断开） */
 export type RequestExtraOptions = { timeoutMs?: number };
 
+function extractRequestId(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const requestId = (payload as { requestId?: unknown }).requestId;
+  return typeof requestId === 'string' && requestId.trim() ? requestId.trim() : null;
+}
+
+function withRequestId(message: string, requestId?: string | null): string {
+  if (!requestId) return message;
+  return `${message}（请求ID: ${requestId}）`;
+}
+
 // 通用请求函数
 async function request<T>(
   endpoint: string,
@@ -153,7 +164,8 @@ async function request<T>(
       // 如果响应不是 JSON
       if (!response.ok) {
         console.error(`[API Error] ${response.status} ${response.statusText}`);
-        throw new Error(`请求失败: ${response.status} ${response.statusText}`);
+        const headerRequestId = response.headers.get('x-request-id');
+        throw new Error(withRequestId(`请求失败: ${response.status} ${response.statusText}`, headerRequestId));
       }
       throw new Error('服务器响应格式错误');
     }
@@ -168,7 +180,11 @@ async function request<T>(
 
     if (!response.ok) {
       // HTTP 层面的错误
-      const errorMsg = data?.message || `请求失败: ${response.status}`;
+      const bodyRequestId = extractRequestId(data);
+      const headerRequestId = response.headers.get('x-request-id');
+      const requestId = bodyRequestId || headerRequestId;
+      const baseMessage = data?.message || `请求失败: ${response.status}`;
+      const errorMsg = withRequestId(baseMessage, requestId);
       console.error(`[API Error] ${response.status}`, errorMsg);
       if (response.status === 401) {
         // 积分预检未登录时不应清掉本地 token（后端已改为 200；此处兼容旧版或其它环境的 401）
@@ -700,16 +716,19 @@ export const agentApi = {
     });
     if (!res.ok) {
       let errText = '';
+      let requestId = res.headers.get('x-request-id');
       try {
         const j = await res.json();
         errText = j?.message || '';
+        requestId = requestId || extractRequestId(j);
       } catch {
         /* ignore */
       }
+      const finalMessage = withRequestId(errText || `请求失败: ${res.status}`, requestId);
       if (res.status === 401) {
-        await clearSessionOnAuthError(errText || `请求失败: ${res.status}`);
+        await clearSessionOnAuthError(finalMessage);
       }
-      throw new Error(errText || `请求失败: ${res.status}`);
+      throw new Error(finalMessage);
     }
     const reader = res.body?.getReader();
     if (!reader) throw new Error('不支持流式响应');
