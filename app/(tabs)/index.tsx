@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -50,6 +50,7 @@ export default function HomeScreen() {
   const [ziNudgeCooldownUntil, setZiNudgeCooldownUntil] = useState(0);
   const [ziNudgeShownDate, setZiNudgeShownDate] = useState('');
   const [showChartModal, setShowChartModal] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -183,6 +184,15 @@ export default function HomeScreen() {
       }, 100);
     }
   }, [messages]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // 抽签
   const handleDrawFortune = async () => {
@@ -391,38 +401,40 @@ export default function HomeScreen() {
         <View style={[styles.viewport, Platform.OS === 'web' && styles.viewportWeb]}>
         {/* 顶部标题 */}
         <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <TouchableOpacity 
-              style={styles.personaSwitchButton}
-              onPress={() => setShowPersonaPicker(true)}
-              accessibilityLabel="切换灵伴"
-            >
-              <Text style={styles.personaSwitchText}>灵伴</Text>
-            </TouchableOpacity>
-            <Text style={styles.title}>山海灵境</Text>
-            <View style={styles.headerRight}>
-              {user && (
-                <TouchableOpacity 
-                  style={styles.checkInButton}
-                  onPress={handleCheckIn}
-                  activeOpacity={0.7}
-                  accessibilityLabel={checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
-                >
-                  <Text style={styles.checkInButtonText}>
-                    {checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
+          <View style={styles.headerInner}>
+            <View style={styles.headerTop}>
+              <TouchableOpacity 
+                style={styles.personaSwitchButton}
+                onPress={() => setShowPersonaPicker(true)}
+                accessibilityLabel="切换灵伴"
               >
-                <Text style={styles.loginButtonText}>{user ? '我的' : '登录'}</Text>
+                <Text style={styles.personaSwitchText}>灵伴</Text>
               </TouchableOpacity>
+              <Text style={styles.title}>山海灵境</Text>
+              <View style={styles.headerRight}>
+                {user && (
+                  <TouchableOpacity 
+                    style={styles.checkInButton}
+                    onPress={handleCheckIn}
+                    activeOpacity={0.7}
+                    accessibilityLabel={checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
+                  >
+                    <Text style={styles.checkInButtonText}>
+                      {checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity 
+                  style={styles.loginButton}
+                  onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
+                >
+                  <Text style={styles.loginButtonText}>{user ? '我的' : '登录'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-          <View style={styles.headerBottom}>
-            <Text style={styles.subtitle}>{persona.name}</Text>
+            <View style={styles.headerBottom}>
+              <Text style={styles.subtitle}>{persona.name}</Text>
+            </View>
           </View>
         </View>
 
@@ -442,12 +454,13 @@ export default function HomeScreen() {
           />
         )}
 
-        <ScrollView 
-          ref={scrollViewRef}
-          style={styles.chatContainer}
-          contentContainerStyle={styles.chatContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={styles.contentRail}>
+          <ScrollView 
+            ref={scrollViewRef}
+            style={styles.chatContainer}
+            contentContainerStyle={styles.chatContent}
+            showsVerticalScrollIndicator={false}
+          >
           {/* 欢迎消息 */}
           {messages.length === 0 && (
             <>
@@ -517,40 +530,47 @@ export default function HomeScreen() {
               </View>
             </View>
           )}
-        </ScrollView>
+          </ScrollView>
 
-        {/* 输入区域（合规链接固定在输入框上方，避免在聊天空白区居中悬浮） */}
-        <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 10 }]}>
-          <SiteComplianceFooter variant="dock" />
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder="输入你的问题或心声..."
-              placeholderTextColor="#6F6287"
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              maxLength={500}
-              onSubmitEditing={handleSend}
-            />
-            <TouchableOpacity 
-              style={[
-                styles.sendButton, 
-                (!inputText.trim() || isLoading) && styles.sendButtonDisabled
-              ]}
-              onPress={handleSend}
-              disabled={!inputText.trim() || isLoading}
-            >
-              <Text style={styles.sendButtonText}>发送</Text>
-            </TouchableOpacity>
+          {/* 输入区域 */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="输入你的问题或心声..."
+                placeholderTextColor="#6F6287"
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+                maxLength={500}
+                onSubmitEditing={handleSend}
+              />
+              <TouchableOpacity 
+                style={[
+                  styles.sendButton, 
+                  (!inputText.trim() || isLoading) && styles.sendButtonDisabled
+                ]}
+                onPress={handleSend}
+                disabled={!inputText.trim() || isLoading}
+              >
+                <Text style={styles.sendButtonText}>发送</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        {/* 悬浮抽签按钮 - 与占卜功能独立 */}
-        <TouchableOpacity style={styles.floatingDrawButton} onPress={openDrawModal}>
-          <Text style={styles.floatingDrawIcon}>☯</Text>
-          <Text style={styles.floatingDrawText}>抽签</Text>
-        </TouchableOpacity>
+          {/* 法务与客服放在最底部，弱化视觉干扰 */}
+          <View style={[styles.bottomFooter, { paddingBottom: insets.bottom + 8 }]}>
+            <SiteComplianceFooter variant="dock" />
+          </View>
+
+          {/* 悬浮抽签按钮 - 与占卜功能独立 */}
+          {!keyboardVisible && (
+            <TouchableOpacity style={[styles.floatingDrawButton, { bottom: insets.bottom + 112 }]} onPress={openDrawModal}>
+              <Text style={styles.floatingDrawIcon}>☯</Text>
+              <Text style={styles.floatingDrawText}>抽签</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         </View>
       </View>
 
@@ -895,6 +915,7 @@ function ChatBubble({ message, onRetry }: { message: ChatMessage; onRetry?: () =
     ]}>
       <View style={[
         styles.bubble,
+        Platform.OS === 'web' ? styles.bubbleWeb : styles.bubbleMobile,
         isUser ? styles.userBubble : styles.assistantBubble
       ]}>
         <Text style={[
@@ -1272,13 +1293,24 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   viewportWeb: {
-    maxWidth: 980,
+    maxWidth: 880,
+  },
+  contentRail: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 840,
+    alignSelf: 'center',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#2F2342',
+  },
+  headerInner: {
+    width: '100%',
+    maxWidth: 840,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   headerTop: {
     flexDirection: 'row',
@@ -1367,7 +1399,7 @@ const styles = StyleSheet.create({
   },
   chatContent: {
     padding: 16,
-    paddingBottom: 28,
+    paddingBottom: 18,
   },
   welcomeCard: {
     backgroundColor: '#161126',
@@ -1432,9 +1464,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   bubble: {
-    maxWidth: '85%',
     padding: 14,
     borderRadius: 18,
+  },
+  bubbleWeb: {
+    maxWidth: '78%',
+  },
+  bubbleMobile: {
+    maxWidth: '88%',
   },
   userBubble: {
     backgroundColor: '#F8D05F',
@@ -1529,7 +1566,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     paddingHorizontal: 16,
-    paddingTop: 6,
+    paddingTop: 8,
     backgroundColor: '#0A0716',
     borderTopWidth: 1,
     borderTopColor: '#2F2342',
@@ -1537,12 +1574,17 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: '#1A1328',
+    backgroundColor: 'rgba(26, 19, 40, 0.86)',
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#322243',
+    borderColor: '#3A2B5A',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 2,
   },
   input: {
     flex: 1,
@@ -1565,6 +1607,10 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  bottomFooter: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
   },
   
   // Quick actions
@@ -1599,7 +1645,6 @@ const styles = StyleSheet.create({
   floatingDrawButton: {
     position: 'absolute',
     right: 16,
-    bottom: 100,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 25,

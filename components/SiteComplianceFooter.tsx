@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, Platform, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 
 /** 与 Creem / 应用内文案一致，请与商户后台、域名邮箱保持一致 */
@@ -25,6 +25,18 @@ export function SiteComplianceFooter({ variant = 'compact' }: Props) {
 
   const isDock = variant === 'dock';
 
+  const FooterLink = ({ label, href }: { label: string; href: '/privacy' | '/terms' | '/pricing' | '/faq' }) => (
+    <Pressable
+      onPress={() => router.push(href)}
+      accessibilityRole="link"
+      style={({ hovered }) => [webPointer, hovered && styles.linkHover]}
+    >
+      {({ hovered }) => (
+        <Text style={[styles.link, isDock && styles.linkDock, hovered && styles.linkHoveredText]}>{label}</Text>
+      )}
+    </Pressable>
+  );
+
   return (
     <View
       style={[
@@ -35,21 +47,13 @@ export function SiteComplianceFooter({ variant = 'compact' }: Props) {
       ]}
     >
       <View style={[styles.row, isDock && styles.rowDock]}>
-        <TouchableOpacity onPress={() => router.push('/privacy')} style={webPointer} accessibilityRole="link">
-          <Text style={[styles.link, isDock && styles.linkDock]}>隐私政策</Text>
-        </TouchableOpacity>
+        <FooterLink label="隐私政策" href="/privacy" />
         <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
-        <TouchableOpacity onPress={() => router.push('/terms')} style={webPointer} accessibilityRole="link">
-          <Text style={[styles.link, isDock && styles.linkDock]}>服务条款</Text>
-        </TouchableOpacity>
+        <FooterLink label="服务条款" href="/terms" />
         <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
-        <TouchableOpacity onPress={() => router.push('/pricing')} style={webPointer} accessibilityRole="link">
-          <Text style={[styles.link, isDock && styles.linkDock]}>价格说明</Text>
-        </TouchableOpacity>
+        <FooterLink label="价格说明" href="/pricing" />
         <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
-        <TouchableOpacity onPress={() => router.push('/faq')} style={webPointer} accessibilityRole="link">
-          <Text style={[styles.link, isDock && styles.linkDock]}>常见问题</Text>
-        </TouchableOpacity>
+        <FooterLink label="常见问题" href="/faq" />
       </View>
       <TouchableOpacity onPress={openMail} style={webPointer} accessibilityRole="link">
         <Text style={[styles.email, isDock && styles.emailDock]}>客服邮箱：{SUPPORT_EMAIL}</Text>
@@ -108,6 +112,12 @@ const styles = StyleSheet.create({
   sepDock: {
     fontSize: 11,
     color: '#4A3D5C',
+  },
+  linkHover: {
+    opacity: 0.9,
+  },
+  linkHoveredText: {
+    color: '#D6C1FF',
   },
   email: {
     color: '#F8D05F',

@@ -295,7 +295,8 @@ export default function ProfileScreen() {
       await loadUser();
       setStep('chart');
     } catch (error) {
-      Alert.alert('错误', '保存失败，请重试');
+      const msg = error instanceof Error ? error.message : '保存失败，请重试';
+      Alert.alert('错误', msg);
     }
   };
 
@@ -305,7 +306,8 @@ export default function ProfileScreen() {
       await generateChart(chartGender);
       Alert.alert('成功', '命盘已生成');
     } catch (error) {
-      Alert.alert('错误', '生成命盘失败');
+      const msg = error instanceof Error ? error.message : '生成命盘失败';
+      Alert.alert('错误', msg);
     }
   };
 

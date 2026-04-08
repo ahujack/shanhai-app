@@ -243,8 +243,14 @@ export default function BaziScreen() {
       await generateChart(gender);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
+      if (/请先在个人资料中完善出生日期和时间/.test(msg)) {
+        setGenError(msg);
+        return;
+      }
       setGenError(
-        /请先登录|登录/.test(msg) ? '登录状态无效或已过期，请重新登录后再生成命盘' : '生成命盘失败，请检查网络后重试',
+        /请先登录|登录/.test(msg)
+          ? '登录状态无效或已过期，请重新登录后再生成命盘'
+          : msg || '生成命盘失败，请检查网络后重试',
       );
     }
   };
