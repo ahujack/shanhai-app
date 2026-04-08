@@ -1,19 +1,17 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
   PanResponder,
-  Dimensions,
   TouchableOpacity,
   Text,
   Alert,
   Animated,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// 提升书写舒适度：放大书写区域
-const CANVAS_SIZE = Math.min(SCREEN_WIDTH - 32, 360);
+const BASE_CANVAS_SIZE = 360;
 const PAPER_TEXTURE_POINTS = [
   { x: 18, y: 22, s: 2 }, { x: 46, y: 60, s: 1.5 }, { x: 74, y: 34, s: 2.5 },
   { x: 98, y: 92, s: 1.5 }, { x: 132, y: 48, s: 2 }, { x: 160, y: 74, s: 1.5 },
@@ -52,9 +50,16 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
   isRecognizing = false,
   wuxing,
 }) => {
+  const { width: windowWidth } = useWindowDimensions();
+  // Web/移动端统一响应式，窗口变化时自动收敛到可操作尺寸
+  const canvasSize = useMemo(() => Math.min(Math.max(windowWidth - 32, 240), BASE_CANVAS_SIZE), [windowWidth]);
+
   // 使用 ref 来存储笔画数据，确保状态更新的准确性
   const strokesRef = useRef<Stroke[]>([]);
   const currentPointsRef = useRef<Point[]>([]);
+  const drawFramePendingRef = useRef(false);
+  const frameIdRef = useRef<number | null>(null);
+  const brushTrailCounterRef = useRef(0);
   
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
@@ -74,6 +79,30 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     }).start();
   }, [fadeAnim]);
 
+  useEffect(() => {
+    return () => {
+      if (frameIdRef.current != null && Platform.OS === 'web' && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(frameIdRef.current);
+      }
+    };
+  }, []);
+
+  const scheduleCurrentStrokeRender = useCallback(() => {
+    if (drawFramePendingRef.current) return;
+    drawFramePendingRef.current = true;
+    if (Platform.OS === 'web' && typeof requestAnimationFrame === 'function') {
+      frameIdRef.current = requestAnimationFrame(() => {
+        drawFramePendingRef.current = false;
+        setCurrentPoints([...currentPointsRef.current]);
+      });
+      return;
+    }
+    setTimeout(() => {
+      drawFramePendingRef.current = false;
+      setCurrentPoints([...currentPointsRef.current]);
+    }, 16);
+  }, []);
+
   const clearCanvas = useCallback(() => {
     strokesRef.current = [];
     currentPointsRef.current = [];
@@ -82,6 +111,11 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     setBrushPoint(null);
     setIsDrawing(false);
     setBrushTrail([]);
+    drawFramePendingRef.current = false;
+    if (frameIdRef.current != null && Platform.OS === 'web' && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(frameIdRef.current);
+      frameIdRef.current = null;
+    }
   }, []);
 
   const getWuxingTheme = useCallback((wx?: string) => {
@@ -102,7 +136,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    const steps = Math.max(1, Math.floor(distance / 3));
+    const steps = Math.max(1, Math.floor(distance / 4));
     
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
@@ -124,7 +158,8 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         const newPoint = { x: locationX, y: locationY };
         setIsDrawing(true);
         setBrushPoint(newPoint);
-        setBrushTrail([{ ...newPoint, id: `trail_${Date.now()}_start` }]);
+        brushTrailCounterRef.current += 1;
+        setBrushTrail([{ ...newPoint, id: `trail_${brushTrailCounterRef.current}_start` }]);
         currentPointsRef.current = [newPoint];
         setCurrentPoints([newPoint]);
       },
@@ -135,15 +170,16 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         if (currentPointsRef.current.length > 0) {
           const lastPoint = currentPointsRef.current[currentPointsRef.current.length - 1];
           const interpolated = getInterpolatedPoints(lastPoint, newPoint);
-          currentPointsRef.current = [...currentPointsRef.current, ...interpolated];
+          currentPointsRef.current.push(...interpolated);
         } else {
           currentPointsRef.current = [newPoint];
         }
-        
-        setCurrentPoints([...currentPointsRef.current]);
+
+        scheduleCurrentStrokeRender();
         setBrushPoint(newPoint);
         setBrushTrail((prev) => {
-          const next = [...prev, { ...newPoint, id: `trail_${Date.now()}_${prev.length}` }];
+          brushTrailCounterRef.current += 1;
+          const next = [...prev, { ...newPoint, id: `trail_${brushTrailCounterRef.current}_${prev.length}` }];
           return next.slice(-6);
         });
       },
@@ -154,6 +190,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         }
         currentPointsRef.current = [];
         setCurrentPoints([]);
+        drawFramePendingRef.current = false;
         setIsDrawing(false);
         setBrushPoint(null);
         setBrushTrail([]);
@@ -165,6 +202,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         }
         currentPointsRef.current = [];
         setCurrentPoints([]);
+        drawFramePendingRef.current = false;
         setIsDrawing(false);
         setBrushPoint(null);
         setBrushTrail([]);
@@ -186,7 +224,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
       }
     });
 
-    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" viewBox="0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}">
+    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasSize}" height="${canvasSize}" viewBox="0 0 ${canvasSize} ${canvasSize}">
   <rect width="100%" height="100%" fill="white"/>
   <path d="${pathD}" stroke="black" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
@@ -221,7 +259,8 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
       const taper = 1 - progress * 0.45; // 收笔更轻
       const startBoost = 1 + Math.max(0, 0.22 - progress * 0.22); // 起笔更重
       const speedFactor = Math.max(0.62, Math.min(1.18, 1.12 - length / 14)); // 快细慢粗
-      const thickness = Math.max(3, Math.min(12, 8 * taper * startBoost * speedFactor));
+      const thickness = Math.max(2.8, Math.min(12.5, 8.6 * taper * startBoost * speedFactor));
+      const inkOpacity = Math.max(0.42, Math.min(0.98, 0.9 - progress * 0.3 + (1 - speedFactor) * 0.3));
       
       segments.push(
         <View
@@ -235,7 +274,9 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
               height: thickness,
               borderRadius: thickness / 2,
               transform: [{ rotate: `${angle}deg` }],
-              backgroundColor: isActive ? wuxingTheme.active : wuxingTheme.stroke,
+              backgroundColor: isActive
+                ? `rgba(255, 226, 106, ${inkOpacity})`
+                : `rgba(26, 26, 46, ${inkOpacity})`,
             },
           ]}
         />
@@ -275,7 +316,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
       <View 
         style={[
           styles.canvasContainer,
-          { borderColor: wuxingTheme.border, shadowColor: wuxingTheme.border },
+          { borderColor: wuxingTheme.border, shadowColor: wuxingTheme.border, width: canvasSize, height: canvasSize },
           ...(Platform.OS === 'web'
             ? [{ cursor: (isDrawing ? 'none' : 'crosshair') as any }]
             : []),
@@ -285,21 +326,25 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         {/* 背景 */}
         <View style={[styles.canvasBackground, { backgroundColor: '#fff' }]}>
           <View style={styles.paperTextureLayer}>
-            {PAPER_TEXTURE_POINTS.map((dot, idx) => (
+            {PAPER_TEXTURE_POINTS.map((dot, idx) => {
+              const ratio = canvasSize / BASE_CANVAS_SIZE;
+              const scaledSize = Math.max(1, dot.s * ratio);
+              return (
               <View
                 key={`paper_dot_${idx}`}
                 style={[
                   styles.paperDot,
                   {
-                    left: dot.x,
-                    top: dot.y,
-                    width: dot.s,
-                    height: dot.s,
-                    borderRadius: dot.s / 2,
+                    left: dot.x * ratio,
+                    top: dot.y * ratio,
+                    width: scaledSize,
+                    height: scaledSize,
+                    borderRadius: scaledSize / 2,
                   },
                 ]}
               />
-            ))}
+              );
+            })}
           </View>
           <View style={[styles.canvasGlow, { backgroundColor: wuxingTheme.glow }]} />
           {/* 田字格参考线 */}
@@ -384,8 +429,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   canvasContainer: {
-    width: CANVAS_SIZE,
-    height: CANVAS_SIZE,
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',

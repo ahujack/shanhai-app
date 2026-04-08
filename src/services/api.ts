@@ -618,12 +618,12 @@ const ZI_ANALYZE_HANDWRITING_TIMEOUT_MS = 180_000;
 const ZI_TEXT_ANALYZE_TIMEOUT_MS = 120_000;
 
 export const ziApi = {
-  analyze: (zi: string, focusAspect?: string, handwriting?: object) =>
+  analyze: (zi: string, focusAspect?: string, handwriting?: object, userQuestion?: string) =>
     request<ZiResult>(
       '/zi/analyze',
       {
         method: 'POST',
-        body: JSON.stringify({ zi, focusAspect, handwriting }),
+        body: JSON.stringify({ zi, focusAspect, handwriting, userQuestion }),
       },
       { timeoutMs: ZI_TEXT_ANALYZE_TIMEOUT_MS },
     ),
@@ -639,12 +639,12 @@ export const handwritingApi = {
       },
       { timeoutMs: ZI_RECOGNIZE_TIMEOUT_MS },
     ),
-  analyze: (image: string, focusAspect?: string) =>
+  analyze: (image: string, focusAspect?: string, userQuestion?: string) =>
     request<{ recognizedZi: string | null; confidence?: number; analysis?: ZiResult; error?: string }>(
       '/zi/analyze-handwriting',
       {
         method: 'POST',
-        body: JSON.stringify({ image, focusAspect }),
+        body: JSON.stringify({ image, focusAspect, userQuestion }),
       },
       { timeoutMs: ZI_ANALYZE_HANDWRITING_TIMEOUT_MS },
     ),

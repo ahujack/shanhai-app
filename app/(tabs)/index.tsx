@@ -15,6 +15,15 @@ import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 
 // 主题颜色
 const colors = theme.dark;
+const DRAW_MIN_DISPLAY_MS = 2400;
+const DRAW_ANIMATION_CONFIG = {
+  centerRotateMs: 2800,
+  centerScaleInMs: 700,
+  centerFadeInMs: 420,
+  pulseMs: 1200,
+  particleBaseMs: 1800,
+  resultGlowMs: 1800,
+};
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -36,6 +45,7 @@ export default function HomeScreen() {
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
   const [showDrawModal, setShowDrawModal] = useState(false);
   const [showZiModal, setShowZiModal] = useState(false);
+  const [ziQuestionSeed, setZiQuestionSeed] = useState('');
   const [showZiNudge, setShowZiNudge] = useState(false);
   const [ziNudgeCooldownUntil, setZiNudgeCooldownUntil] = useState(0);
   const [ziNudgeShownDate, setZiNudgeShownDate] = useState('');
@@ -49,41 +59,51 @@ export default function HomeScreen() {
   // 神秘特效动画
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
+  const mysticRotateLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const mysticGlowLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   
   // 启动神秘特效
   const startMysticAnimation = () => {
+    mysticRotateLoopRef.current?.stop();
+    mysticGlowLoopRef.current?.stop();
     rotateAnim.setValue(0);
     glowAnim.setValue(0);
-    Animated.parallel([
-      Animated.loop(
-        Animated.timing(rotateAnim, {
+    mysticRotateLoopRef.current = Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: DRAW_ANIMATION_CONFIG.centerRotateMs,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      }),
+    );
+    mysticGlowLoopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
           toValue: 1,
-          duration: 3000,
-          useNativeDriver: true,
-          easing: Easing.linear,
-        })
-      ),
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, {
-            toValue: 1,
-            duration: 1500,
-            useNativeDriver: false,
-          }),
-          Animated.timing(glowAnim, {
-            toValue: 0,
-            duration: 1500,
-            useNativeDriver: false,
-          }),
-        ])
-      ),
-    ]).start();
+          duration: DRAW_ANIMATION_CONFIG.pulseMs,
+          useNativeDriver: false,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: DRAW_ANIMATION_CONFIG.pulseMs,
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+    mysticRotateLoopRef.current.start();
+    mysticGlowLoopRef.current.start();
   };
   
   // 停止神秘特效
   const stopMysticAnimation = () => {
+    mysticRotateLoopRef.current?.stop();
+    mysticGlowLoopRef.current?.stop();
+    mysticRotateLoopRef.current = null;
+    mysticGlowLoopRef.current = null;
     rotateAnim.stopAnimation();
     glowAnim.stopAnimation();
+    rotateAnim.setValue(0);
+    glowAnim.setValue(0);
   };
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' }>({ visible: false, message: '', type: 'info' });
   
@@ -166,6 +186,7 @@ export default function HomeScreen() {
 
   // 抽签
   const handleDrawFortune = async () => {
+    const startAt = Date.now();
     setIsDrawing(true);
     try {
       const fortune = await fortuneApi.draw();
@@ -174,6 +195,10 @@ export default function HomeScreen() {
     } catch (error) {
       showToast('抽签失败，请稍后重试', 'error');
     } finally {
+      const elapsed = Date.now() - startAt;
+      if (elapsed < DRAW_MIN_DISPLAY_MS) {
+        await new Promise((resolve) => setTimeout(resolve, DRAW_MIN_DISPLAY_MS - elapsed));
+      }
       setIsDrawing(false);
     }
   };
@@ -232,6 +257,7 @@ export default function HomeScreen() {
     // 聊到具体问题时再轻量引导测字，不自动弹窗
     if (shouldSuggestZi(message)) {
       setDetectedZi(extractZiCandidate(message));
+      setZiQuestionSeed(message.slice(0, 120));
       setShowZiNudge(true);
       const todayKey = getLocalDateKey();
       setZiNudgeShownDate(todayKey);
@@ -245,7 +271,9 @@ export default function HomeScreen() {
     setShowZiModal(false);
     router.push({
       pathname: '/(tabs)/zi',
-      params: detectedZi ? { prefillZi: detectedZi, fromChat: '1' } : { fromChat: '1' },
+      params: detectedZi
+        ? { prefillZi: detectedZi, fromChat: '1', userQuestion: ziQuestionSeed }
+        : { fromChat: '1', userQuestion: ziQuestionSeed },
     });
   };
 
@@ -360,6 +388,7 @@ export default function HomeScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.viewport, Platform.OS === 'web' && styles.viewportWeb]}>
         {/* 顶部标题 */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
@@ -368,7 +397,7 @@ export default function HomeScreen() {
               onPress={() => setShowPersonaPicker(true)}
               accessibilityLabel="切换灵伴"
             >
-              <Text style={styles.personaSwitchText}>🎭 切换</Text>
+              <Text style={styles.personaSwitchText}>灵伴</Text>
             </TouchableOpacity>
             <Text style={styles.title}>山海灵境</Text>
             <View style={styles.headerRight}>
@@ -380,7 +409,7 @@ export default function HomeScreen() {
                   accessibilityLabel={checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
                 >
                   <Text style={styles.checkInButtonText}>
-                    {checkInStatus?.todayCheckedIn ? '✓ 已签到' : '📝 签到'}
+                    {checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -388,7 +417,7 @@ export default function HomeScreen() {
                 style={styles.loginButton}
                 onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
               >
-                <Text style={styles.loginButtonText}>{user ? '👤 我的' : '登录'}</Text>
+                <Text style={styles.loginButtonText}>{user ? '我的' : '登录'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -519,10 +548,10 @@ export default function HomeScreen() {
 
         {/* 悬浮抽签按钮 - 与占卜功能独立 */}
         <TouchableOpacity style={styles.floatingDrawButton} onPress={openDrawModal}>
-          <Text style={styles.floatingDrawIcon}>🎯</Text>
+          <Text style={styles.floatingDrawIcon}>☯</Text>
           <Text style={styles.floatingDrawText}>抽签</Text>
         </TouchableOpacity>
-
+        </View>
       </View>
 
       {/* Toast提示 */}
@@ -819,7 +848,7 @@ function ChatBubble({ message, onRetry }: { message: ChatMessage; onRetry?: () =
     const zi = ziFromFullResult || ziFromSuggestion || ziFromContent;
     router.push({
       pathname: '/(tabs)/zi',
-      params: zi ? { prefillZi: zi, fromChat: '1' } : { fromChat: '1' },
+      params: zi ? { prefillZi: zi, fromChat: '1', userQuestion: message.content } : { fromChat: '1', userQuestion: message.content },
     });
   };
 
@@ -928,7 +957,7 @@ function ChatBubble({ message, onRetry }: { message: ChatMessage; onRetry?: () =
 }
 
 // ========== 抽签动画组件 ==========
-function DrawAnimation({ visible, onComplete }: { visible: boolean; onComplete?: () => void }) {
+function DrawAnimation({ visible }: { visible: boolean }) {
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -939,15 +968,40 @@ function DrawAnimation({ visible, onComplete }: { visible: boolean; onComplete?:
   const particle2Anim = useRef(new Animated.Value(0)).current;
   const particle3Anim = useRef(new Animated.Value(0)).current;
   const particle4Anim = useRef(new Animated.Value(0)).current;
+  const rotateLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const glowLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const particleLoopRefs = useRef<Array<Animated.CompositeAnimation | null>>([null, null, null, null]);
+
+  const resetValues = () => {
+    rotateAnim.setValue(0);
+    scaleAnim.setValue(0.5);
+    opacityAnim.setValue(0);
+    glowAnim.setValue(0);
+    particle1Anim.setValue(0);
+    particle2Anim.setValue(0);
+    particle3Anim.setValue(0);
+    particle4Anim.setValue(0);
+  };
+
+  const stopAllLoops = () => {
+    rotateLoopRef.current?.stop();
+    glowLoopRef.current?.stop();
+    particleLoopRefs.current.forEach((loop) => loop?.stop());
+    rotateLoopRef.current = null;
+    glowLoopRef.current = null;
+    particleLoopRefs.current = [null, null, null, null];
+  };
 
   useEffect(() => {
     if (visible) {
+      stopAllLoops();
+      resetValues();
       // 中心旋转动画
-      Animated.loop(
+      rotateLoopRef.current = Animated.loop(
         Animated.sequence([
           Animated.timing(rotateAnim, {
             toValue: 1,
-            duration: 3000,
+            duration: DRAW_ANIMATION_CONFIG.centerRotateMs,
             easing: Easing.linear,
             useNativeDriver: true,
           }),
@@ -957,50 +1011,49 @@ function DrawAnimation({ visible, onComplete }: { visible: boolean; onComplete?:
             useNativeDriver: true,
           }),
         ])
-      ).start();
+      );
+      rotateLoopRef.current.start();
 
       // 中心缩放动画
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(scaleAnim, {
+      Animated.parallel([
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: DRAW_ANIMATION_CONFIG.centerScaleInMs,
+          easing: Easing.out(Easing.back(1.4)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: DRAW_ANIMATION_CONFIG.centerFadeInMs,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      glowLoopRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
             toValue: 1,
-            duration: 800,
-            easing: Easing.out(Easing.back(1.5)),
+            duration: DRAW_ANIMATION_CONFIG.pulseMs,
+            easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
-          Animated.timing(opacityAnim, {
-            toValue: 1,
-            duration: 500,
+          Animated.timing(glowAnim, {
+            toValue: 0,
+            duration: DRAW_ANIMATION_CONFIG.pulseMs,
+            easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
         ]),
-        // 脉冲效果
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(glowAnim, {
-              toValue: 1,
-              duration: 1500,
-              easing: Easing.inOut(Easing.ease),
-              useNativeDriver: true,
-            }),
-            Animated.timing(glowAnim, {
-              toValue: 0,
-              duration: 1500,
-              easing: Easing.inOut(Easing.ease),
-              useNativeDriver: true,
-            }),
-          ])
-        ),
-      ]).start();
+      );
+      glowLoopRef.current.start();
 
       // 粒子旋转动画
       const particleAnims = [particle1Anim, particle2Anim, particle3Anim, particle4Anim];
       particleAnims.forEach((anim, index) => {
-        Animated.loop(
+        const loop = Animated.loop(
           Animated.sequence([
             Animated.timing(anim, {
               toValue: 1,
-              duration: 2000 + index * 500,
+              duration: DRAW_ANIMATION_CONFIG.particleBaseMs + index * 400,
               easing: Easing.linear,
               useNativeDriver: true,
             }),
@@ -1010,18 +1063,17 @@ function DrawAnimation({ visible, onComplete }: { visible: boolean; onComplete?:
               useNativeDriver: true,
             }),
           ])
-        ).start();
+        );
+        particleLoopRefs.current[index] = loop;
+        loop.start();
       });
     } else {
-      rotateAnim.setValue(0);
-      scaleAnim.setValue(0.5);
-      opacityAnim.setValue(0);
-      glowAnim.setValue(0);
-      particle1Anim.setValue(0);
-      particle2Anim.setValue(0);
-      particle3Anim.setValue(0);
-      particle4Anim.setValue(0);
+      stopAllLoops();
+      resetValues();
     }
+    return () => {
+      stopAllLoops();
+    };
   }, [visible]);
 
   if (!visible) return null;
@@ -1126,8 +1178,12 @@ function FortuneResultAnimation({ children }: { children: React.ReactNode }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
+  const glowLoopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(30);
+    glowAnim.setValue(0);
     // 入场动画
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -1145,22 +1201,28 @@ function FortuneResultAnimation({ children }: { children: React.ReactNode }) {
     ]).start();
 
     // 循环发光效果
-    Animated.loop(
+    glowLoopRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, {
           toValue: 1,
-          duration: 2000,
+          duration: DRAW_ANIMATION_CONFIG.resultGlowMs,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(glowAnim, {
           toValue: 0,
-          duration: 2000,
+          duration: DRAW_ANIMATION_CONFIG.resultGlowMs,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
       ])
-    ).start();
+    );
+    glowLoopRef.current.start();
+    return () => {
+      glowLoopRef.current?.stop();
+      glowLoopRef.current = null;
+      glowAnim.setValue(0);
+    };
   }, []);
 
   const borderGlow = glowAnim.interpolate({
@@ -1202,6 +1264,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0A0716',
     position: 'relative',
+  },
+  viewport: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'center',
+    position: 'relative',
+  },
+  viewportWeb: {
+    maxWidth: 980,
   },
   header: {
     paddingHorizontal: 20,

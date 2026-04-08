@@ -39,7 +39,7 @@ function OracleGlyphImage({ uri, ziChar, style }: { uri: string; ziChar: string;
 export default function ZiScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ prefillZi?: string; fromChat?: string }>();
+  const params = useLocalSearchParams<{ prefillZi?: string; fromChat?: string; userQuestion?: string }>();
   const fromChat = (Array.isArray(params.fromChat) ? params.fromChat[0] : params.fromChat) === '1';
   const [inputZi, setInputZi] = useState('');
   const [result, setResult] = useState<ZiResult | null>(null);
@@ -55,6 +55,7 @@ export default function ZiScreen() {
   // 用户选择的测字方向（单选）
   const [selectedAspect, setSelectedAspect] = useState('');
   const [customAspect, setCustomAspect] = useState('');
+  const [userQuestion, setUserQuestion] = useState('');
   const oracleUnlockAnim = useRef(new Animated.Value(0)).current;
   
   // 可选的测字方面
@@ -143,8 +144,9 @@ export default function ZiScreen() {
   const ZI_POINTS = 10;
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
 
-  const analyzeZiInput = async (rawZi: string, focusAspect?: string): Promise<boolean> => {
+  const analyzeZiInput = async (rawZi: string, focusAspect?: string, questionText?: string): Promise<boolean> => {
     const zi = rawZi.trim().charAt(0);
+    const normalizedQuestion = (questionText ?? userQuestion).trim();
     if (!/[\u4e00-\u9fa5]/.test(zi)) {
       Alert.alert('提示', '请输入一个有效的汉字');
       return false;
@@ -171,7 +173,7 @@ export default function ZiScreen() {
 
     setIsLoading(true);
     try {
-      const data = await ziApi.analyze(zi, focusAspect);
+      const data = await ziApi.analyze(zi, focusAspect, undefined, normalizedQuestion || undefined);
       setResult(data);
       setHandwritingPreview(null);
       return true;
@@ -193,7 +195,7 @@ export default function ZiScreen() {
           '连接出现问题，请检查网络后重试',
           [
             { text: '知道了', style: 'cancel' },
-            { text: '重试', onPress: () => analyzeZiInput(rawZi, focusAspect) },
+            { text: '重试', onPress: () => analyzeZiInput(rawZi, focusAspect, normalizedQuestion) },
           ]
         );
       }
@@ -213,6 +215,13 @@ export default function ZiScreen() {
   }, [params.prefillZi]);
 
   React.useEffect(() => {
+    const fromQuery = Array.isArray(params.userQuestion) ? params.userQuestion[0] : params.userQuestion;
+    if (fromQuery?.trim()) {
+      setUserQuestion(fromQuery.trim().slice(0, 120));
+    }
+  }, [params.userQuestion]);
+
+  React.useEffect(() => {
     const prefill = (params.prefillZi || '').trim();
     if (prefill) return;
     let cancelled = false;
@@ -226,6 +235,7 @@ export default function ZiScreen() {
           handwritingPreview?: { zi: string; confidence: number } | null;
           selectedAspect?: string;
           customAspect?: string;
+          userQuestion?: string;
           isHandwritingMode?: boolean;
           showColdReading?: boolean;
         };
@@ -234,6 +244,7 @@ export default function ZiScreen() {
         if (parsed.handwritingPreview?.zi) setHandwritingPreview(parsed.handwritingPreview);
         if (parsed.selectedAspect) setSelectedAspect(parsed.selectedAspect);
         if (parsed.customAspect) setCustomAspect(parsed.customAspect);
+        if (parsed.userQuestion) setUserQuestion(parsed.userQuestion);
         if (typeof parsed.isHandwritingMode === 'boolean') setIsHandwritingMode(parsed.isHandwritingMode);
         if (typeof parsed.showColdReading === 'boolean') setShowColdReading(parsed.showColdReading);
       } catch {
@@ -253,11 +264,12 @@ export default function ZiScreen() {
       handwritingPreview,
       selectedAspect,
       customAspect,
+      userQuestion,
       isHandwritingMode,
       showColdReading,
     };
     AsyncStorage.setItem(ziStateStorageKey, JSON.stringify(payload)).catch(() => null);
-  }, [ziStateStorageKey, inputZi, result, handwritingPreview, selectedAspect, customAspect, isHandwritingMode, showColdReading]);
+  }, [ziStateStorageKey, inputZi, result, handwritingPreview, selectedAspect, customAspect, userQuestion, isHandwritingMode, showColdReading]);
 
   React.useEffect(() => {
     if (!isHandwritingMode) return;
@@ -286,7 +298,7 @@ export default function ZiScreen() {
       Alert.alert('提示', '请输入一个汉字');
       return;
     }
-    await analyzeZiInput(inputZi.trim(), getFocusAspect());
+    await analyzeZiInput(inputZi.trim(), getFocusAspect(), userQuestion);
   };
 
   // 手写模式识别并测字
@@ -315,7 +327,7 @@ export default function ZiScreen() {
       setHandwritingPreview({ zi: recognizedZi, confidence: conf });
       setInputZi(recognizedZi);
       setHandwritingStage('analyzing');
-      const ok = await analyzeZiInput(recognizedZi, getFocusAspect());
+      const ok = await analyzeZiInput(recognizedZi, getFocusAspect(), userQuestion);
       if (ok) Alert.alert('🎉 识别成功', `识别到汉字：${recognizedZi}\n\n当前已完成首轮解读，你可以继续做方向深挖。`);
     } catch (error: any) {
       console.error('手写识别失败:', error);
@@ -394,7 +406,7 @@ export default function ZiScreen() {
       Alert.alert('提示', '请先选择一个解读方向');
       return;
     }
-    await analyzeZiInput(zi, focus);
+    await analyzeZiInput(zi, focus, userQuestion);
   };
 
   const goChatWithZiCooldown = () => {
@@ -766,6 +778,14 @@ export default function ZiScreen() {
                 onChangeText={setCustomAspect}
                 placeholder="或输入其他方面..."
                 placeholderTextColor="#666"
+              />
+              <TextInput
+                style={styles.customAspectInput}
+                value={userQuestion}
+                onChangeText={setUserQuestion}
+                placeholder="可选：你现在最想问的具体问题（如：我要不要离职）"
+                placeholderTextColor="#666"
+                maxLength={120}
               />
               <View style={styles.refineInlineWrap}>
                 <Text style={styles.refineInlineHint}>
