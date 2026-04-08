@@ -24,19 +24,31 @@ export function apiDebugLog(...args: unknown[]) {
 
 export { isDevBundle };
 
+/** 与 Vercel/Expo 一致：优先 EXPO_PUBLIC_*（Metro 会内联），其次 NEXT_PUBLIC_* */
+function readApiUrlFromEnv(): string {
+  if (typeof process === 'undefined') return '';
+  return (
+    process.env.EXPO_PUBLIC_API_URL?.trim() ||
+    process.env.NEXT_PUBLIC_API_URL?.trim() ||
+    ''
+  );
+}
+
 /**
- * 生产构建必须设置 NEXT_PUBLIC_API_URL（完整 base，含 /api 后缀与部署一致）。
- * 开发包未设置时沿用原默认线上 API，便于真机连生产。
+ * 未配置时使用默认 Railway API，避免 CI/Vercel 未设变量时构建/运行直接失败。
+ * 生产仍建议在环境变量中显式配置 API 基址。
  */
 function resolveApiBaseUrl(): string {
-  const raw = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_API_URL?.trim() : '';
+  const raw = readApiUrlFromEnv();
   if (raw) return raw.replace(/\/$/, '');
-  if (isDevBundle()) {
-    return 'https://shanhai-production.up.railway.app/api';
+  const fallback = 'https://shanhai-production.up.railway.app/api';
+  if (isDevBundle()) return fallback;
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+    console.warn(
+      '[shanhai-app] 未配置 EXPO_PUBLIC_API_URL / NEXT_PUBLIC_API_URL，已回退默认后端。建议在 Vercel/CI 中显式设置。',
+    );
   }
-  throw new Error(
-    'NEXT_PUBLIC_API_URL 未配置：生产构建请在 .env 或 CI 中设置（例如 https://your-api.example.com/api）',
-  );
+  return fallback;
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
