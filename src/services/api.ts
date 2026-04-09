@@ -692,6 +692,25 @@ export interface AgentResponse {
   hasChart: boolean;
 }
 
+async function getAuthTokenForStream(): Promise<string | null> {
+  if (globalAuthToken?.trim()) return globalAuthToken;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const token = localStorage.getItem('shanhai_auth_token');
+      if (token?.trim()) return token;
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const token = await AsyncStorage.getItem('shanhai_auth_token');
+    if (token?.trim()) return token;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 export const agentApi = {
   chat: (dto: AgentChatDto) =>
     request<AgentResponse>('/agent/chat', {
@@ -703,8 +722,7 @@ export const agentApi = {
     dto: AgentChatDto,
     onChunk: (content: string) => void,
   ): Promise<AgentResponse> => {
-    const token =
-      typeof localStorage !== 'undefined' ? localStorage.getItem('shanhai_auth_token') : null;
+    const token = await getAuthTokenForStream();
     const url = `${API_BASE_URL}/agent/chat-stream`;
     const res = await fetch(url, {
       method: 'POST',
@@ -864,6 +882,26 @@ export interface PointRecord {
   createdAt: string;
 }
 
+export interface BillingRules {
+  gateEnabled: boolean;
+  costs: {
+    zi: number;
+    reading: number;
+  };
+  membershipExemptions: {
+    zi: boolean;
+    reading: boolean;
+    baziAdvanced: boolean;
+  };
+  paywalls: {
+    baziAdvancedMode: 'membership_only';
+  };
+  currentUser: {
+    membership: 'free' | 'premium' | 'vip';
+    isMember: boolean;
+  };
+}
+
 export const pointsApi = {
   // 获取积分概况
   getSummary: () =>
@@ -886,6 +924,9 @@ export const pointsApi = {
       method: 'POST',
       body: JSON.stringify({ points }),
     }),
+  // 获取扣费规则与会员权益映射
+  getRules: () =>
+    request<BillingRules>('/points/rules'),
 };
 
 // ========== 支付 API ==========

@@ -48,6 +48,9 @@ export default function ZiScreen() {
   const [ritualReady, setRitualReady] = useState(false);
   const [ritualCountdown, setRitualCountdown] = useState(0);
   const [showColdReading, setShowColdReading] = useState(true);
+  const [ziPointsCost, setZiPointsCost] = useState(10);
+  const [availablePoints, setAvailablePoints] = useState<number | null>(null);
+  const [showSmartCta, setShowSmartCta] = useState(false);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
   /** 手写识别成功后的预览（手写 Tab 无输入框，需单独展示；积分不足时仍有字可看） */
@@ -141,8 +144,61 @@ export default function ZiScreen() {
     ],
   };
 
-  const ZI_POINTS = 10;
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+
+  useEffect(() => {
+    let alive = true;
+    pointsApi
+      .getRules()
+      .then((rules) => {
+        if (alive && Number.isFinite(rules?.costs?.zi)) {
+          setZiPointsCost(Math.max(1, Number(rules.costs.zi)));
+        }
+      })
+      .catch(() => null);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    if (!user) {
+      setAvailablePoints(null);
+      return () => {
+        alive = false;
+      };
+    }
+    pointsApi
+      .getSummary()
+      .then((summary) => {
+        if (alive && Number.isFinite(summary?.availablePoints)) {
+          setAvailablePoints(Math.max(0, Number(summary.availablePoints)));
+        }
+      })
+      .catch(() => null);
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
+
+  const refreshPointsBalance = async () => {
+    if (!user) return;
+    try {
+      const summary = await pointsApi.getSummary();
+      if (Number.isFinite(summary?.availablePoints)) {
+        setAvailablePoints(Math.max(0, Number(summary.availablePoints)));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const goPointsMall = () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } });
+  const goVipPlan = () => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } });
+  const projectedMonthlyRuns = 20;
+  const projectedMonthlyPoints = ziPointsCost * projectedMonthlyRuns;
+  const projectedCheckinDays = Math.ceil(projectedMonthlyPoints / 10);
 
   const analyzeZiInput = async (rawZi: string, focusAspect?: string, questionText?: string): Promise<boolean> => {
     const zi = rawZi.trim().charAt(0);
@@ -153,17 +209,12 @@ export default function ZiScreen() {
     }
     if (user && !isVip) {
       try {
-        const checkRes = await pointsApi.check(ZI_POINTS);
+        const checkRes = await pointsApi.check(ziPointsCost);
         // 仅当明确 false 才拦截；避免 hasEnough 缺失或与门闸关闭时后端行为不一致导致误判
         if (checkRes.hasEnough === false) {
-          Alert.alert(
-            '积分不足',
-            `测字需要 ${ZI_POINTS} 积分，请签到或前往积分商城获取`,
-            [
-              { text: '取消', style: 'cancel' },
-              { text: '去积分商城', onPress: () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } }) },
-            ]
-          );
+          setShowSmartCta(true);
+          await refreshPointsBalance();
+          Alert.alert('积分不足', `测字需要 ${ziPointsCost} 积分，请使用下方快捷入口补充权益`);
           return false;
         }
       } catch {
@@ -176,19 +227,16 @@ export default function ZiScreen() {
       const data = await ziApi.analyze(zi, focusAspect, undefined, normalizedQuestion || undefined);
       setResult(data);
       setHandwritingPreview(null);
+      setShowSmartCta(false);
+      await refreshPointsBalance();
       return true;
     } catch (err: any) {
       console.error('测字失败:', err);
       const msg = err?.message || '';
       if (msg.includes('积分不足')) {
-        Alert.alert(
-          '积分不足',
-          '请签到或前往积分商城获取积分',
-          [
-            { text: '知道了', style: 'cancel' },
-            { text: '去积分商城', onPress: () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } }) },
-          ]
-        );
+        setShowSmartCta(true);
+        await refreshPointsBalance();
+        Alert.alert('积分不足', '请使用下方快捷入口补充权益');
       } else {
         Alert.alert(
           '测字失败',
@@ -579,6 +627,29 @@ export default function ZiScreen() {
               ? '在下方手写板上写下你想测的汉字'
               : '根据《测字有术》，字如其人。心有所想，字有所现。'}
           </Text>
+          <View style={styles.billingPreviewBar}>
+            <Text style={styles.billingPreviewText}>
+              {isVip
+                ? `本次将扣：会员免扣 · 当前余额：${availablePoints ?? '--'}`
+                : `本次将扣：${ziPointsCost} 积分 · 当前余额：${availablePoints ?? '--'}`}
+            </Text>
+          </View>
+          {showSmartCta && !isVip && (
+            <View style={styles.smartCtaWrap}>
+              <Text style={styles.smartCtaTitle}>余额不足，建议优先补充权益</Text>
+              <Text style={styles.smartCtaHint}>
+                {`按每周约 5 次测算，测字本月约需 ${projectedMonthlyPoints} 积分（约 ${projectedCheckinDays} 天签到）。`}
+              </Text>
+              <View style={styles.smartCtaActions}>
+                <TouchableOpacity style={styles.smartCtaPrimary} onPress={goPointsMall}>
+                  <Text style={styles.smartCtaPrimaryText}>去充值积分</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.smartCtaSecondary} onPress={goVipPlan}>
+                  <Text style={styles.smartCtaSecondaryText}>开会员更划算</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
           
           {isHandwritingMode ? (
             // 手写模式 - 书写框在上，静心提示在下
@@ -638,7 +709,7 @@ export default function ZiScreen() {
                     置信度约 {Math.round(Math.min(1, Math.max(0, handwritingPreview.confidence)) * 100)}%
                   </Text>
                   <Text style={styles.handwritingPreviewHint}>
-                    下方「深度解读」需消耗积分。若刚才提示积分不足，请先签到或前往「灵石」获取积分，再点按钮重试。
+                    {`下方「深度解读」需消耗积分（当前 ${ziPointsCost} 积分/次）。若刚才提示积分不足，请先签到或前往「灵石」获取积分，再点按钮重试。`}
                   </Text>
                   <TouchableOpacity
                     style={[styles.handwritingPreviewBtn, isLoading && styles.handwritingPreviewBtnDisabled]}
@@ -869,7 +940,7 @@ export default function ZiScreen() {
                     <Animated.View style={oracleUnlockAnimStyle}>
                       <TouchableOpacity
                         style={styles.oracleUnlockBtn}
-                        onPress={() => router.push({ pathname: '/points', params: { focus: 'vip' } })}
+                        onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
                       >
                         <Text style={styles.oracleUnlockText}>查看完整异体图与差异解读</Text>
                       </TouchableOpacity>
@@ -960,7 +1031,7 @@ export default function ZiScreen() {
               <View style={styles.section}>
                 <TouchableOpacity
                   style={styles.premiumHintCard}
-                  onPress={() => router.push({ pathname: '/points', params: { focus: 'vip' } })}
+                  onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
                 >
                   <Text style={styles.premiumHintText}>🔓 {result.interpretation.premiumHint}</Text>
                   <Text style={styles.premiumHintLink}>点击升级解锁完整版方向推演</Text>
@@ -1388,6 +1459,69 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     marginBottom: 15,
+  },
+  billingPreviewBar: {
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#1A1328',
+    borderWidth: 1,
+    borderColor: '#3A2A55',
+  },
+  billingPreviewText: {
+    color: '#CFC6DE',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  smartCtaWrap: {
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#5A417F',
+    backgroundColor: '#1B1430',
+  },
+  smartCtaTitle: {
+    color: '#E4D8FF',
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  smartCtaHint: {
+    color: '#B9ACD3',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  smartCtaActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  smartCtaPrimary: {
+    flex: 1,
+    backgroundColor: '#F8D05F',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  smartCtaPrimaryText: {
+    color: '#1A0A18',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  smartCtaSecondary: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#8D70C0',
+    backgroundColor: '#2A1E45',
+  },
+  smartCtaSecondaryText: {
+    color: '#E9DCFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   inputRow: {
     flexDirection: 'row',

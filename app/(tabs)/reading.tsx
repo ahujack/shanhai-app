@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
@@ -46,6 +46,9 @@ export default function ReadingScreen() {
   const [result, setResult] = useState<DivinationResult | null>(null);
   const [showDetails, setShowDetails] = useState(true);
   const [showFortuneSource, setShowFortuneSource] = useState(true);
+  const [readingPointsCost, setReadingPointsCost] = useState(15);
+  const [availablePoints, setAvailablePoints] = useState<number | null>(null);
+  const [showSmartCta, setShowSmartCta] = useState(false);
   const loadingHint = useLoadingHint(isLoading);
 
   const toSingle = (value?: string | string[]) =>
@@ -56,54 +59,18 @@ export default function ReadingScreen() {
   const suggestedQuestion = toSingle(params.suggestedQuestion);
   const suggestedCategory = toSingle(params.suggestedCategory) as CreateReadingDto['category'] | undefined;
 
-  const mapFortuneToReading = (fortune: NonNullable<typeof lastFortune>): DivinationResult => {
-    const fallbackYao = ['初爻静守', '二爻蓄势', '三爻观变', '四爻谨行', '五爻得助', '上爻知止'];
-    const recommendations = fortune.advice?.length
-      ? fortune.advice
-      : ['先稳住节奏', '先做最关键的一步', '留意情绪与身体信号'];
-
-    return {
-      id: `fortune_${fortune.id}_${Date.now()}`,
-      question: `我抽到「${fortune.poem.title}」，想看更细致的方向建议。`,
-      category: 'general',
-      conclusion: {
-        verdict: fortune.interpretation.overall,
-        confidence: fortune.fortuneScore || 78,
-        emotionalTone: fortune.fortuneRank || '中签',
-        nextStep: recommendations[0] || '先把今天最重要的一步做掉。',
-      },
-      hexagram: {
-        original: fortune.poem.title,
-        originalName: fortune.poem.title,
-        changed: fortune.poem.title,
-        changedName: fortune.poem.title,
-        lines: ['7', '8', '7', '8', '7', '8'],
-        yaoDescriptions: fallbackYao.map((line, idx) => `${idx + 1}. ${line}`),
-      },
-      interpretation: {
-        overall: fortune.interpretation.overall,
-        situation: `今日签运：${fortune.day}`,
-        guidance: recommendations.slice(0, 2).join('；'),
-      },
-      recommendations,
-      timing: {
-        suitable: fortune.luckyTime || '顺势推进今天最关键的一件事',
-        caution: '避免情绪化决策，先确认信息再行动',
-      },
-      culturalSource: fortune.poem.title,
-      metadata: {
-        generatedAt: new Date().toISOString(),
-        method: 'fortune-bridge',
-      },
-    };
+  const inferCategoryFromFortuneTheme = (): CreateReadingDto['category'] => {
+    const theme = lastFortune?.fortuneTheme;
+    if (theme === 'career' || theme === 'love' || theme === 'wealth' || theme === 'health') {
+      return theme;
+    }
+    return 'general';
   };
 
-  useEffect(() => {
-    if (!fromFortune || !lastFortune) return;
-    if (fromChatReading) return;
-    setResult(mapFortuneToReading(lastFortune));
-    setShowDetails(true);
-  }, [fromFortune, fromChatReading, lastFortune]);
+  const buildDeepReadingQuestionFromFortune = () => {
+    if (!lastFortune) return question.trim();
+    return `我抽到「${lastFortune.poem.title}」${lastFortune.drawCode ? `（签号${lastFortune.drawCode}）` : ''}，请结合今天签文做深度解签，给我具体行动建议。`;
+  };
 
   useEffect(() => {
     if (!fromFortune) return;
@@ -130,24 +97,110 @@ export default function ReadingScreen() {
     { value: 'growth', label: '成长' },
   ] as const;
 
-  const READING_POINTS = 15;
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+
+  useEffect(() => {
+    let alive = true;
+    pointsApi
+      .getRules()
+      .then((rules) => {
+        if (alive && Number.isFinite(rules?.costs?.reading)) {
+          setReadingPointsCost(Math.max(1, Number(rules.costs.reading)));
+        }
+      })
+      .catch(() => null);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    if (!user) {
+      setAvailablePoints(null);
+      return () => {
+        alive = false;
+      };
+    }
+    pointsApi
+      .getSummary()
+      .then((summary) => {
+        if (alive && Number.isFinite(summary?.availablePoints)) {
+          setAvailablePoints(Math.max(0, Number(summary.availablePoints)));
+        }
+      })
+      .catch(() => null);
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
+
+  const refreshPointsBalance = async () => {
+    if (!user) return;
+    try {
+      const summary = await pointsApi.getSummary();
+      if (Number.isFinite(summary?.availablePoints)) {
+        setAvailablePoints(Math.max(0, Number(summary.availablePoints)));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const openPointsMall = () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } });
+  const openVipPlan = () => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } });
+  const projectedMonthlyRuns = 20;
+  const projectedMonthlyPoints = readingPointsCost * projectedMonthlyRuns;
+  const projectedCheckinDays = Math.ceil(projectedMonthlyPoints / 10);
+
+  const unlockDeepFromFortune = async () => {
+    if (!fromFortune || !lastFortune) return;
+    if (user && !isVip) {
+      try {
+        const checkRes = await pointsApi.check(readingPointsCost);
+        if (checkRes.hasEnough === false) {
+          setError(`积分不足：解锁深度解签需要 ${readingPointsCost} 积分`);
+          setShowSmartCta(true);
+          await refreshPointsBalance();
+          return;
+        }
+      } catch {
+        // 检查失败时继续请求，由后端判定
+      }
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const deepReading = await readingApi.create({
+        question: buildDeepReadingQuestionFromFortune(),
+        category: inferCategoryFromFortuneTheme(),
+      });
+      setResult(deepReading);
+      setShowDetails(true);
+      setShowSmartCta(false);
+      await refreshPointsBalance();
+    } catch (err: any) {
+      const msg = err?.message || '解锁失败，请稍后重试';
+      if (msg.includes('积分不足')) {
+        setShowSmartCta(true);
+        await refreshPointsBalance();
+      }
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     const q = question.trim();
     if (!q || q.length < 2) return;
     if (user && !isVip) {
       try {
-        const checkRes = await pointsApi.check(READING_POINTS);
+        const checkRes = await pointsApi.check(readingPointsCost);
         if (checkRes.hasEnough === false) {
-          Alert.alert(
-            '积分不足',
-            `占卜需要 ${READING_POINTS} 积分，请签到或前往积分商城获取`,
-            [
-              { text: '取消', style: 'cancel' },
-              { text: '去积分商城', onPress: () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } }) },
-            ]
-          );
+          setError(`积分不足：本次占卜需要 ${readingPointsCost} 积分`);
+          setShowSmartCta(true);
+          await refreshPointsBalance();
           return;
         }
       } catch {
@@ -166,18 +219,14 @@ export default function ReadingScreen() {
       };
       const reading = await readingApi.create(dto);
       setResult(reading);
+      setShowSmartCta(false);
+      await refreshPointsBalance();
     } catch (err: any) {
       console.error('占卜失败:', err);
       const msg = err?.message || '';
       if (msg.includes('积分不足')) {
-        Alert.alert(
-          '积分不足',
-          '请签到或前往积分商城获取积分',
-          [
-            { text: '知道了', style: 'cancel' },
-            { text: '去积分商城', onPress: () => router.push({ pathname: '/(tabs)/points', params: { tab: 'mall' } }) },
-          ]
-        );
+        setShowSmartCta(true);
+        await refreshPointsBalance();
       }
       setError(msg || '占卜失败，请稍后重试');
     } finally {
@@ -396,15 +445,36 @@ export default function ReadingScreen() {
 
       {fromFortune && lastFortune && (
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>🧿 本次抽签摘要</Text>
+          <Text style={styles.cardTitle}>🧿 抽签免费摘要</Text>
           <Text style={styles.featureText}>签名：{lastFortune.poem.title}</Text>
+          {lastFortune.drawCode ? <Text style={styles.featureText}>签号：{lastFortune.drawCode}</Text> : null}
           <Text style={styles.featureText}>今日：{lastFortune.day}</Text>
           <Text style={styles.hint}>{lastFortune.interpretation?.overall || '已为你带入本次抽签结果。'}</Text>
+          <TouchableOpacity
+            style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+            onPress={unlockDeepFromFortune}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator color="#1A0A18" size="small" />
+                <Text style={styles.loadingHint}>{loadingHint}</Text>
+              </View>
+            ) : (
+              <Text style={styles.submitButtonText}>
+                {isVip ? '解锁深度解签（会员免扣）' : `解锁深度解签（${readingPointsCost} 积分）`}
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
       )}
       
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
-        <Text style={styles.hint}>将心中困惑如实道来，字数不限，可附加时间、人物或地点，以便匹配更精准的卦象。</Text>
+        <Text style={styles.hint}>
+          {`将心中困惑如实道来，字数不限，可附加时间、人物或地点，以便匹配更精准的卦象。${
+            isVip ? '当前会员有效期内免扣积分。' : `免费用户本次 ${readingPointsCost} 积分。`
+          }`}
+        </Text>
         
         <TextInput
           style={styles.textInput}
@@ -439,6 +509,31 @@ export default function ReadingScreen() {
           ))}
         </View>
         
+        <View style={styles.billingPreviewBar}>
+          <Text style={styles.billingPreviewText}>
+            {isVip
+              ? `本次将扣：会员免扣 · 当前余额：${availablePoints ?? '--'}`
+              : `本次将扣：${readingPointsCost} 积分 · 当前余额：${availablePoints ?? '--'}`}
+          </Text>
+        </View>
+
+        {showSmartCta && !isVip && (
+          <View style={styles.smartCtaWrap}>
+            <Text style={styles.smartCtaTitle}>余额不足，建议优先补充权益</Text>
+            <Text style={styles.smartCtaHint}>
+              {`按每周约 5 次测算，深度解签本月约需 ${projectedMonthlyPoints} 积分（约 ${projectedCheckinDays} 天签到）。`}
+            </Text>
+            <View style={styles.smartCtaActions}>
+              <TouchableOpacity style={styles.smartCtaPrimary} onPress={openPointsMall}>
+                <Text style={styles.smartCtaPrimaryText}>去充值积分</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.smartCtaSecondary} onPress={openVipPlan}>
+                <Text style={styles.smartCtaSecondaryText}>开会员更划算</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         <TouchableOpacity 
           style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
@@ -624,6 +719,70 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  billingPreviewBar: {
+    marginTop: 12,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#1A1328',
+    borderWidth: 1,
+    borderColor: '#3A2A55',
+  },
+  billingPreviewText: {
+    color: '#CFC6DE',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  smartCtaWrap: {
+    marginBottom: 4,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#5A417F',
+    backgroundColor: '#1B1430',
+  },
+  smartCtaTitle: {
+    color: '#E4D8FF',
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  smartCtaHint: {
+    color: '#B9ACD3',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  smartCtaActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  smartCtaPrimary: {
+    flex: 1,
+    backgroundColor: '#F8D05F',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  smartCtaPrimaryText: {
+    color: '#1A0A18',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  smartCtaSecondary: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#8D70C0',
+    backgroundColor: '#2A1E45',
+  },
+  smartCtaSecondaryText: {
+    color: '#E9DCFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   errorBox: {
     marginTop: 16,

@@ -51,6 +51,8 @@ export default function HomeScreen() {
   const [ziNudgeShownDate, setZiNudgeShownDate] = useState('');
   const [showChartModal, setShowChartModal] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -120,6 +122,8 @@ export default function HomeScreen() {
   const [chartGender, setChartGender] = useState<'male' | 'female'>('male');
   
   const scrollViewRef = useRef<ScrollView>(null);
+  const recognitionRef = useRef<any>(null);
+  const voiceBaseTextRef = useRef('');
   const ziNudgeDailyStorageKey = `zi_nudge_daily_${user?.id || 'guest'}`;
 
   const getLocalDateKey = () => {
@@ -191,6 +195,27 @@ export default function HomeScreen() {
     return () => {
       showSub.remove();
       hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      setVoiceSupported(false);
+      return;
+    }
+    const speechCtor =
+      (globalThis as any)?.SpeechRecognition || (globalThis as any)?.webkitSpeechRecognition;
+    setVoiceSupported(!!speechCtor);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      try {
+        recognitionRef.current?.stop?.();
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
     };
   }, []);
 
@@ -272,6 +297,77 @@ export default function HomeScreen() {
       const todayKey = getLocalDateKey();
       setZiNudgeShownDate(todayKey);
       AsyncStorage.setItem(ziNudgeDailyStorageKey, todayKey).catch(() => null);
+    }
+  };
+
+  const handleInputKeyPress = (e: any) => {
+    if (Platform.OS !== 'web') return;
+    const key = e?.nativeEvent?.key;
+    const shift = !!e?.nativeEvent?.shiftKey;
+    if (key === 'Enter' && !shift) {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      handleSend();
+    }
+  };
+
+  const toggleVoiceInput = () => {
+    if (!voiceSupported) {
+      Alert.alert('不可用', '当前浏览器不支持语音识别，请使用 Chrome 或 Edge。');
+      return;
+    }
+
+    if (isVoiceListening) {
+      recognitionRef.current?.stop?.();
+      return;
+    }
+
+    const SpeechRecognitionCtor =
+      (globalThis as any)?.SpeechRecognition || (globalThis as any)?.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      Alert.alert('不可用', '当前浏览器不支持语音识别，请使用 Chrome 或 Edge。');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognitionCtor();
+      recognitionRef.current = recognition;
+      voiceBaseTextRef.current = inputText.trim();
+      recognition.lang = 'zh-CN';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        setIsVoiceListening(true);
+        showToast('语音输入已开始', 'info');
+      };
+
+      recognition.onresult = (event: any) => {
+        let finalText = '';
+        let interimText = '';
+        for (let i = 0; i < event.results.length; i += 1) {
+          const segment = event.results[i]?.[0]?.transcript || '';
+          if (event.results[i]?.isFinal) finalText += segment;
+          else interimText += segment;
+        }
+        const base = voiceBaseTextRef.current;
+        const merged = `${base}${base ? ' ' : ''}${(finalText || interimText).trim()}`.trim();
+        setInputText(merged);
+      };
+
+      recognition.onerror = () => {
+        setIsVoiceListening(false);
+        showToast('语音识别失败，请重试', 'error');
+      };
+
+      recognition.onend = () => {
+        setIsVoiceListening(false);
+      };
+
+      recognition.start();
+    } catch {
+      setIsVoiceListening(false);
+      Alert.alert('启动失败', '无法启动语音输入，请稍后重试。');
     }
   };
 
@@ -537,14 +633,32 @@ export default function HomeScreen() {
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
-                placeholder="输入你的问题或心声..."
+                placeholder={Platform.OS === 'web' ? '输入问题（回车发送，Shift+回车换行）...' : '输入你的问题或心声...'}
                 placeholderTextColor="#6F6287"
                 value={inputText}
                 onChangeText={setInputText}
                 multiline
                 maxLength={500}
-                onSubmitEditing={handleSend}
+                onKeyPress={handleInputKeyPress}
+                onSubmitEditing={() => {
+                  if (Platform.OS !== 'web') {
+                    handleSend();
+                  }
+                }}
+                blurOnSubmit={false}
               />
+              <TouchableOpacity
+                style={[
+                  styles.voiceButton,
+                  !voiceSupported && styles.voiceButtonDisabled,
+                  isVoiceListening && styles.voiceButtonActive,
+                ]}
+                onPress={toggleVoiceInput}
+                disabled={!voiceSupported}
+                accessibilityLabel="语音输入"
+              >
+                <Text style={styles.voiceButtonText}>{isVoiceListening ? '停' : '🎤'}</Text>
+              </TouchableOpacity>
               <TouchableOpacity 
                 style={[
                   styles.sendButton, 
@@ -690,7 +804,7 @@ export default function HomeScreen() {
                     style={[styles.modalButton, styles.modalButtonOutline]}
                     onPress={goToReadingPage}
                   >
-                    <Text style={[styles.modalButtonText, styles.modalButtonTextOutline]}>详细解卦</Text>
+                    <Text style={[styles.modalButtonText, styles.modalButtonTextOutline]}>深度解签</Text>
                   </TouchableOpacity>
                 </>
               ) : isDrawing ? (
@@ -1607,6 +1721,29 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  voiceButton: {
+    backgroundColor: '#2B1F3C',
+    borderWidth: 1,
+    borderColor: '#4A3C6D',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  voiceButtonActive: {
+    backgroundColor: '#C84A4A',
+    borderColor: '#FF7B7B',
+  },
+  voiceButtonDisabled: {
+    opacity: 0.5,
+  },
+  voiceButtonText: {
+    color: '#F7F6F0',
+    fontSize: 14,
+    fontWeight: '700',
   },
   bottomFooter: {
     paddingHorizontal: 16,

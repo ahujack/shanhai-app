@@ -24,6 +24,7 @@ import {
   pointsApi,
   PointsSummary,
   PointRecord,
+  BillingRules,
   userApi,
   chartApi,
 } from '../../src/services/api';
@@ -35,6 +36,8 @@ const formatUsd = (price: number) => {
   if (!Number.isFinite(n)) return '—';
   return n.toFixed(2);
 };
+
+const DAILY_CHECKIN_POINTS = 10;
 
 const MEMBERSHIP_RENEWAL_NUDGE_KEY = 'shanhai_membership_renewal_nudge';
 
@@ -95,6 +98,24 @@ function formatPointRecordTime(iso: string): string {
   });
 }
 
+function getBestPointUnitPrice(products: PaymentProduct[]): number | null {
+  const unitPrices = products
+    .filter((p) => p.type === 'points' && p.points > 0 && p.price > 0)
+    .map((p) => p.price / p.points)
+    .filter((v) => Number.isFinite(v) && v > 0);
+  if (!unitPrices.length) return null;
+  return Math.min(...unitPrices);
+}
+
+function calcBreakEvenRuns(productPrice: number, actionCostPoints: number, pointUnitPrice: number | null): number | null {
+  if (!Number.isFinite(productPrice) || productPrice <= 0) return null;
+  if (!Number.isFinite(actionCostPoints) || actionCostPoints <= 0) return null;
+  if (!pointUnitPrice || !Number.isFinite(pointUnitPrice) || pointUnitPrice <= 0) return null;
+  const perRunCost = actionCostPoints * pointUnitPrice;
+  if (!Number.isFinite(perRunCost) || perRunCost <= 0) return null;
+  return Math.max(1, Math.ceil(productPrice / perRunCost));
+}
+
 type TabType = 'subscription' | 'mall';
 
 export default function PointsMallScreen() {
@@ -109,7 +130,7 @@ export default function PointsMallScreen() {
   const [pointsProducts, setPointsProducts] = useState<PaymentProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-  const [creemConfigured, setCreemConfigured] = useState(true);
+  const [creemConfigured, setCreemConfigured] = useState(false);
   const [pointsSummary, setPointsSummary] = useState<PointsSummary | null>(null);
   const [vipSectionY, setVipSectionY] = useState(0);
   const [highlightVip, setHighlightVip] = useState(false);
@@ -118,6 +139,8 @@ export default function PointsMallScreen() {
   const [recordsExpanded, setRecordsExpanded] = useState(false);
   const [pointRecords, setPointRecords] = useState<PointRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
+  const [billingRules, setBillingRules] = useState<BillingRules | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -239,10 +262,12 @@ export default function PointsMallScreen() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const [productsData, statusData, pointsData] = await Promise.all([
+      setLoadError(null);
+      const [productsData, statusData, pointsData, rulesData] = await Promise.all([
         paymentApi.getProducts(),
         paymentApi.getStatus(),
         user ? pointsApi.getSummary().catch(() => null) : Promise.resolve(null),
+        pointsApi.getRules().catch(() => null),
       ]);
       setSubscriptionProducts(productsData.filter((p: PaymentProduct) => p.type === 'subscription'));
       setPointsProducts(productsData.filter((p: PaymentProduct) => p.type === 'points'));
@@ -250,10 +275,23 @@ export default function PointsMallScreen() {
       const paymentConfigured = paymentStatus.creemConfigured ?? paymentStatus.stripeConfigured ?? false;
       setCreemConfigured(paymentConfigured);
       setPointsSummary(pointsData);
+      setBillingRules(rulesData);
     } catch (error) {
       console.error('Failed to load products:', error);
+      setLoadError('加载支付商品失败，请检查网络后重试');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const parseProductFeatures = (raw: string | null): string[] => {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+    } catch {
+      return [];
     }
   };
 
@@ -341,6 +379,17 @@ export default function PointsMallScreen() {
   const membershipActive = isMembershipActive(user);
   const expiredTier = tierVip && !membershipActive;
   const expiryZh = formatMembershipExpiryZh(user?.membershipExpiryAt ?? undefined);
+  const readingCost = billingRules?.costs?.reading ?? 15;
+  const ziCost = billingRules?.costs?.zi ?? 10;
+  const bestPointUnitPrice = getBestPointUnitPrice(pointsProducts);
+  const vipMonthly = subscriptionProducts.find((p) => p.code === 'vip_monthly');
+  const vipYearly = subscriptionProducts.find((p) => p.code === 'vip_yearly');
+  const monthlyBreakEvenReading = calcBreakEvenRuns(vipMonthly?.price ?? 0, readingCost, bestPointUnitPrice);
+  const monthlyBreakEvenZi = calcBreakEvenRuns(vipMonthly?.price ?? 0, ziCost, bestPointUnitPrice);
+  const yearlyBreakEvenReading = calcBreakEvenRuns(vipYearly?.price ?? 0, readingCost, bestPointUnitPrice);
+  const yearlyBreakEvenZi = calcBreakEvenRuns(vipYearly?.price ?? 0, ziCost, bestPointUnitPrice);
+  const monthlyReadingPoints = readingCost * 20;
+  const monthlyReadingCheckinDays = Math.ceil(monthlyReadingPoints / DAILY_CHECKIN_POINTS);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -370,6 +419,15 @@ export default function PointsMallScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor={colors.accent} />}
       >
+        {loadError && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>{loadError}</Text>
+            <TouchableOpacity style={styles.errorBannerBtn} onPress={loadProducts}>
+              <Text style={styles.errorBannerBtnText}>重试</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {activeTab === 'subscription' ? (
           <>
             {/* VIP状态卡片 */}
@@ -417,6 +475,18 @@ export default function PointsMallScreen() {
               </View>
             </View>
 
+            <View style={styles.memberValueCard}>
+              <Text style={styles.memberValueTitle}>🌟 会员专属价值</Text>
+              <View style={styles.memberValueList}>
+                <Text style={styles.memberValueItem}>• 八字老师傅批注（会员专属，当前不支持单次积分解锁）</Text>
+                <Text style={styles.memberValueItem}>• 测字甲骨文完整异体图与差异解读（会员可解锁）</Text>
+                <Text style={styles.memberValueItem}>• 测字/深度解签按规则免扣积分，适合高频用户</Text>
+              </View>
+              <Text style={styles.memberValueFootnote}>
+                参考：若每周约 5 次深度解签，月均约需 {monthlyReadingPoints} 积分（约 {monthlyReadingCheckinDays} 天签到）。
+              </Text>
+            </View>
+
             {/* VIP 订阅 */}
             <View
               style={[styles.section, highlightVip ? styles.vipSectionHighlight : undefined]}
@@ -428,7 +498,7 @@ export default function PointsMallScreen() {
               
               {subscriptionProducts.map((product) => {
                 const isPurchasing = purchasing === product.id;
-                const features = product.features ? JSON.parse(product.features) : [];
+                const features = parseProductFeatures(product.features);
                 return (
                   <TouchableOpacity
                     key={product.id}
@@ -542,12 +612,31 @@ export default function PointsMallScreen() {
               <Text style={styles.mallExplainTitle}>订阅 和 积分 怎么选？</Text>
               <Text style={styles.mallExplainBody}>
                 <Text style={styles.mallExplainEm}>VIP 订阅</Text>
-                ：在会员有效期内，按规则使用测字、占卜、八字高级解读等可免扣积分，适合常用用户。
+                ：在会员有效期内，按规则使用测字、占卜可免扣积分，且可解锁部分会员专属能力，适合高频用户。
                 {'\n\n'}
                 <Text style={styles.mallExplainEm}>积分充值</Text>
-                ：单次付费、按次扣积分，不买会员也能用高级功能；适合偶尔用几次、或会员过期后临时补几单。
+                ：单次付费、按次扣积分，灵活但高频成本会逐步上升；适合偶尔使用或临时补单。
                 {'\n\n'}
                 积分包需在支付平台（Creem）里各建一个「一次性付款」商品，并把产品 ID 配到服务器环境变量后，下方购买才会跳转收银台。
+              </Text>
+            </View>
+
+            <View style={styles.mallExplainCard}>
+              <Text style={styles.mallExplainTitle}>📐 价值换算（按当前最优惠积分包）</Text>
+              <Text style={styles.mallExplainBody}>
+                <Text style={styles.mallExplainEm}>月卡回本：</Text>
+                {monthlyBreakEvenReading != null && monthlyBreakEvenZi != null
+                  ? `深度解签约 ${monthlyBreakEvenReading} 次/月，或测字约 ${monthlyBreakEvenZi} 次/月。`
+                  : '当前缺少积分包价格，暂无法测算。'}
+                {'\n\n'}
+                <Text style={styles.mallExplainEm}>年卡回本：</Text>
+                {yearlyBreakEvenReading != null && yearlyBreakEvenZi != null
+                  ? `深度解签约 ${yearlyBreakEvenReading} 次/年，或测字约 ${yearlyBreakEvenZi} 次/年。`
+                  : '当前缺少积分包价格，暂无法测算。'}
+                {'\n\n'}
+                {bestPointUnitPrice != null
+                  ? `折算单价约 $${bestPointUnitPrice.toFixed(4)}/积分。`
+                  : '提示：接入积分包后会自动更新换算结果。'}
               </Text>
             </View>
 
@@ -576,16 +665,22 @@ export default function PointsMallScreen() {
               <View style={styles.pointsList}>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>✍️</Text>
-                  <Text style={styles.pointText}>测字 10 积分/次（VIP 免费）</Text>
+                  <Text style={styles.pointText}>测字 {billingRules?.costs?.zi ?? 10} 积分/次（会员免扣）</Text>
                 </View>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>🔮</Text>
-                  <Text style={styles.pointText}>占卜 15 积分/次（VIP 免费）</Text>
+                  <Text style={styles.pointText}>抽签免费，深度解签 {billingRules?.costs?.reading ?? 15} 积分/次（会员免扣）</Text>
                 </View>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>📊</Text>
-                  <Text style={styles.pointText}>八字高级解读 50 积分/次（VIP 免费）</Text>
+                  <Text style={styles.pointText}>八字老师傅批注：会员权益（当前不支持单次积分解锁）</Text>
                 </View>
+                {!billingRules?.gateEnabled && (
+                  <View style={styles.pointItem}>
+                    <Text style={styles.pointIcon}>🧪</Text>
+                    <Text style={styles.pointText}>当前积分门闸处于测试关闭状态，实际不会扣积分。</Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -878,6 +973,35 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 18,
   },
+  memberValueCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    backgroundColor: '#1B1430',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#4B3972',
+  },
+  memberValueTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#F7F6F0',
+    marginBottom: 10,
+  },
+  memberValueList: {
+    gap: 8,
+  },
+  memberValueItem: {
+    fontSize: 13,
+    color: '#CFC6DE',
+    lineHeight: 20,
+  },
+  memberValueFootnote: {
+    marginTop: 10,
+    fontSize: 12,
+    color: '#9C95AD',
+    lineHeight: 18,
+  },
   vipCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1045,6 +1169,38 @@ const styles = StyleSheet.create({
   warningText: {
     color: '#fff',
     fontSize: 14,
+  },
+  errorBanner: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(200, 70, 70, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 130, 130, 0.35)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  errorBannerText: {
+    flex: 1,
+    color: '#FFD1D1',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  errorBannerBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#4C2F80',
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+  },
+  errorBannerBtnText: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '700',
   },
   pricingLinkWrap: {
     marginHorizontal: 16,

@@ -106,14 +106,10 @@ export const useUserStore = create<UserState>((set, get) => ({
   isLoading: false,
   
   loadUser: async () => {
-    // 仅在浏览器环境执行
-    if (typeof window === 'undefined') return;
-    
     set({ isLoading: true });
     try {
-      // 同步从localStorage读取，确保立即可用
-      const userId = typeof localStorage !== 'undefined' ? localStorage.getItem(USER_ID_KEY) : null;
-      const token = typeof localStorage !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+      const userId = await storage.getItem(USER_ID_KEY);
+      const token = await storage.getItem(AUTH_TOKEN_KEY);
       
       // 同步设置全局token
       globalAuthToken = token;
@@ -151,11 +147,10 @@ export const useUserStore = create<UserState>((set, get) => ({
     } catch (e) {
       console.error('加载用户失败:', e);
       // 如果加载失败，清除可能存在的无效token
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(USER_ID_KEY);
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-      }
+      await storage.removeItem(USER_ID_KEY);
+      await storage.removeItem(AUTH_TOKEN_KEY);
       globalAuthToken = null;
+      setGlobalAuthToken(null);
       set({ user: null, token: null });
     } finally {
       set({ isLoading: false });
@@ -196,7 +191,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       return { success: false, message: errorMessage };
     } catch (e: any) {
       console.error('注册失败:', e);
-      const errorMessage = e?.response?.data?.message || '网络错误，请检查网络连接后重试';
+      const errorMessage = e?.message || '网络错误，请检查网络连接后重试';
       return { success: false, message: errorMessage };
     } finally {
       set({ isLoading: false });
@@ -211,11 +206,8 @@ export const useUserStore = create<UserState>((set, get) => ({
       const result = await authApi.login({ email, password });
       apiDebugLog('[Login] Password login result:', result);
       if (result.success && result.token && result.user) {
-        // 同步存储到localStorage
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(USER_ID_KEY, result.user.id);
-          localStorage.setItem(AUTH_TOKEN_KEY, result.token);
-        }
+        await storage.setItem(USER_ID_KEY, result.user.id);
+        await storage.setItem(AUTH_TOKEN_KEY, result.token);
         // 同步设置全局token
         globalAuthToken = result.token;
         setGlobalAuthToken(result.token);
@@ -240,13 +232,10 @@ export const useUserStore = create<UserState>((set, get) => ({
       const result = await authApi.login({ email: email || '', code: code || '' });
       apiDebugLog('[Login] Code login result:', result);
       if (result.success && result.token && result.user) {
-          // 同步存储到localStorage
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem(USER_ID_KEY, result.user.id);
-            localStorage.setItem(AUTH_TOKEN_KEY, result.token);
-          }
-          globalAuthToken = result.token;
-          setGlobalAuthToken(result.token);
+        await storage.setItem(USER_ID_KEY, result.user.id);
+        await storage.setItem(AUTH_TOKEN_KEY, result.token);
+        globalAuthToken = result.token;
+        setGlobalAuthToken(result.token);
         set({ user: result.user, token: result.token });
         apiDebugLog('[Login] Code login success, user:', result.user);
         return { success: true, message: '登录成功' };
@@ -266,11 +255,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const result = await authApi.socialLogin({ provider, idToken });
       if (result.success && result.token && result.user) {
-        // 同步存储到localStorage
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(USER_ID_KEY, result.user.id);
-          localStorage.setItem(AUTH_TOKEN_KEY, result.token);
-        }
+        await storage.setItem(USER_ID_KEY, result.user.id);
+        await storage.setItem(AUTH_TOKEN_KEY, result.token);
         // 同步设置全局token
         globalAuthToken = result.token;
         setGlobalAuthToken(result.token);
@@ -304,7 +290,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({ isLoading: true });
     try {
       const user = await userApi.create(dto);
-      await AsyncStorage.setItem(USER_ID_KEY, user.id);
+      await storage.setItem(USER_ID_KEY, user.id);
       set({ user });
       return user;
     } finally {
@@ -328,8 +314,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     if (!user) return;
 
     let token = get().token;
-    if (!token?.trim() && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-      const stored = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (!token?.trim()) {
+      const stored = await storage.getItem(AUTH_TOKEN_KEY);
       if (stored?.trim()) {
         token = stored;
         globalAuthToken = stored;
