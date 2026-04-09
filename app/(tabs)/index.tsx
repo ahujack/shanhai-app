@@ -123,6 +123,7 @@ export default function HomeScreen() {
   
   const scrollViewRef = useRef<ScrollView>(null);
   const recognitionRef = useRef<any>(null);
+  const voiceStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceBaseTextRef = useRef('');
   const isInputComposingRef = useRef(false);
   const ziNudgeDailyStorageKey = `zi_nudge_daily_${user?.id || 'guest'}`;
@@ -211,8 +212,13 @@ export default function HomeScreen() {
 
   useEffect(() => {
     return () => {
+      if (voiceStopTimerRef.current) {
+        clearTimeout(voiceStopTimerRef.current);
+        voiceStopTimerRef.current = null;
+      }
       try {
         recognitionRef.current?.stop?.();
+        recognitionRef.current?.abort?.();
       } catch {
         // ignore
       }
@@ -325,6 +331,38 @@ export default function HomeScreen() {
     }
   };
 
+  const stopVoiceInput = (showStoppedToast = true) => {
+    const recognition = recognitionRef.current;
+    if (!recognition) {
+      setIsVoiceListening(false);
+      return;
+    }
+    if (voiceStopTimerRef.current) {
+      clearTimeout(voiceStopTimerRef.current);
+      voiceStopTimerRef.current = null;
+    }
+    setIsVoiceListening(false);
+    try {
+      recognition.stop?.();
+      recognition.abort?.();
+    } catch {
+      // ignore
+    }
+    recognition.onstart = null;
+    recognition.onresult = null;
+    recognition.onerror = null;
+    recognition.onend = null;
+    recognitionRef.current = null;
+    if (showStoppedToast) {
+      showToast('语音输入已停止', 'info');
+    }
+    // 某些移动浏览器 stop 事件不稳定，超时兜底确保状态一致
+    voiceStopTimerRef.current = setTimeout(() => {
+      setIsVoiceListening(false);
+      voiceStopTimerRef.current = null;
+    }, 300);
+  };
+
   const toggleVoiceInput = () => {
     if (!voiceSupported) {
       Alert.alert('不可用', '当前浏览器不支持语音识别，请使用 Chrome 或 Edge。');
@@ -332,7 +370,7 @@ export default function HomeScreen() {
     }
 
     if (isVoiceListening) {
-      recognitionRef.current?.stop?.();
+      stopVoiceInput(true);
       return;
     }
 
@@ -344,6 +382,7 @@ export default function HomeScreen() {
     }
 
     try {
+      stopVoiceInput(false);
       const recognition = new SpeechRecognitionCtor();
       recognitionRef.current = recognition;
       voiceBaseTextRef.current = inputText.trim();
@@ -371,11 +410,13 @@ export default function HomeScreen() {
 
       recognition.onerror = () => {
         setIsVoiceListening(false);
+        recognitionRef.current = null;
         showToast('语音识别失败，请重试', 'error');
       };
 
       recognition.onend = () => {
         setIsVoiceListening(false);
+        recognitionRef.current = null;
       };
 
       recognition.start();
