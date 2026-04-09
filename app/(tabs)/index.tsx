@@ -55,6 +55,7 @@ export default function HomeScreen() {
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceDraftText, setVoiceDraftText] = useState('');
   const [voiceHint, setVoiceHint] = useState('');
+  const [voiceStatusText, setVoiceStatusText] = useState('');
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -357,7 +358,10 @@ export default function HomeScreen() {
 
   const sendVoiceResultIfNeeded = async () => {
     const recognized = (voiceFinalTextRef.current || voiceLatestTextRef.current).trim();
-    if (!recognized) return;
+    if (!recognized) {
+      setVoiceStatusText('未识别到可用文本，请检查麦克风权限后重试');
+      return;
+    }
     setInputText(recognized);
     if (isLoading) return;
     const message = recognized;
@@ -365,6 +369,7 @@ export default function HomeScreen() {
     setVoiceDraftText('');
     setInputText('');
     await sendMessage(message, persona.id, 'calm');
+    setVoiceStatusText('语音识别成功，已自动发送');
     if (shouldSuggestZi(message)) {
       setDetectedZi(extractZiCandidate(message));
       setZiQuestionSeed(message.slice(0, 120));
@@ -479,6 +484,7 @@ export default function HomeScreen() {
       manualVoiceStopRef.current = false;
       setVoiceDraftText('');
       setVoiceHint('正在聆听，请开始说话...');
+      setVoiceStatusText('语音已启动，正在等待说话...');
       recognition.lang = 'zh-CN';
       // 对移动浏览器更稳定：一次语音一轮识别，结束后自动发送
       recognition.continuous = false;
@@ -488,15 +494,25 @@ export default function HomeScreen() {
       recognition.onstart = () => {
         setIsVoiceListening(true);
         setVoiceHint('正在聆听，请开始说话...');
+        setVoiceStatusText('麦克风已开启，请开始说话');
       };
 
       recognition.onresult = (event: any) => {
+        const extractTranscript = (item: any): string => {
+          if (!item) return '';
+          if (typeof item?.[0]?.transcript === 'string') return item[0].transcript;
+          if (typeof item?.transcript === 'string') return item.transcript;
+          return '';
+        };
         let finalText = '';
         let interimText = '';
         for (let i = 0; i < event.results.length; i += 1) {
-          const segment = event.results[i]?.[0]?.transcript || '';
+          const segment = extractTranscript(event.results[i]);
           if (event.results[i]?.isFinal) finalText += segment;
           else interimText += segment;
+        }
+        if (!finalText && !interimText && typeof event?.transcript === 'string') {
+          finalText = event.transcript;
         }
         voiceFinalTextRef.current = finalText.trim();
         const base = voiceBaseTextRef.current;
@@ -506,6 +522,7 @@ export default function HomeScreen() {
         setVoiceDraftText(merged);
         setInputText(merged);
         setVoiceHint(mergedCore ? '识别中...' : '正在聆听，请开始说话...');
+        setVoiceStatusText(mergedCore ? '已识别到语音内容' : '正在监听语音...');
       };
 
       recognition.onerror = (event: any) => {
@@ -515,13 +532,16 @@ export default function HomeScreen() {
         setVoiceDraftText('');
         const code = event?.error || 'unknown';
         if (code === 'not-allowed' || code === 'service-not-allowed') {
+          setVoiceStatusText('语音权限被拒绝，请在浏览器地址栏允许麦克风权限');
           showToast('请允许麦克风权限后重试', 'error');
           return;
         }
         if (code === 'no-speech') {
+          setVoiceStatusText('未检测到语音，请靠近麦克风并重试');
           showToast('未检测到语音，请靠近麦克风重试', 'error');
           return;
         }
+        setVoiceStatusText(`语音识别失败：${code}`);
         showToast(`语音识别失败（${code}）`, 'error');
       };
 
@@ -540,6 +560,7 @@ export default function HomeScreen() {
         if (pendingVoiceAutoSendRef.current) {
           void sendVoiceResultIfNeeded();
         } else if (!voiceFinalTextRef.current.trim() && !voiceLatestTextRef.current.trim() && manualVoiceStopRef.current) {
+          setVoiceStatusText('语音已结束，但没有识别到文本');
           showToast('未识别到语音内容', 'info');
         }
         pendingVoiceAutoSendRef.current = false;
@@ -820,6 +841,9 @@ export default function HomeScreen() {
                     : `识别结果：${voiceDraftText}`}
                 </Text>
               </View>
+            )}
+            {!!voiceStatusText && (
+              <Text style={styles.voiceStatusText}>{voiceStatusText}</Text>
             )}
             <View style={styles.inputWrapper}>
               <TextInput
@@ -1949,6 +1973,12 @@ const styles = StyleSheet.create({
     color: '#D7CFF0',
     fontSize: 12,
     lineHeight: 18,
+  },
+  voiceStatusText: {
+    color: '#8D8DAA',
+    fontSize: 11,
+    marginBottom: 6,
+    paddingHorizontal: 2,
   },
   inputWrapper: {
     flexDirection: 'row',
