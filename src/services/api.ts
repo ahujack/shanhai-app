@@ -791,7 +791,15 @@ export const agentApi = {
     const token = await getAuthTokenForStream();
     const url = `${API_BASE_URL}/agent/transcribe`;
     const formData = new FormData();
-    formData.append('audio', audioBlob, 'voice.webm');
+    const blobType = String(audioBlob?.type || '').toLowerCase();
+    const ext = blobType.includes('ogg')
+      ? 'ogg'
+      : blobType.includes('mp4') || blobType.includes('m4a')
+        ? 'm4a'
+        : blobType.includes('wav')
+          ? 'wav'
+          : 'webm';
+    formData.append('audio', audioBlob, `voice.${ext}`);
     const res = await fetch(url, {
       method: 'POST',
       headers: {

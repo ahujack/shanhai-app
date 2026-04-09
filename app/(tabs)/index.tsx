@@ -439,7 +439,13 @@ export default function HomeScreen() {
       });
       mediaStreamRef.current = stream;
 
-      const mimeCandidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+      const mimeCandidates = [
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+      ];
       const selectedMime =
         mimeCandidates.find((m) => {
           try {
