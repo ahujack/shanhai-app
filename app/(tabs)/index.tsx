@@ -130,6 +130,7 @@ export default function HomeScreen() {
   const forceAbortTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceLatestTextRef = useRef('');
   const voiceFinalTextRef = useRef('');
+  const voiceLastErrorRef = useRef('');
   const pendingVoiceAutoSendRef = useRef(false);
   const manualVoiceStopRef = useRef(false);
   const voiceWaveAnim = useRef(new Animated.Value(0)).current;
@@ -359,7 +360,16 @@ export default function HomeScreen() {
   const sendVoiceResultIfNeeded = async () => {
     const recognized = (voiceFinalTextRef.current || voiceLatestTextRef.current).trim();
     if (!recognized) {
-      setVoiceStatusText('未识别到可用文本，请检查麦克风权限后重试');
+      const code = voiceLastErrorRef.current;
+      if (code === 'network') {
+        setVoiceStatusText('语音服务连接失败（network），可能被网络策略拦截');
+      } else if (code === 'not-allowed' || code === 'service-not-allowed') {
+        setVoiceStatusText('麦克风或语音识别权限未授权，请在地址栏开启权限');
+      } else if (code === 'no-speech') {
+        setVoiceStatusText('未检测到语音，请靠近麦克风并延长说话时长');
+      } else {
+        setVoiceStatusText('未识别到可用文本，请检查麦克风权限后重试');
+      }
       return;
     }
     setInputText(recognized);
@@ -455,7 +465,7 @@ export default function HomeScreen() {
     }, 1200);
   };
 
-  const toggleVoiceInput = () => {
+  const toggleVoiceInput = async () => {
     if (!voiceSupported) {
       Alert.alert('不可用', '当前浏览器不支持语音识别，请使用 Chrome 或 Edge。');
       return;
@@ -475,11 +485,16 @@ export default function HomeScreen() {
 
     try {
       void stopVoiceInput(false);
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((t) => t.stop());
+      }
       const recognition = new SpeechRecognitionCtor();
       recognitionRef.current = recognition;
       voiceBaseTextRef.current = inputText.trim();
       voiceLatestTextRef.current = '';
       voiceFinalTextRef.current = '';
+      voiceLastErrorRef.current = '';
       pendingVoiceAutoSendRef.current = true;
       manualVoiceStopRef.current = false;
       setVoiceDraftText('');
@@ -493,6 +508,7 @@ export default function HomeScreen() {
 
       recognition.onstart = () => {
         setIsVoiceListening(true);
+        voiceLastErrorRef.current = '';
         setVoiceHint('正在聆听，请开始说话...');
         setVoiceStatusText('麦克风已开启，请开始说话');
       };
@@ -531,6 +547,7 @@ export default function HomeScreen() {
         recognitionRef.current = null;
         setVoiceDraftText('');
         const code = event?.error || 'unknown';
+        voiceLastErrorRef.current = code;
         if (code === 'not-allowed' || code === 'service-not-allowed') {
           setVoiceStatusText('语音权限被拒绝，请在浏览器地址栏允许麦克风权限');
           showToast('请允许麦克风权限后重试', 'error');
@@ -570,7 +587,9 @@ export default function HomeScreen() {
       recognition.start();
     } catch {
       setIsVoiceListening(false);
-      Alert.alert('启动失败', '无法启动语音输入，请稍后重试。');
+      voiceLastErrorRef.current = 'permission-preflight-failed';
+      setVoiceStatusText('无法获取麦克风权限，请检查浏览器权限设置');
+      Alert.alert('启动失败', '无法获取麦克风权限，请检查浏览器地址栏权限后重试。');
     }
   };
 
