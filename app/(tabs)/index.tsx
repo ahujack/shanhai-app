@@ -124,6 +124,7 @@ export default function HomeScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const recognitionRef = useRef<any>(null);
   const voiceBaseTextRef = useRef('');
+  const isInputComposingRef = useRef(false);
   const ziNudgeDailyStorageKey = `zi_nudge_daily_${user?.id || 'guest'}`;
 
   const getLocalDateKey = () => {
@@ -302,8 +303,21 @@ export default function HomeScreen() {
 
   const handleInputKeyPress = (e: any) => {
     if (Platform.OS !== 'web') return;
+    if (isInputComposingRef.current) return;
     const key = e?.nativeEvent?.key;
     const shift = !!e?.nativeEvent?.shiftKey;
+    if (key === 'Enter' && !shift) {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      handleSend();
+    }
+  };
+
+  const handleInputKeyDown = (e: any) => {
+    if (Platform.OS !== 'web') return;
+    if (isInputComposingRef.current) return;
+    const key = e?.nativeEvent?.key ?? e?.key;
+    const shift = !!(e?.nativeEvent?.shiftKey ?? e?.shiftKey);
     if (key === 'Enter' && !shift) {
       e?.preventDefault?.();
       e?.stopPropagation?.();
@@ -640,6 +654,17 @@ export default function HomeScreen() {
                 multiline
                 maxLength={500}
                 onKeyPress={handleInputKeyPress}
+                {...(Platform.OS === 'web'
+                  ? ({
+                      onKeyDown: handleInputKeyDown,
+                      onCompositionStart: () => {
+                        isInputComposingRef.current = true;
+                      },
+                      onCompositionEnd: () => {
+                        isInputComposingRef.current = false;
+                      },
+                    } as any)
+                  : ({} as any))}
                 onSubmitEditing={() => {
                   if (Platform.OS !== 'web') {
                     handleSend();
@@ -654,10 +679,9 @@ export default function HomeScreen() {
                   isVoiceListening && styles.voiceButtonActive,
                 ]}
                 onPress={toggleVoiceInput}
-                disabled={!voiceSupported}
                 accessibilityLabel="语音输入"
               >
-                <Text style={styles.voiceButtonText}>{isVoiceListening ? '停' : '🎤'}</Text>
+                <Text style={styles.voiceButtonText}>{isVoiceListening ? '停' : '语音'}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[
@@ -679,7 +703,7 @@ export default function HomeScreen() {
 
           {/* 悬浮抽签按钮 - 与占卜功能独立 */}
           {!keyboardVisible && (
-            <TouchableOpacity style={[styles.floatingDrawButton, { bottom: insets.bottom + 112 }]} onPress={openDrawModal}>
+            <TouchableOpacity style={[styles.floatingDrawButton, { bottom: insets.bottom + 156 }]} onPress={openDrawModal}>
               <Text style={styles.floatingDrawIcon}>☯</Text>
               <Text style={styles.floatingDrawText}>抽签</Text>
             </TouchableOpacity>
@@ -1723,26 +1747,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   voiceButton: {
-    backgroundColor: '#2B1F3C',
+    backgroundColor: '#3A2A55',
     borderWidth: 1,
-    borderColor: '#4A3C6D',
-    width: 36,
+    borderColor: '#8D70C0',
+    minWidth: 52,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
+    paddingHorizontal: 10,
   },
   voiceButtonActive: {
     backgroundColor: '#C84A4A',
     borderColor: '#FF7B7B',
   },
   voiceButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.82,
   },
   voiceButtonText: {
     color: '#F7F6F0',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
   },
   bottomFooter: {
@@ -1793,6 +1818,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 8,
+    zIndex: 20,
   },
   floatingDrawIcon: {
     fontSize: 20,
