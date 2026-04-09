@@ -437,7 +437,7 @@ export default function HomeScreen() {
   const sendVoiceResultIfNeeded = async () => {
     const recognized = voiceLatestTextRef.current.trim();
     if (!recognized) {
-      setVoiceStatusText('未识别到可用文本，请检查麦克风权限、网络与后端转写配置');
+      setVoiceStatusText('我这次没听清，你再说一遍试试');
       return;
     }
     setInputText(recognized);
@@ -447,7 +447,7 @@ export default function HomeScreen() {
     setVoiceDraftText('');
     setInputText('');
     await sendMessage(message, persona.id, 'calm');
-    setVoiceStatusText('语音转写成功，已自动发送');
+    setVoiceStatusText('已帮你发出去啦');
     if (shouldSuggestZi(message)) {
       setDetectedZi(extractZiCandidate(message));
       setZiQuestionSeed(message.slice(0, 120));
@@ -547,13 +547,13 @@ export default function HomeScreen() {
       voiceBaseTextRef.current = inputText.trim();
       voiceLatestTextRef.current = '';
       setVoiceDraftText('');
-      setVoiceHint('正在录音...');
-      setVoiceStatusText('录音已启动，结束后自动转写');
+      setVoiceHint('我在听...');
+      setVoiceStatusText('开始啦，我在认真听');
 
       recorder.onstart = () => {
         setIsVoiceListening(true);
-        setVoiceHint('正在录音...');
-        setVoiceStatusText('正在录音，请清晰说话');
+        setVoiceHint('我在听...');
+        setVoiceStatusText('我在听，你慢慢说');
       };
       recorder.ondataavailable = (event: any) => {
         if (event?.data && event.data.size > 0) {
@@ -567,7 +567,7 @@ export default function HomeScreen() {
         mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
         mediaStreamRef.current = null;
         setVoiceDraftText('');
-        setVoiceStatusText('录音失败，请检查麦克风权限');
+        setVoiceStatusText('麦克风好像没打开，请检查权限');
         showToast('录音失败，请检查麦克风权限', 'error');
       };
       recorder.onstop = async () => {
@@ -579,16 +579,16 @@ export default function HomeScreen() {
         mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
         mediaStreamRef.current = null;
         if (!chunks.length) {
-          setVoiceStatusText('未检测到录音内容');
+          setVoiceStatusText('没有听到声音，再试一次吧');
           return;
         }
         try {
-          setVoiceStatusText('录音完成，正在转写...');
+          setVoiceStatusText('收到啦，正在整理你的话...');
           const mimeType = selectedMime || 'audio/webm';
           const rawBlob = new Blob(chunks, { type: mimeType });
           let uploadBlob = rawBlob;
           if (mimeType.includes('webm')) {
-            setVoiceStatusText('检测到 webm，正在本地转换为 wav...');
+            setVoiceStatusText('正在做一次格式整理，马上就好...');
             uploadBlob = await convertWebmToWavIfNeeded(rawBlob, mimeType);
           }
           const transcribed = await agentApi.transcribeAudio(uploadBlob);
@@ -597,10 +597,10 @@ export default function HomeScreen() {
           voiceLatestTextRef.current = merged;
           setVoiceDraftText(merged);
           setInputText(merged);
-          setVoiceStatusText('转写完成，准备发送');
+          setVoiceStatusText('内容整理好了，准备发送...');
           void sendVoiceResultIfNeeded();
         } catch (error: any) {
-          const msg = String(error?.message || '语音转写失败');
+          const msg = String(error?.message || '这次语音处理失败了，请再试一次');
           setVoiceStatusText(msg);
           showToast(msg, 'error');
         }
@@ -609,7 +609,7 @@ export default function HomeScreen() {
       recorder.start();
     } catch {
       setIsVoiceListening(false);
-      setVoiceStatusText('无法获取麦克风权限，请检查浏览器权限设置');
+      setVoiceStatusText('没拿到麦克风权限，请在浏览器里允许麦克风');
       Alert.alert('启动失败', '无法获取麦克风权限，请检查浏览器地址栏权限后重试。');
     }
   };
@@ -877,8 +877,8 @@ export default function HomeScreen() {
               <View style={styles.voicePreviewBar}>
                 <Text style={styles.voicePreviewText} numberOfLines={2}>
                   {isVoiceListening
-                    ? (voiceDraftText ? `正在识别：${voiceDraftText}` : (voiceHint || '正在聆听，请开始说话...'))
-                    : `识别结果：${voiceDraftText}`}
+                    ? (voiceDraftText ? `我听到的是：${voiceDraftText}` : (voiceHint || '我在听，你可以开始说啦...'))
+                    : `你刚刚说：${voiceDraftText}`}
                 </Text>
               </View>
             )}
