@@ -548,12 +548,12 @@ export default function HomeScreen() {
       voiceLatestTextRef.current = '';
       setVoiceDraftText('');
       setVoiceHint('我在听...');
-      setVoiceStatusText('开始啦，我在认真听');
+      setVoiceStatusText('');
 
       recorder.onstart = () => {
         setIsVoiceListening(true);
         setVoiceHint('我在听...');
-        setVoiceStatusText('我在听，你慢慢说');
+        setVoiceStatusText('');
       };
       recorder.ondataavailable = (event: any) => {
         if (event?.data && event.data.size > 0) {
@@ -882,7 +882,7 @@ export default function HomeScreen() {
                 </Text>
               </View>
             )}
-            {!!voiceStatusText && (
+            {!!voiceStatusText && !isVoiceListening && voiceDraftText.trim().length === 0 && (
               <Text style={styles.voiceStatusText}>{voiceStatusText}</Text>
             )}
             <View style={styles.inputWrapper}>
