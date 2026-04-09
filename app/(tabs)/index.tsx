@@ -840,7 +840,7 @@ export default function HomeScreen() {
           ))}
           
           {/* 加载中 */}
-          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+          {isLoading && (
             <View style={[styles.typingIndicator, { backgroundColor: colors.surface }]}>
               <ActivityIndicator size="small" color={colors.accent} />
               <Text style={styles.typingText}>{persona.name} 正在思考...</Text>
