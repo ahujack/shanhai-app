@@ -348,6 +348,73 @@ export default function HomeScreen() {
     }
   };
 
+  const encodeWavFromAudioBuffer = (audioBuffer: AudioBuffer): Blob => {
+    const numChannels = audioBuffer.numberOfChannels;
+    const sampleRate = audioBuffer.sampleRate;
+    const samples = audioBuffer.length;
+    const bitsPerSample = 16;
+    const blockAlign = (numChannels * bitsPerSample) / 8;
+    const byteRate = sampleRate * blockAlign;
+    const dataSize = samples * blockAlign;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+
+    const writeString = (offset: number, s: string) => {
+      for (let i = 0; i < s.length; i += 1) {
+        view.setUint8(offset + i, s.charCodeAt(i));
+      }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    const channelData: Float32Array[] = [];
+    for (let c = 0; c < numChannels; c += 1) {
+      channelData.push(audioBuffer.getChannelData(c));
+    }
+
+    let offset = 44;
+    for (let i = 0; i < samples; i += 1) {
+      for (let c = 0; c < numChannels; c += 1) {
+        const s = Math.max(-1, Math.min(1, channelData[c][i] || 0));
+        const pcm = s < 0 ? s * 0x8000 : s * 0x7fff;
+        view.setInt16(offset, pcm, true);
+        offset += 2;
+      }
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' });
+  };
+
+  const convertWebmToWavIfNeeded = async (blob: Blob, mimeType: string): Promise<Blob> => {
+    if (!mimeType.includes('webm')) return blob;
+    const AudioCtx = (globalThis as any).AudioContext || (globalThis as any).webkitAudioContext;
+    if (!AudioCtx) return blob;
+    const context: AudioContext = new AudioCtx();
+    try {
+      const arr = await blob.arrayBuffer();
+      const audioBuffer = await context.decodeAudioData(arr.slice(0));
+      return encodeWavFromAudioBuffer(audioBuffer);
+    } finally {
+      try {
+        await context.close();
+      } catch {
+        // ignore
+      }
+    }
+  };
+
   const sendVoiceResultIfNeeded = async () => {
     const recognized = voiceLatestTextRef.current.trim();
     if (!recognized) {
@@ -499,11 +566,13 @@ export default function HomeScreen() {
         try {
           setVoiceStatusText('录音完成，正在转写...');
           const mimeType = selectedMime || 'audio/webm';
+          const rawBlob = new Blob(chunks, { type: mimeType });
+          let uploadBlob = rawBlob;
           if (mimeType.includes('webm')) {
-            setVoiceStatusText('当前浏览器录音格式为 webm，腾讯云不支持，建议切换 Safari/移动端浏览器再试');
+            setVoiceStatusText('检测到 webm，正在本地转换为 wav...');
+            uploadBlob = await convertWebmToWavIfNeeded(rawBlob, mimeType);
           }
-          const blob = new Blob(chunks, { type: mimeType });
-          const transcribed = await agentApi.transcribeAudio(blob);
+          const transcribed = await agentApi.transcribeAudio(uploadBlob);
           const base = voiceBaseTextRef.current;
           const merged = `${base}${base ? ' ' : ''}${transcribed.text}`.trim();
           voiceLatestTextRef.current = merged;
