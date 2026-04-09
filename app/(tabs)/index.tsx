@@ -585,7 +585,7 @@ export default function HomeScreen() {
                 {/* 试试问我 - 示例问题 */}
                 <Text style={styles.suggestedTitle}>试试问我</Text>
                 <View style={styles.suggestedChips}>
-                  {['感情该不该继续？', '我的命盘', '帮我占卜一下', '测「心」字'].map((q) => (
+                  {['感情该不该继续？', '我的命盘', '帮我占卜一下', '测一个字'].map((q) => (
                     <TouchableOpacity
                       key={q}
                       style={styles.suggestedChip}
