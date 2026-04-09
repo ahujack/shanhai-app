@@ -349,9 +349,37 @@ export default function HomeScreen() {
   };
 
   const encodeWavFromAudioBuffer = (audioBuffer: AudioBuffer): Blob => {
-    const numChannels = audioBuffer.numberOfChannels;
-    const sampleRate = audioBuffer.sampleRate;
-    const samples = audioBuffer.length;
+    const targetSampleRate = 16000;
+    const sourceSampleRate = audioBuffer.sampleRate;
+    const sourceSamples = audioBuffer.length;
+    const sourceChannels = Math.max(1, audioBuffer.numberOfChannels);
+
+    const mono = new Float32Array(sourceSamples);
+    for (let c = 0; c < sourceChannels; c += 1) {
+      const ch = audioBuffer.getChannelData(c);
+      for (let i = 0; i < sourceSamples; i += 1) {
+        mono[i] += ch[i] || 0;
+      }
+    }
+    for (let i = 0; i < sourceSamples; i += 1) {
+      mono[i] /= sourceChannels;
+    }
+
+    const targetSamples = Math.max(1, Math.floor((sourceSamples * targetSampleRate) / sourceSampleRate));
+    const pcm16 = new Int16Array(targetSamples);
+    for (let i = 0; i < targetSamples; i += 1) {
+      const srcPos = (i * sourceSampleRate) / targetSampleRate;
+      const left = Math.floor(srcPos);
+      const right = Math.min(left + 1, sourceSamples - 1);
+      const t = srcPos - left;
+      const sample = (mono[left] || 0) * (1 - t) + (mono[right] || 0) * t;
+      const clipped = Math.max(-1, Math.min(1, sample));
+      pcm16[i] = clipped < 0 ? clipped * 0x8000 : clipped * 0x7fff;
+    }
+
+    const numChannels = 1;
+    const sampleRate = targetSampleRate;
+    const samples = targetSamples;
     const bitsPerSample = 16;
     const blockAlign = (numChannels * bitsPerSample) / 8;
     const byteRate = sampleRate * blockAlign;
@@ -379,19 +407,10 @@ export default function HomeScreen() {
     writeString(36, 'data');
     view.setUint32(40, dataSize, true);
 
-    const channelData: Float32Array[] = [];
-    for (let c = 0; c < numChannels; c += 1) {
-      channelData.push(audioBuffer.getChannelData(c));
-    }
-
     let offset = 44;
     for (let i = 0; i < samples; i += 1) {
-      for (let c = 0; c < numChannels; c += 1) {
-        const s = Math.max(-1, Math.min(1, channelData[c][i] || 0));
-        const pcm = s < 0 ? s * 0x8000 : s * 0x7fff;
-        view.setInt16(offset, pcm, true);
-        offset += 2;
-      }
+      view.setInt16(offset, pcm16[i], true);
+      offset += 2;
     }
 
     return new Blob([buffer], { type: 'audio/wav' });
