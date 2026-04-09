@@ -53,6 +53,7 @@ export default function HomeScreen() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const [voiceDraftText, setVoiceDraftText] = useState('');
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -124,6 +125,9 @@ export default function HomeScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const recognitionRef = useRef<any>(null);
   const voiceStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voiceLatestTextRef = useRef('');
+  const voiceWaveAnim = useRef(new Animated.Value(0)).current;
+  const voiceWaveLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const voiceBaseTextRef = useRef('');
   const isInputComposingRef = useRef(false);
   const ziNudgeDailyStorageKey = `zi_nudge_daily_${user?.id || 'guest'}`;
@@ -211,11 +215,46 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
+    if (!isVoiceListening) {
+      voiceWaveLoopRef.current?.stop();
+      voiceWaveLoopRef.current = null;
+      voiceWaveAnim.setValue(0);
+      return;
+    }
+    voiceWaveLoopRef.current?.stop();
+    voiceWaveAnim.setValue(0);
+    voiceWaveLoopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(voiceWaveAnim, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        Animated.timing(voiceWaveAnim, {
+          toValue: 0,
+          duration: 700,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+      ]),
+    );
+    voiceWaveLoopRef.current.start();
+    return () => {
+      voiceWaveLoopRef.current?.stop();
+      voiceWaveLoopRef.current = null;
+      voiceWaveAnim.setValue(0);
+    };
+  }, [isVoiceListening]);
+
+  useEffect(() => {
     return () => {
       if (voiceStopTimerRef.current) {
         clearTimeout(voiceStopTimerRef.current);
         voiceStopTimerRef.current = null;
       }
+      voiceWaveLoopRef.current?.stop();
+      voiceWaveLoopRef.current = null;
       try {
         recognitionRef.current?.stop?.();
         recognitionRef.current?.abort?.();
@@ -307,6 +346,26 @@ export default function HomeScreen() {
     }
   };
 
+  const sendVoiceResultIfNeeded = async () => {
+    const recognized = voiceLatestTextRef.current.trim();
+    if (!recognized) return;
+    setInputText(recognized);
+    if (isLoading) return;
+    const message = recognized;
+    voiceLatestTextRef.current = '';
+    setVoiceDraftText('');
+    setInputText('');
+    await sendMessage(message, persona.id, 'calm');
+    if (shouldSuggestZi(message)) {
+      setDetectedZi(extractZiCandidate(message));
+      setZiQuestionSeed(message.slice(0, 120));
+      setShowZiNudge(true);
+      const todayKey = getLocalDateKey();
+      setZiNudgeShownDate(todayKey);
+      AsyncStorage.setItem(ziNudgeDailyStorageKey, todayKey).catch(() => null);
+    }
+  };
+
   const handleInputKeyPress = (e: any) => {
     if (Platform.OS !== 'web') return;
     if (isInputComposingRef.current) return;
@@ -331,10 +390,13 @@ export default function HomeScreen() {
     }
   };
 
-  const stopVoiceInput = (showStoppedToast = true) => {
+  const stopVoiceInput = async (sendRecognized = true) => {
     const recognition = recognitionRef.current;
     if (!recognition) {
       setIsVoiceListening(false);
+      if (sendRecognized) {
+        await sendVoiceResultIfNeeded();
+      }
       return;
     }
     if (voiceStopTimerRef.current) {
@@ -353,14 +415,14 @@ export default function HomeScreen() {
     recognition.onerror = null;
     recognition.onend = null;
     recognitionRef.current = null;
-    if (showStoppedToast) {
-      showToast('语音输入已停止', 'info');
-    }
     // 某些移动浏览器 stop 事件不稳定，超时兜底确保状态一致
     voiceStopTimerRef.current = setTimeout(() => {
       setIsVoiceListening(false);
       voiceStopTimerRef.current = null;
     }, 300);
+    if (sendRecognized) {
+      await sendVoiceResultIfNeeded();
+    }
   };
 
   const toggleVoiceInput = () => {
@@ -370,7 +432,7 @@ export default function HomeScreen() {
     }
 
     if (isVoiceListening) {
-      stopVoiceInput(true);
+      void stopVoiceInput(true);
       return;
     }
 
@@ -382,17 +444,18 @@ export default function HomeScreen() {
     }
 
     try {
-      stopVoiceInput(false);
+      void stopVoiceInput(false);
       const recognition = new SpeechRecognitionCtor();
       recognitionRef.current = recognition;
       voiceBaseTextRef.current = inputText.trim();
+      voiceLatestTextRef.current = '';
+      setVoiceDraftText('');
       recognition.lang = 'zh-CN';
       recognition.continuous = true;
       recognition.interimResults = true;
 
       recognition.onstart = () => {
         setIsVoiceListening(true);
-        showToast('语音输入已开始', 'info');
       };
 
       recognition.onresult = (event: any) => {
@@ -405,18 +468,20 @@ export default function HomeScreen() {
         }
         const base = voiceBaseTextRef.current;
         const merged = `${base}${base ? ' ' : ''}${(finalText || interimText).trim()}`.trim();
+        voiceLatestTextRef.current = merged;
+        setVoiceDraftText(merged);
         setInputText(merged);
       };
 
       recognition.onerror = () => {
         setIsVoiceListening(false);
         recognitionRef.current = null;
+        setVoiceDraftText('');
         showToast('语音识别失败，请重试', 'error');
       };
 
       recognition.onend = () => {
-        setIsVoiceListening(false);
-        recognitionRef.current = null;
+        void stopVoiceInput(true);
       };
 
       recognition.start();
@@ -685,6 +750,15 @@ export default function HomeScreen() {
 
           {/* 输入区域 */}
           <View style={styles.inputContainer}>
+            {(isVoiceListening || voiceDraftText.trim().length > 0) && (
+              <View style={styles.voicePreviewBar}>
+                <Text style={styles.voicePreviewText} numberOfLines={2}>
+                  {isVoiceListening
+                    ? `正在识别：${voiceDraftText || '请开始说话...'}`
+                    : `识别结果：${voiceDraftText}`}
+                </Text>
+              </View>
+            )}
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
@@ -722,7 +796,57 @@ export default function HomeScreen() {
                 onPress={toggleVoiceInput}
                 accessibilityLabel="语音输入"
               >
-                <Text style={styles.voiceButtonText}>{isVoiceListening ? '停' : '语音'}</Text>
+                {isVoiceListening ? (
+                  <View style={styles.voiceWaveWrap}>
+                    <Animated.View
+                      style={[
+                        styles.voiceWaveBar,
+                        {
+                          transform: [
+                            {
+                              scaleY: voiceWaveAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.45, 1],
+                              }),
+                            },
+                          ],
+                        },
+                      ]}
+                    />
+                    <Animated.View
+                      style={[
+                        styles.voiceWaveBar,
+                        {
+                          transform: [
+                            {
+                              scaleY: voiceWaveAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [1, 0.45],
+                              }),
+                            },
+                          ],
+                        },
+                      ]}
+                    />
+                    <Animated.View
+                      style={[
+                        styles.voiceWaveBar,
+                        {
+                          transform: [
+                            {
+                              scaleY: voiceWaveAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.6, 1],
+                              }),
+                            },
+                          ],
+                        },
+                      ]}
+                    />
+                  </View>
+                ) : (
+                  <Text style={styles.voiceButtonText}>语音</Text>
+                )}
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[
@@ -1750,6 +1874,20 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#2F2342',
   },
+  voicePreviewBar: {
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#1B1430',
+    borderWidth: 1,
+    borderColor: '#4A3C6D',
+  },
+  voicePreviewText: {
+    color: '#D7CFF0',
+    fontSize: 12,
+    lineHeight: 18,
+  },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -1810,6 +1948,18 @@ const styles = StyleSheet.create({
     color: '#F7F6F0',
     fontSize: 12,
     fontWeight: '700',
+  },
+  voiceWaveWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  voiceWaveBar: {
+    width: 3,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: '#F7F6F0',
   },
   bottomFooter: {
     paddingHorizontal: 16,
