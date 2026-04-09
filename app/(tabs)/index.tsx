@@ -447,7 +447,7 @@ export default function HomeScreen() {
     setVoiceDraftText('');
     setInputText('');
     await sendMessage(message, persona.id, 'calm');
-    setVoiceStatusText('已帮你发出去啦');
+    setVoiceStatusText('');
     if (shouldSuggestZi(message)) {
       setDetectedZi(extractZiCandidate(message));
       setZiQuestionSeed(message.slice(0, 120));
@@ -583,12 +583,12 @@ export default function HomeScreen() {
           return;
         }
         try {
-          setVoiceStatusText('收到啦，正在整理你的话...');
+          setVoiceStatusText('');
           const mimeType = selectedMime || 'audio/webm';
           const rawBlob = new Blob(chunks, { type: mimeType });
           let uploadBlob = rawBlob;
           if (mimeType.includes('webm')) {
-            setVoiceStatusText('正在做一次格式整理，马上就好...');
+            setVoiceStatusText('');
             uploadBlob = await convertWebmToWavIfNeeded(rawBlob, mimeType);
           }
           const transcribed = await agentApi.transcribeAudio(uploadBlob);
@@ -597,7 +597,7 @@ export default function HomeScreen() {
           voiceLatestTextRef.current = merged;
           setVoiceDraftText(merged);
           setInputText(merged);
-          setVoiceStatusText('内容整理好了，准备发送...');
+          setVoiceStatusText('');
           void sendVoiceResultIfNeeded();
         } catch (error: any) {
           const msg = String(error?.message || '这次语音处理失败了，请再试一次');
