@@ -856,7 +856,7 @@ export default function HomeScreen() {
               <View style={styles.voicePreviewBar}>
                 <Text style={styles.voicePreviewText} numberOfLines={2}>
                   {isVoiceListening
-                    ? `${voiceHint || '正在识别'}：${voiceDraftText || '请开始说话...'}`
+                    ? (voiceDraftText ? `正在识别：${voiceDraftText}` : (voiceHint || '正在聆听，请开始说话...'))
                     : `识别结果：${voiceDraftText}`}
                 </Text>
               </View>
