@@ -54,6 +54,7 @@ export default function HomeScreen() {
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceDraftText, setVoiceDraftText] = useState('');
+  const [voiceHint, setVoiceHint] = useState('');
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -125,7 +126,11 @@ export default function HomeScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const recognitionRef = useRef<any>(null);
   const voiceStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const forceAbortTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceLatestTextRef = useRef('');
+  const voiceFinalTextRef = useRef('');
+  const pendingVoiceAutoSendRef = useRef(false);
+  const manualVoiceStopRef = useRef(false);
   const voiceWaveAnim = useRef(new Animated.Value(0)).current;
   const voiceWaveLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const voiceBaseTextRef = useRef('');
@@ -253,6 +258,10 @@ export default function HomeScreen() {
         clearTimeout(voiceStopTimerRef.current);
         voiceStopTimerRef.current = null;
       }
+      if (forceAbortTimerRef.current) {
+        clearTimeout(forceAbortTimerRef.current);
+        forceAbortTimerRef.current = null;
+      }
       voiceWaveLoopRef.current?.stop();
       voiceWaveLoopRef.current = null;
       try {
@@ -347,7 +356,7 @@ export default function HomeScreen() {
   };
 
   const sendVoiceResultIfNeeded = async () => {
-    const recognized = voiceLatestTextRef.current.trim();
+    const recognized = (voiceFinalTextRef.current || voiceLatestTextRef.current).trim();
     if (!recognized) return;
     setInputText(recognized);
     if (isLoading) return;
@@ -364,6 +373,8 @@ export default function HomeScreen() {
       setZiNudgeShownDate(todayKey);
       AsyncStorage.setItem(ziNudgeDailyStorageKey, todayKey).catch(() => null);
     }
+    voiceFinalTextRef.current = '';
+    voiceLatestTextRef.current = '';
   };
 
   const handleInputKeyPress = (e: any) => {
@@ -392,8 +403,10 @@ export default function HomeScreen() {
 
   const stopVoiceInput = async (sendRecognized = true) => {
     const recognition = recognitionRef.current;
+    pendingVoiceAutoSendRef.current = sendRecognized;
     if (!recognition) {
       setIsVoiceListening(false);
+      setVoiceHint('');
       if (sendRecognized) {
         await sendVoiceResultIfNeeded();
       }
@@ -403,26 +416,38 @@ export default function HomeScreen() {
       clearTimeout(voiceStopTimerRef.current);
       voiceStopTimerRef.current = null;
     }
-    setIsVoiceListening(false);
+    if (forceAbortTimerRef.current) {
+      clearTimeout(forceAbortTimerRef.current);
+      forceAbortTimerRef.current = null;
+    }
+    manualVoiceStopRef.current = true;
     try {
+      // 先优雅停止，给浏览器机会产出最后一段 final transcript
       recognition.stop?.();
-      recognition.abort?.();
     } catch {
       // ignore
     }
-    recognition.onstart = null;
-    recognition.onresult = null;
-    recognition.onerror = null;
-    recognition.onend = null;
-    recognitionRef.current = null;
-    // 某些移动浏览器 stop 事件不稳定，超时兜底确保状态一致
-    voiceStopTimerRef.current = setTimeout(() => {
+    // 某些浏览器 stop 不回调 end，1.2s 后强制 abort 并兜底发送
+    forceAbortTimerRef.current = setTimeout(async () => {
+      try {
+        recognition.abort?.();
+      } catch {
+        // ignore
+      }
+      recognition.onstart = null;
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      recognitionRef.current = null;
       setIsVoiceListening(false);
-      voiceStopTimerRef.current = null;
-    }, 300);
-    if (sendRecognized) {
-      await sendVoiceResultIfNeeded();
-    }
+      setVoiceHint('');
+      forceAbortTimerRef.current = null;
+      if (pendingVoiceAutoSendRef.current) {
+        await sendVoiceResultIfNeeded();
+      }
+      pendingVoiceAutoSendRef.current = false;
+      manualVoiceStopRef.current = false;
+    }, 1200);
   };
 
   const toggleVoiceInput = () => {
@@ -449,39 +474,78 @@ export default function HomeScreen() {
       recognitionRef.current = recognition;
       voiceBaseTextRef.current = inputText.trim();
       voiceLatestTextRef.current = '';
+      voiceFinalTextRef.current = '';
+      pendingVoiceAutoSendRef.current = false;
+      manualVoiceStopRef.current = false;
       setVoiceDraftText('');
+      setVoiceHint('正在聆听，请开始说话...');
       recognition.lang = 'zh-CN';
       recognition.continuous = true;
       recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsVoiceListening(true);
+        setVoiceHint('正在聆听，请开始说话...');
       };
 
       recognition.onresult = (event: any) => {
+        const startIdx = Number.isFinite(event?.resultIndex) ? event.resultIndex : 0;
         let finalText = '';
         let interimText = '';
-        for (let i = 0; i < event.results.length; i += 1) {
+        for (let i = startIdx; i < event.results.length; i += 1) {
           const segment = event.results[i]?.[0]?.transcript || '';
           if (event.results[i]?.isFinal) finalText += segment;
           else interimText += segment;
         }
+        if (finalText.trim()) {
+          voiceFinalTextRef.current = `${voiceFinalTextRef.current} ${finalText}`.trim();
+        }
         const base = voiceBaseTextRef.current;
-        const merged = `${base}${base ? ' ' : ''}${(finalText || interimText).trim()}`.trim();
+        const mergedCore = `${voiceFinalTextRef.current} ${interimText}`.trim();
+        const merged = `${base}${base ? ' ' : ''}${mergedCore}`.trim();
         voiceLatestTextRef.current = merged;
         setVoiceDraftText(merged);
         setInputText(merged);
+        setVoiceHint(mergedCore ? '识别中...' : '正在聆听，请开始说话...');
       };
 
-      recognition.onerror = () => {
+      recognition.onerror = (event: any) => {
         setIsVoiceListening(false);
+        setVoiceHint('');
         recognitionRef.current = null;
         setVoiceDraftText('');
-        showToast('语音识别失败，请重试', 'error');
+        const code = event?.error || 'unknown';
+        if (code === 'not-allowed' || code === 'service-not-allowed') {
+          showToast('请允许麦克风权限后重试', 'error');
+          return;
+        }
+        if (code === 'no-speech') {
+          showToast('未检测到语音，请靠近麦克风重试', 'error');
+          return;
+        }
+        showToast(`语音识别失败（${code}）`, 'error');
       };
 
       recognition.onend = () => {
-        void stopVoiceInput(true);
+        if (forceAbortTimerRef.current) {
+          clearTimeout(forceAbortTimerRef.current);
+          forceAbortTimerRef.current = null;
+        }
+        setIsVoiceListening(false);
+        setVoiceHint('');
+        recognition.onstart = null;
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+        recognitionRef.current = null;
+        if (pendingVoiceAutoSendRef.current) {
+          void sendVoiceResultIfNeeded();
+        } else if (!voiceFinalTextRef.current.trim() && !voiceLatestTextRef.current.trim() && manualVoiceStopRef.current) {
+          showToast('未识别到语音内容', 'info');
+        }
+        pendingVoiceAutoSendRef.current = false;
+        manualVoiceStopRef.current = false;
       };
 
       recognition.start();
@@ -754,7 +818,7 @@ export default function HomeScreen() {
               <View style={styles.voicePreviewBar}>
                 <Text style={styles.voicePreviewText} numberOfLines={2}>
                   {isVoiceListening
-                    ? `正在识别：${voiceDraftText || '请开始说话...'}`
+                    ? `${voiceHint || '正在识别'}：${voiceDraftText || '请开始说话...'}`
                     : `识别结果：${voiceDraftText}`}
                 </Text>
               </View>
