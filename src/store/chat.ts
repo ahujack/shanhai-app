@@ -65,7 +65,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const placeholderMessage: ChatMessage = {
       id: assistantId,
       role: 'assistant',
-      content: '',
+      // 先给出轻提示，避免首字返回前长时间“空等待”
+      content: '收到啦，我马上回你...',
       timestamp: new Date(),
     };
     set(state => ({
@@ -74,15 +75,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     try {
       try {
+        let gotFirstChunk = false;
         const response = await agentApi.chatStream(dto, (chunk) => {
           set((state) => {
             const msgs = [...state.messages];
             const idx = msgs.findIndex((m) => m.id === assistantId);
             if (idx >= 0) {
-              msgs[idx] = { ...msgs[idx], content: msgs[idx].content + chunk };
+              msgs[idx] = {
+                ...msgs[idx],
+                content: gotFirstChunk ? msgs[idx].content + chunk : chunk,
+              };
             }
             return { messages: msgs };
           });
+          gotFirstChunk = true;
         });
         set((state) => {
           const msgs = [...state.messages];
