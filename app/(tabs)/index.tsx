@@ -475,12 +475,13 @@ export default function HomeScreen() {
       voiceBaseTextRef.current = inputText.trim();
       voiceLatestTextRef.current = '';
       voiceFinalTextRef.current = '';
-      pendingVoiceAutoSendRef.current = false;
+      pendingVoiceAutoSendRef.current = true;
       manualVoiceStopRef.current = false;
       setVoiceDraftText('');
       setVoiceHint('正在聆听，请开始说话...');
       recognition.lang = 'zh-CN';
-      recognition.continuous = true;
+      // 对移动浏览器更稳定：一次语音一轮识别，结束后自动发送
+      recognition.continuous = false;
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
@@ -490,19 +491,16 @@ export default function HomeScreen() {
       };
 
       recognition.onresult = (event: any) => {
-        const startIdx = Number.isFinite(event?.resultIndex) ? event.resultIndex : 0;
         let finalText = '';
         let interimText = '';
-        for (let i = startIdx; i < event.results.length; i += 1) {
+        for (let i = 0; i < event.results.length; i += 1) {
           const segment = event.results[i]?.[0]?.transcript || '';
           if (event.results[i]?.isFinal) finalText += segment;
           else interimText += segment;
         }
-        if (finalText.trim()) {
-          voiceFinalTextRef.current = `${voiceFinalTextRef.current} ${finalText}`.trim();
-        }
+        voiceFinalTextRef.current = finalText.trim();
         const base = voiceBaseTextRef.current;
-        const mergedCore = `${voiceFinalTextRef.current} ${interimText}`.trim();
+        const mergedCore = `${voiceFinalTextRef.current} ${interimText.trim()}`.trim();
         const merged = `${base}${base ? ' ' : ''}${mergedCore}`.trim();
         voiceLatestTextRef.current = merged;
         setVoiceDraftText(merged);
