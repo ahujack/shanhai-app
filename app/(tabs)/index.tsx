@@ -149,9 +149,9 @@ export default function HomeScreen() {
     const quoted = text.match(/[「“"']([\u4e00-\u9fa5])[」”"']/);
     if (quoted?.[1]) return quoted[1];
     const chars = text.match(/[\u4e00-\u9fa5]/g) || [];
-    if (!chars.length) return '心';
+    if (!chars.length) return '';
     // 对较长文本，优先给中间位置的字，避免总是首字触发
-    return chars[Math.floor(chars.length / 2)] || '心';
+    return chars[Math.floor(chars.length / 2)] || '';
   };
 
   const shouldSuggestZi = (text: string): boolean => {
@@ -851,7 +851,7 @@ export default function HomeScreen() {
             <View style={styles.ziNudgeCard}>
               <Text style={styles.ziNudgeTitle}>✍️ 要不要试试测字小游戏？</Text>
               <Text style={styles.ziNudgeText}>
-                你刚聊到一个具体困扰，我可以用「{detectedZi || '心'}」这个字帮你做一版轻量拆解。
+                你刚聊到一个具体困扰，我可以用「{detectedZi || '这个字'}」帮你做一版轻量拆解。
               </Text>
               <View style={styles.ziNudgeActions}>
                 <TouchableOpacity
