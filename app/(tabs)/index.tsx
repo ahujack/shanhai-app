@@ -882,9 +882,6 @@ export default function HomeScreen() {
                 </Text>
               </View>
             )}
-            {!!voiceStatusText && !isVoiceListening && voiceDraftText.trim().length === 0 && (
-              <Text style={styles.voiceStatusText}>{voiceStatusText}</Text>
-            )}
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
