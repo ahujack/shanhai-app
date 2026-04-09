@@ -787,6 +787,33 @@ export const agentApi = {
     if (!result) throw new Error('未收到完整响应');
     return result;
   },
+  transcribeAudio: async (audioBlob: Blob): Promise<{ success: boolean; text: string }> => {
+    const token = await getAuthTokenForStream();
+    const url = `${API_BASE_URL}/agent/transcribe`;
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'voice.webm');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      // ignore
+    }
+    if (!res.ok) {
+      const msg = data?.message || `语音转写请求失败: ${res.status}`;
+      throw new Error(msg);
+    }
+    if (!data?.success || !String(data?.text || '').trim()) {
+      throw new Error(data?.message || '语音转写未返回文本');
+    }
+    return { success: true, text: String(data.text).trim() };
+  },
 };
 
 // ========== 签到 API ==========

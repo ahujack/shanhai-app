@@ -8,7 +8,7 @@ import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { useDivinationStore } from '../../src/store/divination';
-import { fortuneApi, FortuneSlip } from '../../src/services/api';
+import { agentApi, fortuneApi, FortuneSlip } from '../../src/services/api';
 import PersonaPicker from '../../components/PersonaPicker';
 import OnboardingModal from '../../components/OnboardingModal';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
@@ -125,14 +125,10 @@ export default function HomeScreen() {
   const [chartGender, setChartGender] = useState<'male' | 'female'>('male');
   
   const scrollViewRef = useRef<ScrollView>(null);
-  const recognitionRef = useRef<any>(null);
-  const voiceStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const forceAbortTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<BlobPart[]>([]);
   const voiceLatestTextRef = useRef('');
-  const voiceFinalTextRef = useRef('');
-  const voiceLastErrorRef = useRef('');
-  const pendingVoiceAutoSendRef = useRef(false);
-  const manualVoiceStopRef = useRef(false);
   const voiceWaveAnim = useRef(new Animated.Value(0)).current;
   const voiceWaveLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const voiceBaseTextRef = useRef('');
@@ -216,9 +212,11 @@ export default function HomeScreen() {
       setVoiceSupported(false);
       return;
     }
-    const speechCtor =
-      (globalThis as any)?.SpeechRecognition || (globalThis as any)?.webkitSpeechRecognition;
-    setVoiceSupported(!!speechCtor);
+    const mediaCap =
+      typeof navigator !== 'undefined' &&
+      !!navigator.mediaDevices?.getUserMedia &&
+      typeof (globalThis as any).MediaRecorder !== 'undefined';
+    setVoiceSupported(!!mediaCap);
   }, []);
 
   useEffect(() => {
@@ -256,23 +254,16 @@ export default function HomeScreen() {
 
   useEffect(() => {
     return () => {
-      if (voiceStopTimerRef.current) {
-        clearTimeout(voiceStopTimerRef.current);
-        voiceStopTimerRef.current = null;
-      }
-      if (forceAbortTimerRef.current) {
-        clearTimeout(forceAbortTimerRef.current);
-        forceAbortTimerRef.current = null;
-      }
       voiceWaveLoopRef.current?.stop();
       voiceWaveLoopRef.current = null;
       try {
-        recognitionRef.current?.stop?.();
-        recognitionRef.current?.abort?.();
+        mediaRecorderRef.current?.stop();
       } catch {
         // ignore
       }
-      recognitionRef.current = null;
+      mediaRecorderRef.current = null;
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
     };
   }, []);
 
@@ -358,18 +349,9 @@ export default function HomeScreen() {
   };
 
   const sendVoiceResultIfNeeded = async () => {
-    const recognized = (voiceFinalTextRef.current || voiceLatestTextRef.current).trim();
+    const recognized = voiceLatestTextRef.current.trim();
     if (!recognized) {
-      const code = voiceLastErrorRef.current;
-      if (code === 'network') {
-        setVoiceStatusText('语音服务连接失败（network），可能被网络策略拦截');
-      } else if (code === 'not-allowed' || code === 'service-not-allowed') {
-        setVoiceStatusText('麦克风或语音识别权限未授权，请在地址栏开启权限');
-      } else if (code === 'no-speech') {
-        setVoiceStatusText('未检测到语音，请靠近麦克风并延长说话时长');
-      } else {
-        setVoiceStatusText('未识别到可用文本，请检查麦克风权限后重试');
-      }
+      setVoiceStatusText('未识别到可用文本，请检查麦克风权限、网络与后端转写配置');
       return;
     }
     setInputText(recognized);
@@ -379,7 +361,7 @@ export default function HomeScreen() {
     setVoiceDraftText('');
     setInputText('');
     await sendMessage(message, persona.id, 'calm');
-    setVoiceStatusText('语音识别成功，已自动发送');
+    setVoiceStatusText('语音转写成功，已自动发送');
     if (shouldSuggestZi(message)) {
       setDetectedZi(extractZiCandidate(message));
       setZiQuestionSeed(message.slice(0, 120));
@@ -388,8 +370,6 @@ export default function HomeScreen() {
       setZiNudgeShownDate(todayKey);
       AsyncStorage.setItem(ziNudgeDailyStorageKey, todayKey).catch(() => null);
     }
-    voiceFinalTextRef.current = '';
-    voiceLatestTextRef.current = '';
   };
 
   const handleInputKeyPress = (e: any) => {
@@ -417,9 +397,8 @@ export default function HomeScreen() {
   };
 
   const stopVoiceInput = async (sendRecognized = true) => {
-    const recognition = recognitionRef.current;
-    pendingVoiceAutoSendRef.current = sendRecognized;
-    if (!recognition) {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) {
       setIsVoiceListening(false);
       setVoiceHint('');
       if (sendRecognized) {
@@ -427,47 +406,18 @@ export default function HomeScreen() {
       }
       return;
     }
-    if (voiceStopTimerRef.current) {
-      clearTimeout(voiceStopTimerRef.current);
-      voiceStopTimerRef.current = null;
-    }
-    if (forceAbortTimerRef.current) {
-      clearTimeout(forceAbortTimerRef.current);
-      forceAbortTimerRef.current = null;
-    }
-    manualVoiceStopRef.current = true;
     try {
-      // 先优雅停止，给浏览器机会产出最后一段 final transcript
-      recognition.stop?.();
+      if (recorder.state !== 'inactive') {
+        recorder.stop();
+      }
     } catch {
       // ignore
     }
-    // 某些浏览器 stop 不回调 end，1.2s 后强制 abort 并兜底发送
-    forceAbortTimerRef.current = setTimeout(async () => {
-      try {
-        recognition.abort?.();
-      } catch {
-        // ignore
-      }
-      recognition.onstart = null;
-      recognition.onresult = null;
-      recognition.onerror = null;
-      recognition.onend = null;
-      recognitionRef.current = null;
-      setIsVoiceListening(false);
-      setVoiceHint('');
-      forceAbortTimerRef.current = null;
-      if (pendingVoiceAutoSendRef.current) {
-        await sendVoiceResultIfNeeded();
-      }
-      pendingVoiceAutoSendRef.current = false;
-      manualVoiceStopRef.current = false;
-    }, 1200);
   };
 
   const toggleVoiceInput = async () => {
     if (!voiceSupported) {
-      Alert.alert('不可用', '当前浏览器不支持语音识别，请使用 Chrome 或 Edge。');
+      Alert.alert('不可用', '当前浏览器不支持录音能力，请使用最新版 Chrome/Edge/Safari。');
       return;
     }
 
@@ -476,118 +426,99 @@ export default function HomeScreen() {
       return;
     }
 
-    const SpeechRecognitionCtor =
-      (globalThis as any)?.SpeechRecognition || (globalThis as any)?.webkitSpeechRecognition;
-    if (!SpeechRecognitionCtor) {
-      Alert.alert('不可用', '当前浏览器不支持语音识别，请使用 Chrome 或 Edge。');
-      return;
-    }
-
     try {
-      void stopVoiceInput(false);
-      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach((t) => t.stop());
-      }
-      const recognition = new SpeechRecognitionCtor();
-      recognitionRef.current = recognition;
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+      mediaRecorderRef.current = null;
+      recordedChunksRef.current = [];
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      mediaStreamRef.current = stream;
+
+      const mimeCandidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+      ];
+      const selectedMime =
+        mimeCandidates.find((m) => {
+          try {
+            return typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.(m);
+          } catch {
+            return false;
+          }
+        }) || undefined;
+      const recorder = selectedMime ? new MediaRecorder(stream, { mimeType: selectedMime }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
       voiceBaseTextRef.current = inputText.trim();
       voiceLatestTextRef.current = '';
-      voiceFinalTextRef.current = '';
-      voiceLastErrorRef.current = '';
-      pendingVoiceAutoSendRef.current = true;
-      manualVoiceStopRef.current = false;
       setVoiceDraftText('');
-      setVoiceHint('正在聆听，请开始说话...');
-      setVoiceStatusText('语音已启动，正在等待说话...');
-      recognition.lang = 'zh-CN';
-      // 对移动浏览器更稳定：一次语音一轮识别，结束后自动发送
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
+      setVoiceHint('正在录音...');
+      setVoiceStatusText('录音已启动，结束后自动转写');
 
-      recognition.onstart = () => {
+      recorder.onstart = () => {
         setIsVoiceListening(true);
-        voiceLastErrorRef.current = '';
-        setVoiceHint('正在聆听，请开始说话...');
-        setVoiceStatusText('麦克风已开启，请开始说话');
+        setVoiceHint('正在录音...');
+        setVoiceStatusText('正在录音，请清晰说话');
       };
 
-      recognition.onresult = (event: any) => {
-        const extractTranscript = (item: any): string => {
-          if (!item) return '';
-          if (typeof item?.[0]?.transcript === 'string') return item[0].transcript;
-          if (typeof item?.transcript === 'string') return item.transcript;
-          return '';
-        };
-        let finalText = '';
-        let interimText = '';
-        for (let i = 0; i < event.results.length; i += 1) {
-          const segment = extractTranscript(event.results[i]);
-          if (event.results[i]?.isFinal) finalText += segment;
-          else interimText += segment;
+      recorder.ondataavailable = (event: any) => {
+        if (event?.data && event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
         }
-        if (!finalText && !interimText && typeof event?.transcript === 'string') {
-          finalText = event.transcript;
-        }
-        voiceFinalTextRef.current = finalText.trim();
-        const base = voiceBaseTextRef.current;
-        const mergedCore = `${voiceFinalTextRef.current} ${interimText.trim()}`.trim();
-        const merged = `${base}${base ? ' ' : ''}${mergedCore}`.trim();
-        voiceLatestTextRef.current = merged;
-        setVoiceDraftText(merged);
-        setInputText(merged);
-        setVoiceHint(mergedCore ? '识别中...' : '正在聆听，请开始说话...');
-        setVoiceStatusText(mergedCore ? '已识别到语音内容' : '正在监听语音...');
       };
 
-      recognition.onerror = (event: any) => {
+      recorder.onerror = () => {
         setIsVoiceListening(false);
         setVoiceHint('');
-        recognitionRef.current = null;
+        mediaRecorderRef.current = null;
+        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+        mediaStreamRef.current = null;
         setVoiceDraftText('');
-        const code = event?.error || 'unknown';
-        voiceLastErrorRef.current = code;
-        if (code === 'not-allowed' || code === 'service-not-allowed') {
-          setVoiceStatusText('语音权限被拒绝，请在浏览器地址栏允许麦克风权限');
-          showToast('请允许麦克风权限后重试', 'error');
-          return;
-        }
-        if (code === 'no-speech') {
-          setVoiceStatusText('未检测到语音，请靠近麦克风并重试');
-          showToast('未检测到语音，请靠近麦克风重试', 'error');
-          return;
-        }
-        setVoiceStatusText(`语音识别失败：${code}`);
-        showToast(`语音识别失败（${code}）`, 'error');
+        setVoiceStatusText('录音失败，请检查麦克风权限');
+        showToast('录音失败，请检查麦克风权限', 'error');
       };
 
-      recognition.onend = () => {
-        if (forceAbortTimerRef.current) {
-          clearTimeout(forceAbortTimerRef.current);
-          forceAbortTimerRef.current = null;
-        }
+      recorder.onstop = async () => {
         setIsVoiceListening(false);
         setVoiceHint('');
-        recognition.onstart = null;
-        recognition.onresult = null;
-        recognition.onerror = null;
-        recognition.onend = null;
-        recognitionRef.current = null;
-        if (pendingVoiceAutoSendRef.current) {
-          void sendVoiceResultIfNeeded();
-        } else if (!voiceFinalTextRef.current.trim() && !voiceLatestTextRef.current.trim() && manualVoiceStopRef.current) {
-          setVoiceStatusText('语音已结束，但没有识别到文本');
-          showToast('未识别到语音内容', 'info');
+        mediaRecorderRef.current = null;
+        const chunks = recordedChunksRef.current;
+        recordedChunksRef.current = [];
+        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+        mediaStreamRef.current = null;
+        if (!chunks.length) {
+          setVoiceStatusText('未检测到录音内容');
+          return;
         }
-        pendingVoiceAutoSendRef.current = false;
-        manualVoiceStopRef.current = false;
+        try {
+          setVoiceStatusText('录音完成，正在转写...');
+          const mimeType = selectedMime || 'audio/webm';
+          const blob = new Blob(chunks, { type: mimeType });
+          const transcribed = await agentApi.transcribeAudio(blob);
+          const base = voiceBaseTextRef.current;
+          const merged = `${base}${base ? ' ' : ''}${transcribed.text}`.trim();
+          voiceLatestTextRef.current = merged;
+          setVoiceDraftText(merged);
+          setInputText(merged);
+          setVoiceStatusText('转写完成，准备发送');
+          void sendVoiceResultIfNeeded();
+        } catch (error: any) {
+          const msg = String(error?.message || '语音转写失败');
+          setVoiceStatusText(msg);
+          showToast(msg, 'error');
+        }
       };
 
-      recognition.start();
+      recorder.start();
     } catch {
       setIsVoiceListening(false);
-      voiceLastErrorRef.current = 'permission-preflight-failed';
       setVoiceStatusText('无法获取麦克风权限，请检查浏览器权限设置');
       Alert.alert('启动失败', '无法获取麦克风权限，请检查浏览器地址栏权限后重试。');
     }
