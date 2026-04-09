@@ -420,12 +420,10 @@ export default function HomeScreen() {
       Alert.alert('不可用', '当前浏览器不支持录音能力，请使用最新版 Chrome/Edge/Safari。');
       return;
     }
-
     if (isVoiceListening) {
       void stopVoiceInput(true);
       return;
     }
-
     try {
       mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
       mediaStreamRef.current = null;
@@ -441,11 +439,7 @@ export default function HomeScreen() {
       });
       mediaStreamRef.current = stream;
 
-      const mimeCandidates = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/mp4',
-      ];
+      const mimeCandidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
       const selectedMime =
         mimeCandidates.find((m) => {
           try {
@@ -456,6 +450,7 @@ export default function HomeScreen() {
         }) || undefined;
       const recorder = selectedMime ? new MediaRecorder(stream, { mimeType: selectedMime }) : new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
+
       voiceBaseTextRef.current = inputText.trim();
       voiceLatestTextRef.current = '';
       setVoiceDraftText('');
@@ -467,13 +462,11 @@ export default function HomeScreen() {
         setVoiceHint('正在录音...');
         setVoiceStatusText('正在录音，请清晰说话');
       };
-
       recorder.ondataavailable = (event: any) => {
         if (event?.data && event.data.size > 0) {
           recordedChunksRef.current.push(event.data);
         }
       };
-
       recorder.onerror = () => {
         setIsVoiceListening(false);
         setVoiceHint('');
@@ -484,7 +477,6 @@ export default function HomeScreen() {
         setVoiceStatusText('录音失败，请检查麦克风权限');
         showToast('录音失败，请检查麦克风权限', 'error');
       };
-
       recorder.onstop = async () => {
         setIsVoiceListening(false);
         setVoiceHint('');
