@@ -442,9 +442,10 @@ export default function HomeScreen() {
       const mimeCandidates = [
         'audio/ogg;codecs=opus',
         'audio/ogg',
+        'audio/mp4;codecs=mp4a.40.2',
+        'audio/mp4',
         'audio/webm;codecs=opus',
         'audio/webm',
-        'audio/mp4',
       ];
       const selectedMime =
         mimeCandidates.find((m) => {
@@ -498,6 +499,9 @@ export default function HomeScreen() {
         try {
           setVoiceStatusText('录音完成，正在转写...');
           const mimeType = selectedMime || 'audio/webm';
+          if (mimeType.includes('webm')) {
+            setVoiceStatusText('当前浏览器录音格式为 webm，腾讯云不支持，建议切换 Safari/移动端浏览器再试');
+          }
           const blob = new Blob(chunks, { type: mimeType });
           const transcribed = await agentApi.transcribeAudio(blob);
           const base = voiceBaseTextRef.current;
