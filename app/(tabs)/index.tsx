@@ -116,11 +116,15 @@ export default function HomeScreen() {
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' }>({ visible: false, message: '', type: 'info' });
   
   // Toast显示函数
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const showToast = (
+    message: string,
+    type: 'success' | 'error' | 'info' = 'info',
+    durationMs = 2500,
+  ) => {
     setToast({ visible: true, message, type });
     setTimeout(() => {
       setToast({ visible: false, message: '', type: 'info' });
-    }, 2500);
+    }, durationMs);
   };
   
   // 命盘信息
@@ -808,7 +812,7 @@ export default function HomeScreen() {
             active={persona}
             onSelect={(p) => {
               setActive(p.id);
-              showToast(`已切换灵伴：${p.name}`, 'success');
+              showToast(`已切换灵伴：${p.name}`, 'info', 1200);
               setShowPersonaPicker(false);
             }}
             onClose={() => setShowPersonaPicker(false)}
@@ -2247,38 +2251,38 @@ const styles = StyleSheet.create({
   // Toast提示样式
   toastContainer: {
     position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(76, 47, 128, 0.95)',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
+    top: 56,
+    alignSelf: 'center',
+    maxWidth: '72%',
+    backgroundColor: 'rgba(33, 25, 53, 0.92)',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#B2A0FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowColor: '#0F0A1D',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
     zIndex: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(178, 160, 255, 0.3)',
+    borderColor: 'rgba(178, 160, 255, 0.24)',
   },
   toastError: {
-    backgroundColor: 'rgba(211, 47, 47, 0.95)',
+    backgroundColor: 'rgba(154, 43, 43, 0.92)',
     borderColor: 'rgba(255, 118, 118, 0.3)',
   },
   toastSuccess: {
-    backgroundColor: 'rgba(56, 142, 60, 0.95)',
+    backgroundColor: 'rgba(43, 100, 56, 0.92)',
     borderColor: 'rgba(102, 187, 106, 0.3)',
   },
   toastText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   
   // ========== 抽签动画样式 ==========
