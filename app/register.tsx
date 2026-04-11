@@ -45,7 +45,10 @@ export default function RegisterScreen() {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     }
-  }, [countdown]);
+    if (isCodeSent) {
+      setIsCodeSent(false);
+    }
+  }, [countdown, isCodeSent]);
 
   const openTerms = (type: 'terms' | 'privacy') => {
     setTermsType(type);
@@ -214,12 +217,12 @@ export default function RegisterScreen() {
               editable={!isLoading}
             />
             <TouchableOpacity
-              style={[styles.codeButton, (isCodeSent || countdown > 0) && styles.codeButtonDisabled]}
+              style={[styles.codeButton, (countdown > 0 || isLoading) && styles.codeButtonDisabled]}
               onPress={handleSendCode}
-              disabled={isCodeSent || countdown > 0 || isLoading}
+              disabled={countdown > 0 || isLoading}
             >
               <Text style={styles.codeButtonText}>
-                {countdown > 0 ? `${countdown}s` : (isCodeSent ? '已发送' : '获取验证码')}
+                {countdown > 0 ? `${countdown}s` : '获取验证码'}
               </Text>
             </TouchableOpacity>
           </View>
