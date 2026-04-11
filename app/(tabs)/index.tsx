@@ -9,7 +9,9 @@ import { useUserStore } from '../../src/store/user';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { useDivinationStore } from '../../src/store/divination';
 import { agentApi, fortuneApi, FortuneSlip } from '../../src/services/api';
+import { trackFeature } from '../../src/services/analytics';
 import PersonaPicker from '../../components/PersonaPicker';
+import AccuracyFeedback from '../../components/AccuracyFeedback';
 import OnboardingModal from '../../components/OnboardingModal';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 
@@ -275,6 +277,10 @@ export default function HomeScreen() {
       const fortune = await fortuneApi.draw();
       setDrawFortune(fortune);
       setLastFortune(fortune);
+      trackFeature('fortune_draw', {
+        drawCode: fortune.drawCode ?? null,
+        rank: fortune.fortuneRank ?? null,
+      });
     } catch (error) {
       showToast('抽签失败，请稍后重试', 'error');
     } finally {
@@ -1081,6 +1087,13 @@ export default function HomeScreen() {
                   {!user?.id && (
                     <Text style={styles.guestHint}>登录后可保存抽签记录、查看历史</Text>
                   )}
+                  <AccuracyFeedback
+                    category="fortune_draw"
+                    context={{
+                      drawCode: drawFortune.drawCode,
+                      rank: drawFortune.fortuneRank,
+                    }}
+                  />
                 </FortuneResultAnimation>
               ) : (
                 <View style={styles.drawPrompt}>

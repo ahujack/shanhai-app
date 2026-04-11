@@ -1045,3 +1045,32 @@ export const paymentApi = {
   getHistory: (limit?: number, offset?: number) =>
     request<Payment[]>(`/payment/history${limit ? `?limit=${limit}` : ''}`),
 };
+
+// ========== Analytics & 反馈 ==========
+export type AnalyticsTrackEvent = {
+  name: string;
+  props?: Record<string, unknown>;
+  clientTime?: string;
+};
+
+export const analyticsApi = {
+  track: (body: {
+    events: AnalyticsTrackEvent[];
+    client?: { locale?: string; timezone?: string; region?: string };
+  }) =>
+    request<{ success: boolean; count: number }>('/analytics/track', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  submitFeedback: (body: {
+    category: string;
+    rating?: number;
+    comment?: string;
+    context?: Record<string, unknown>;
+  }) =>
+    request<{ success: boolean }>('/analytics/feedback', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+};

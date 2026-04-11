@@ -1,11 +1,21 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import { useColorScheme } from 'react-native';
+import { useEffect, useRef } from 'react';
 import theme from '../../constants/Colors';
+import { trackScreenView } from '../../src/services/analytics';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'dark';
   const currentTheme = theme[colorScheme];
+  const pathname = usePathname();
+  const lastPath = useRef<string>('');
+
+  useEffect(() => {
+    if (!pathname || pathname === lastPath.current) return;
+    lastPath.current = pathname;
+    trackScreenView(pathname);
+  }, [pathname]);
 
   return (
     <Tabs

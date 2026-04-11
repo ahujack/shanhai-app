@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { readingApi, CreateReadingDto, DivinationResult, pointsApi } from '../../src/services/api';
+import { trackFeature } from '../../src/services/analytics';
+import AccuracyFeedback from '../../components/AccuracyFeedback';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
@@ -176,6 +178,7 @@ export default function ReadingScreen() {
         category: inferCategoryFromFortuneTheme(),
       });
       setResult(deepReading);
+      trackFeature('reading_complete', { source: 'fortune', category: inferCategoryFromFortuneTheme() });
       setShowDetails(true);
       setShowSmartCta(false);
       await refreshPointsBalance();
@@ -219,6 +222,7 @@ export default function ReadingScreen() {
       };
       const reading = await readingApi.create(dto);
       setResult(reading);
+      trackFeature('reading_complete', { source: 'form', category });
       setShowSmartCta(false);
       await refreshPointsBalance();
     } catch (err: any) {
@@ -427,6 +431,11 @@ export default function ReadingScreen() {
         </View>
           </>
         )}
+
+        <AccuracyFeedback
+          category="divination_reading"
+          context={{ category, questionPreview: question.trim().slice(0, 80) }}
+        />
 
         {/* 再次占卜 */}
         <TouchableOpacity style={styles.resetButton} onPress={handleReset}>

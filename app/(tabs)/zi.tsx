@@ -18,6 +18,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
 import { ziApi, ZiResult, handwritingApi, pointsApi } from '../../src/services/api';
+import { trackFeature } from '../../src/services/analytics';
+import AccuracyFeedback from '../../components/AccuracyFeedback';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
@@ -226,6 +228,7 @@ export default function ZiScreen() {
     try {
       const data = await ziApi.analyze(zi, focusAspect, undefined, normalizedQuestion || undefined);
       setResult(data);
+      trackFeature('zi_analyze_complete', { zi: data?.zi?.zi, aspect: focusAspect || null });
       setHandwritingPreview(null);
       setShowSmartCta(false);
       await refreshPointsBalance();
@@ -1159,6 +1162,11 @@ export default function ZiScreen() {
                 ))}
               </View>
             </View>
+
+            <AccuracyFeedback
+              category="zi_analysis"
+              context={{ zi: result.zi?.zi, aspect: getFocusAspect() }}
+            />
 
             {/* 后续问题 - 可点击跳转聊天 */}
             {result.followUpQuestions.length > 0 && (
