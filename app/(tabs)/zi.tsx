@@ -45,6 +45,7 @@ export default function ZiScreen() {
   const fromChat = (Array.isArray(params.fromChat) ? params.fromChat[0] : params.fromChat) === '1';
   const [inputZi, setInputZi] = useState('');
   const [result, setResult] = useState<ZiResult | null>(null);
+  const [resultStage, setResultStage] = useState<'idle' | 'preview' | 'full'>('idle');
   const [isLoading, setIsLoading] = useState(false);
   const [handwritingStage, setHandwritingStage] = useState<'idle' | 'recognizing' | 'analyzing'>('idle');
   const [ritualReady, setRitualReady] = useState(false);
@@ -202,6 +203,66 @@ export default function ZiScreen() {
   const projectedMonthlyPoints = ziPointsCost * projectedMonthlyRuns;
   const projectedCheckinDays = Math.ceil(projectedMonthlyPoints / 10);
 
+  const buildPreviewResult = (zi: string, focusLabel?: string): ZiResult => {
+    const cleanZi = zi.trim().charAt(0);
+    const focus = (focusLabel || '').trim() || '综合';
+    return {
+      handwriting: {
+        pressure: 'medium',
+        pressureInterpretation: `你写的「${cleanZi}」已收到，正在生成笔迹细节解读…`,
+        stability: 'average',
+        stabilityInterpretation: '先给你看核心结构，稳定性细节正在补全。',
+        structure: 'balanced',
+        structureInterpretation: '结构解析已启动，正在结合语境深挖。',
+        continuity: 'average',
+        continuityInterpretation: '连贯性需要结合完整模型结果，马上返回。',
+        overallStyle: '快速预览',
+        personalityInsights: ['分析中', '请稍候'],
+      },
+      zi: {
+        zi: cleanZi,
+        bushou: '解析中',
+        bihua: 0,
+        wuxing: '待定',
+        yinyang: '待定',
+        jixiong: '待定',
+        yijing: '待定',
+        guaXiang: '已进入深度推演，先为你呈现速览结果。',
+        components: [cleanZi],
+        componentMeanings: ['基础结构解析中'],
+        associativeMeaning: `先给你看「${cleanZi}」的首轮结果，完整结论正在生成。`,
+        lihefa: ['离合法细化生成中…'],
+        tianziGe: ['填字格细化生成中…'],
+        imageryInference: '象形投射生成中…',
+        probingQuestion: `围绕「${focus}」，你最在意的真实问题是什么？`,
+        oracleBone: {
+          exists: false,
+          source: '加载中',
+          imageUrls: [],
+          totalImages: 0,
+          shownImages: 0,
+          previewLocked: false,
+          interpretation: `「${cleanZi}」的甲骨字形与意象正在整理中…`,
+          note: '完整字形与差异解读稍后展示。',
+        },
+      },
+      interpretation: {
+        overall: `你这次重点想看「${focus}」，我先把字形和主线给你，完整方向解读正在生成。`,
+        career: '事业向解读生成中…',
+        love: '情感向解读生成中…',
+        wealth: '财运向解读生成中…',
+        health: '健康向解读生成中…',
+        advice: ['先看上方基础结果，完整版会自动补全。'],
+      },
+      coldReadings: ['收到这个字了，正在按你的方向做深度推演。'],
+      followUpQuestions: [`围绕「${focus}」，你现在最希望先解决哪一步？`],
+      metadata: {
+        method: '测字有术 - 预览阶段',
+        generatedAt: new Date().toISOString(),
+      },
+    };
+  };
+
   const analyzeZiInput = async (rawZi: string, focusAspect?: string, questionText?: string): Promise<boolean> => {
     const zi = rawZi.trim().charAt(0);
     const normalizedQuestion = (questionText ?? userQuestion).trim();
@@ -224,10 +285,14 @@ export default function ZiScreen() {
       }
     }
 
+    const previousResult = result;
     setIsLoading(true);
+    setResult(buildPreviewResult(zi, focusAspect));
+    setResultStage('preview');
     try {
       const data = await ziApi.analyze(zi, focusAspect, undefined, normalizedQuestion || undefined);
       setResult(data);
+      setResultStage('full');
       trackFeature('zi_analyze_complete', { zi: data?.zi?.zi, aspect: focusAspect || null });
       setHandwritingPreview(null);
       setShowSmartCta(false);
@@ -250,6 +315,8 @@ export default function ZiScreen() {
           ]
         );
       }
+      setResultStage(previousResult ? 'full' : 'idle');
+      setResult(previousResult);
       return false;
     } finally {
       setIsLoading(false);
@@ -309,9 +376,10 @@ export default function ZiScreen() {
   }, [params.prefillZi, ziStateStorageKey]);
 
   React.useEffect(() => {
+    const persistedResult = resultStage === 'preview' ? null : result;
     const payload = {
       inputZi,
-      result,
+      result: persistedResult,
       handwritingPreview,
       selectedAspect,
       customAspect,
@@ -320,7 +388,7 @@ export default function ZiScreen() {
       showColdReading,
     };
     AsyncStorage.setItem(ziStateStorageKey, JSON.stringify(payload)).catch(() => null);
-  }, [ziStateStorageKey, inputZi, result, handwritingPreview, selectedAspect, customAspect, userQuestion, isHandwritingMode, showColdReading]);
+  }, [ziStateStorageKey, inputZi, result, resultStage, handwritingPreview, selectedAspect, customAspect, userQuestion, isHandwritingMode, showColdReading]);
 
   React.useEffect(() => {
     if (!isHandwritingMode) return;
@@ -503,6 +571,7 @@ export default function ZiScreen() {
     }, 450);
   };
   const guaDetail = parseGuaDetail(result?.zi?.guaXiang);
+  const isPreviewStage = resultStage === 'preview';
   const handwritingProgress = handwritingStage === 'recognizing' ? 42 : handwritingStage === 'analyzing' ? 86 : 0;
   const handwritingProgressText =
     handwritingStage === 'recognizing'
@@ -761,6 +830,11 @@ export default function ZiScreen() {
         {/* 结果展示 */}
         {result && (
           <>
+            {isPreviewStage && (
+              <View style={styles.previewBanner}>
+                <Text style={styles.previewBannerText}>已为你先展示首轮结果，深度解读正在补全中…</Text>
+              </View>
+            )}
             {/* 冷读话术 - 首先展示 */}
             <View style={styles.section}>
               <TouchableOpacity
@@ -794,7 +868,7 @@ export default function ZiScreen() {
                   <View style={styles.infoGrid}>
                     <View style={styles.infoCard}>
                       <Text style={styles.infoLabel}>笔画</Text>
-                      <Text style={styles.infoValue}>{result.zi.bihua} 画</Text>
+                      <Text style={styles.infoValue}>{isPreviewStage ? '解析中' : `${result.zi.bihua} 画`}</Text>
                     </View>
                     <View style={styles.infoCard}>
                       <Text style={styles.infoLabel}>部首</Text>
@@ -803,17 +877,17 @@ export default function ZiScreen() {
                     <View style={styles.infoCard}>
                       <Text style={styles.infoLabel}>五行</Text>
                       <Text style={[styles.infoValue, { color: getWuxingColor(result.zi.wuxing) }]}>
-                        {result.zi.wuxing}
+                        {isPreviewStage ? '待定' : result.zi.wuxing}
                       </Text>
                     </View>
                     <View style={styles.infoCard}>
                       <Text style={styles.infoLabel}>阴阳</Text>
-                      <Text style={styles.infoValue}>{result.zi.yinyang}</Text>
+                      <Text style={styles.infoValue}>{isPreviewStage ? '待定' : result.zi.yinyang}</Text>
                     </View>
                     <View style={styles.infoCard}>
                       <Text style={styles.infoLabel}>吉凶</Text>
                       <Text style={[styles.infoValue, { color: getJixiongColor(result.zi.jixiong) }]}>
-                        {result.zi.jixiong}
+                        {isPreviewStage ? '待定' : result.zi.jixiong}
                       </Text>
                     </View>
                   </View>
@@ -956,44 +1030,45 @@ export default function ZiScreen() {
               </View>
             </View>
 
-            {/* 技法细化 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🧠 技法细化（离合 / 填字 / 投射）</Text>
-              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                <View style={styles.skillGroup}>
-                  <Text style={styles.skillHead}>离合法</Text>
-                  <Text style={styles.skillHint}>把字拆开看意象，再合起来看整体</Text>
-                  {(result.zi.lihefa || []).map((line, index) => (
-                    <Text key={`lihefa_${index}`} style={styles.skillText}>
-                      {line}
-                    </Text>
-                  ))}
+            {!isPreviewStage && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>🧠 技法细化（离合 / 填字 / 投射）</Text>
+                <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                  <View style={styles.skillGroup}>
+                    <Text style={styles.skillHead}>离合法</Text>
+                    <Text style={styles.skillHint}>把字拆开看意象，再合起来看整体</Text>
+                    {(result.zi.lihefa || []).map((line, index) => (
+                      <Text key={`lihefa_${index}`} style={styles.skillText}>
+                        {line}
+                      </Text>
+                    ))}
+                  </View>
+                  <View style={styles.skillDivider} />
+                  <View style={styles.skillGroup}>
+                    <Text style={styles.skillHead}>填字格</Text>
+                    <Text style={styles.skillHint}>中心 / 边界 / 落点，对应你心里最在意的位置</Text>
+                    {(result.zi.tianziGe || []).map((line, index) => (
+                      <Text key={`tianzi_${index}`} style={styles.skillText}>
+                        {line}
+                      </Text>
+                    ))}
+                  </View>
+                  <View style={styles.skillDivider} />
+                  <View style={styles.skillGroup}>
+                    <Text style={styles.skillHead}>象形投射</Text>
+                    <Text style={styles.skillTextBlock}>{result.zi.imageryInference || '当前暂无象形投射结果。'}</Text>
+                  </View>
+                  <View style={styles.skillDivider} />
+                  <View style={styles.skillGroup}>
+                    <Text style={styles.skillHead}>反问引导</Text>
+                    <Text style={styles.skillTextEmphasis}>{result.zi.probingQuestion || '这个字里你最在意哪一部分？'}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.probingChatBtn} onPress={goProbingChat}>
+                    <Text style={styles.probingChatText}>💬 去对话里深聊这个反问</Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.skillDivider} />
-                <View style={styles.skillGroup}>
-                  <Text style={styles.skillHead}>填字格</Text>
-                  <Text style={styles.skillHint}>中心 / 边界 / 落点，对应你心里最在意的位置</Text>
-                  {(result.zi.tianziGe || []).map((line, index) => (
-                    <Text key={`tianzi_${index}`} style={styles.skillText}>
-                      {line}
-                    </Text>
-                  ))}
-                </View>
-                <View style={styles.skillDivider} />
-                <View style={styles.skillGroup}>
-                  <Text style={styles.skillHead}>象形投射</Text>
-                  <Text style={styles.skillTextBlock}>{result.zi.imageryInference || '当前暂无象形投射结果。'}</Text>
-                </View>
-                <View style={styles.skillDivider} />
-                <View style={styles.skillGroup}>
-                  <Text style={styles.skillHead}>反问引导</Text>
-                  <Text style={styles.skillTextEmphasis}>{result.zi.probingQuestion || '这个字里你最在意哪一部分？'}</Text>
-                </View>
-                <TouchableOpacity style={styles.probingChatBtn} onPress={goProbingChat}>
-                  <Text style={styles.probingChatText}>💬 去对话里深聊这个反问</Text>
-                </TouchableOpacity>
               </View>
-            </View>
+            )}
 
             {result.interpretation.focusReading && (
               <View style={styles.section}>
@@ -1075,58 +1150,60 @@ export default function ZiScreen() {
               </View>
             </View>
 
-            {/* 笔迹分析 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>✍️ 笔迹心理学</Text>
-              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                <View style={styles.handwritingItem}>
-                  <Text style={styles.handwritingLabel}>力度</Text>
-                  <Text style={styles.handwritingValue}>
-                    {result.handwriting.pressure === 'heavy' ? '较重' : 
-                     result.handwriting.pressure === 'light' ? '较轻' : '适中'}
+            {!isPreviewStage && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>✍️ 笔迹心理学</Text>
+                <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                  <View style={styles.handwritingItem}>
+                    <Text style={styles.handwritingLabel}>力度</Text>
+                    <Text style={styles.handwritingValue}>
+                      {result.handwriting.pressure === 'heavy' ? '较重' : 
+                       result.handwriting.pressure === 'light' ? '较轻' : '适中'}
+                    </Text>
+                  </View>
+                  <Text style={styles.handwritingInterpretation}>
+                    {result.handwriting.pressureInterpretation}
                   </Text>
-                </View>
-                <Text style={styles.handwritingInterpretation}>
-                  {result.handwriting.pressureInterpretation}
-                </Text>
 
-                <View style={styles.handwritingItem}>
-                  <Text style={styles.handwritingLabel}>稳定性</Text>
-                  <Text style={styles.handwritingValue}>
-                    {result.handwriting.stability === 'stable' ? '稳定' : 
-                     result.handwriting.stability === 'shaky' ? '波动' : '一般'}
+                  <View style={styles.handwritingItem}>
+                    <Text style={styles.handwritingLabel}>稳定性</Text>
+                    <Text style={styles.handwritingValue}>
+                      {result.handwriting.stability === 'stable' ? '稳定' : 
+                       result.handwriting.stability === 'shaky' ? '波动' : '一般'}
+                    </Text>
+                  </View>
+                  <Text style={styles.handwritingInterpretation}>
+                    {result.handwriting.stabilityInterpretation}
                   </Text>
-                </View>
-                <Text style={styles.handwritingInterpretation}>
-                  {result.handwriting.stabilityInterpretation}
-                </Text>
 
-                <View style={styles.handwritingItem}>
-                  <Text style={styles.handwritingLabel}>结构</Text>
-                  <Text style={styles.handwritingValue}>
-                    {result.handwriting.structure === 'compact' ? '紧凑' : 
-                     result.handwriting.structure === 'loose' ? '松散' : '均衡'}
+                  <View style={styles.handwritingItem}>
+                    <Text style={styles.handwritingLabel}>结构</Text>
+                    <Text style={styles.handwritingValue}>
+                      {result.handwriting.structure === 'compact' ? '紧凑' : 
+                       result.handwriting.structure === 'loose' ? '松散' : '均衡'}
+                    </Text>
+                  </View>
+                  <Text style={styles.handwritingInterpretation}>
+                    {result.handwriting.structureInterpretation}
                   </Text>
-                </View>
-                <Text style={styles.handwritingInterpretation}>
-                  {result.handwriting.structureInterpretation}
-                </Text>
-              </View>
-            </View>
-
-            {/* 性格特点 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>👤 性格画像</Text>
-              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                <View style={styles.traitsRow}>
-                  {result.handwriting.personalityInsights.map((trait, index) => (
-                    <View key={index} style={[styles.traitTag, { backgroundColor: '#FFD700' }]}>
-                      <Text style={[styles.traitText, { color: '#1a1a2e' }]}>{trait}</Text>
-                    </View>
-                  ))}
                 </View>
               </View>
-            </View>
+            )}
+
+            {!isPreviewStage && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>👤 性格画像</Text>
+                <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                  <View style={styles.traitsRow}>
+                    {result.handwriting.personalityInsights.map((trait, index) => (
+                      <View key={index} style={[styles.traitTag, { backgroundColor: '#FFD700' }]}>
+                        <Text style={[styles.traitText, { color: '#1a1a2e' }]}>{trait}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            )}
 
             {/* 运势解读 */}
             <View style={styles.section}>
@@ -1222,6 +1299,21 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 8,
     lineHeight: 18,
+  },
+  previewBanner: {
+    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: 'rgba(248, 208, 95, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.35)',
+  },
+  previewBannerText: {
+    color: '#F8DFA1',
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   content: {
     flex: 1,

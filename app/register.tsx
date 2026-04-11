@@ -33,7 +33,9 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [codeSendFeedback, setCodeSendFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsError, setTermsError] = useState('');
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
 
@@ -50,15 +52,42 @@ export default function RegisterScreen() {
     setShowTermsModal(true);
   };
 
+  const ensureTermsAgreed = (actionLabel: string): boolean => {
+    if (agreedToTerms) {
+      setTermsError('');
+      return true;
+    }
+    const msg = `请先勾选同意《用户协议》和《隐私政策》，再${actionLabel}`;
+    setTermsError(msg);
+    Alert.alert('请先同意协议', msg);
+    return false;
+  };
+
+  const getFriendlySendCodeError = (rawMessage?: string) => {
+    const msg = (rawMessage || '').toLowerCase();
+    if (/已注册/.test(rawMessage || '')) {
+      return '该邮箱已注册，可直接去登录；如忘记密码可使用找回密码。';
+    }
+    if (/频繁|too many|limit|稍后/.test(msg)) {
+      return '请求过于频繁，请稍等 1 分钟后再试。';
+    }
+    if (/network|timeout|连接|网络|failed to fetch|load failed/.test(msg)) {
+      return '网络连接不稳定，建议切换网络后重试。';
+    }
+    if (/resend_api_key|邮件服务|mail service|smtp|from|domain|发件/.test(msg)) {
+      return '邮件服务暂时异常，请稍后重试；若持续失败请联系管理员。';
+    }
+    return '验证码发送失败，请重试；也可检查垃圾邮箱/广告邮件。';
+  };
+
   const handleSendCode = async () => {
-    // 检查是否同意协议
-    if (!agreedToTerms) {
-      Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
+    if (!ensureTermsAgreed('获取验证码')) {
       return;
     }
     
     if (!email.trim()) {
       Alert.alert('提示', '请输入邮箱地址');
+      setCodeSendFeedback({ type: 'error', text: '请先输入邮箱地址。' });
       return;
     }
 
@@ -66,6 +95,7 @@ export default function RegisterScreen() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert('提示', '请输入有效的邮箱地址');
+      setCodeSendFeedback({ type: 'error', text: '邮箱格式不正确，请检查后重试。' });
       return;
     }
 
@@ -74,17 +104,21 @@ export default function RegisterScreen() {
 
     if (result?.success) {
       Alert.alert('验证码已发送到您的邮箱', '请查收邮件');
+      setCodeSendFeedback({
+        type: 'success',
+        text: '验证码已发送，若 1-2 分钟未收到，请检查垃圾邮箱/广告邮件。',
+      });
       setIsCodeSent(true);
       setCountdown(60);
     } else {
-      Alert.alert('发送失败', result?.message || '该邮箱可能已注册，或稍后重试');
+      const friendly = getFriendlySendCodeError(result?.message);
+      setCodeSendFeedback({ type: 'error', text: friendly });
+      Alert.alert('发送失败', friendly);
     }
   };
 
   const handleRegister = async () => {
-    // 检查是否同意协议
-    if (!agreedToTerms) {
-      Alert.alert('提示', '请先阅读并同意用户协议和隐私政策');
+    if (!ensureTermsAgreed('注册')) {
       return;
     }
     
@@ -158,7 +192,10 @@ export default function RegisterScreen() {
             placeholder="请输入邮箱"
             placeholderTextColor="#6F6287"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (codeSendFeedback) setCodeSendFeedback(null);
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
             editable={!isLoading}
@@ -186,6 +223,16 @@ export default function RegisterScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          {!!codeSendFeedback && (
+            <Text
+              style={[
+                styles.codeFeedbackText,
+                codeSendFeedback.type === 'success' ? styles.codeFeedbackSuccess : styles.codeFeedbackError,
+              ]}
+            >
+              {codeSendFeedback.text}
+            </Text>
+          )}
 
           {/* 密码 */}
           <TextInput
@@ -212,8 +259,11 @@ export default function RegisterScreen() {
 
         {/* 协议勾选 */}
         <TouchableOpacity 
-          style={styles.termsContainer}
-          onPress={() => setAgreedToTerms(!agreedToTerms)}
+          style={[styles.termsContainer, !!termsError && styles.termsContainerError]}
+          onPress={() => {
+            setAgreedToTerms(!agreedToTerms);
+            if (!agreedToTerms) setTermsError('');
+          }}
         >
           <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
             {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
@@ -225,6 +275,7 @@ export default function RegisterScreen() {
             <Text style={styles.termsLink} onPress={() => openTerms('privacy')}>《隐私政策》</Text>
           </Text>
         </TouchableOpacity>
+        {!!termsError && <Text style={styles.termsErrorText}>{termsError}</Text>}
 
         {/* 注册按钮 */}
         <TouchableOpacity
@@ -325,11 +376,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  codeFeedbackText: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: -6,
+  },
+  codeFeedbackSuccess: {
+    color: '#9CD9B0',
+  },
+  codeFeedbackError: {
+    color: '#E9A5A5',
+  },
   termsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 16,
     gap: 8,
+  },
+  termsContainerError: {
+    borderWidth: 1,
+    borderColor: '#E97878',
+    borderRadius: 10,
+    padding: 8,
+    backgroundColor: 'rgba(233, 120, 120, 0.08)',
   },
   checkbox: {
     width: 20,
@@ -357,6 +426,12 @@ const styles = StyleSheet.create({
   termsLink: {
     color: '#F8D05F',
     fontSize: 13,
+  },
+  termsErrorText: {
+    color: '#E9A5A5',
+    fontSize: 12,
+    marginTop: 6,
+    lineHeight: 18,
   },
   registerButton: {
     backgroundColor: '#F8D05F',
