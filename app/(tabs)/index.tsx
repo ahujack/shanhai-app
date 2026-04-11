@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Keyboard } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Keyboard, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -737,6 +737,9 @@ export default function HomeScreen() {
     }
   };
 
+  const personaAvatarSource =
+    typeof persona.image === 'string' ? { uri: persona.image } : (persona.image as number);
+
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -748,14 +751,29 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerInner}>
             <View style={styles.headerTop}>
-              <TouchableOpacity 
-                style={styles.personaSwitchButton}
+              <TouchableOpacity
+                style={styles.personaChip}
                 onPress={() => setShowPersonaPicker(true)}
-                accessibilityLabel="切换灵伴"
+                accessibilityLabel={`切换灵伴，当前为${persona.name}`}
+                accessibilityRole="button"
+                activeOpacity={0.75}
               >
-                <Text style={styles.personaSwitchText}>灵伴</Text>
+                <View style={styles.personaAvatarWrap}>
+                  <Image source={personaAvatarSource} style={styles.personaAvatar} resizeMode="cover" />
+                </View>
+                <View style={styles.personaChipTextCol}>
+                  <Text style={styles.personaChipLabel}>灵伴</Text>
+                  <Text style={styles.personaChipName} numberOfLines={1}>
+                    {persona.name}
+                  </Text>
+                </View>
+                <Text style={styles.personaChipChevron} accessibilityElementsHidden>
+                  ⌄
+                </Text>
               </TouchableOpacity>
-              <Text style={styles.title}>山海灵境</Text>
+              <View style={styles.titleCenter}>
+                <Text style={styles.title}>山海灵境</Text>
+              </View>
               <View style={styles.headerRight}>
                 {user && (
                   <TouchableOpacity 
@@ -776,9 +794,6 @@ export default function HomeScreen() {
                   <Text style={styles.loginButtonText}>{user ? '我的' : '登录'}</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-            <View style={styles.headerBottom}>
-              <Text style={styles.subtitle}>{persona.name}</Text>
             </View>
           </View>
         </View>
@@ -1756,20 +1771,64 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  personaSwitchButton: {
-    backgroundColor: '#2B2342',
-    minWidth: 86,
-    height: 34,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#3A2B5A',
+  personaChip: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-start',
+    maxWidth: '46%',
+    minHeight: 44,
+    paddingRight: 6,
+    paddingVertical: 4,
+    paddingLeft: 4,
+    borderRadius: 22,
+    backgroundColor: '#1B1430',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.35)',
+    gap: 8,
+  },
+  personaAvatarWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(248, 208, 95, 0.55)',
+    backgroundColor: '#2B2342',
+  },
+  personaAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+  personaChipTextCol: {
+    flex: 1,
+    minWidth: 0,
     justifyContent: 'center',
   },
-  personaSwitchText: {
+  personaChipLabel: {
+    color: '#9D93B3',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  personaChipName: {
     color: '#F8D05F',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  personaChipChevron: {
+    color: '#C8B8E8',
+    fontSize: 14,
+    fontWeight: '700',
+    paddingRight: 2,
+  },
+  titleCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    minWidth: 0,
   },
   loginButton: {
     backgroundColor: '#2B2342',
@@ -1787,26 +1846,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#F8D05F',
     letterSpacing: 2,
   },
-  subtitle: {
-    fontSize: 13,
-    color: '#B2B4C8',
-    marginTop: 6,
-    backgroundColor: '#1B1430',
-    alignSelf: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
   headerRight: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 8,
+    maxWidth: '46%',
+    minWidth: 0,
   },
   checkInButton: {
     backgroundColor: '#4CAF50',
@@ -1823,11 +1875,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
-  },
-  headerBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   shareText: {
     color: '#B2A0FF',
