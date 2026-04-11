@@ -121,6 +121,13 @@ export default function BaziScreen() {
   const [guestCalendarType, setGuestCalendarType] = React.useState<'solar' | 'lunar'>('solar');
   const [guestLeap, setGuestLeap] = React.useState(false);
   const [guestPreviewLoading, setGuestPreviewLoading] = React.useState(false);
+  const [showInlineBirthForm, setShowInlineBirthForm] = React.useState(false);
+  const [inlineBirthDate, setInlineBirthDate] = React.useState('');
+  const [inlineBirthTime, setInlineBirthTime] = React.useState('');
+  const [inlineGender, setInlineGender] = React.useState<'male' | 'female'>('male');
+  const [inlineCalendarType, setInlineCalendarType] = React.useState<'solar' | 'lunar'>('solar');
+  const [inlineLeap, setInlineLeap] = React.useState(false);
+  const [inlineSaving, setInlineSaving] = React.useState(false);
 
   const effectiveChart = chart ?? guestChart;
 
@@ -202,6 +209,15 @@ export default function BaziScreen() {
   }, [params.highlight]);
 
   React.useEffect(() => {
+    if (!user?.id) return;
+    setInlineBirthDate((user.birthDate || '').slice(0, 10));
+    setInlineBirthTime((user.birthTime || '').slice(0, 5));
+    setInlineGender(user.gender === 'female' ? 'female' : 'male');
+    setInlineCalendarType(user.calendarType === 'lunar' ? 'lunar' : 'solar');
+    setInlineLeap(!!user.isLeapMonth);
+  }, [user?.id, user?.birthDate, user?.birthTime, user?.gender, user?.calendarType, user?.isLeapMonth]);
+
+  React.useEffect(() => {
     if (!highlightMaster || !annualSectionY) return;
     scrollRef.current?.scrollTo({ y: Math.max(annualSectionY - 24, 0), animated: true });
   }, [highlightMaster, annualSectionY]);
@@ -244,7 +260,8 @@ export default function BaziScreen() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       if (/请先在个人资料中完善出生日期和时间/.test(msg)) {
-        setGenError(msg);
+        setGenError('请先补全出生日期与出生时间，再生成命盘。');
+        setShowInlineBirthForm(true);
         return;
       }
       setGenError(
@@ -252,6 +269,38 @@ export default function BaziScreen() {
           ? '登录状态无效或已过期，请重新登录后再生成命盘'
           : msg || '生成命盘失败，请检查网络后重试',
       );
+    }
+  };
+
+  const handleInlineSaveAndGenerate = async () => {
+    if (!user?.id) return;
+    const bd = inlineBirthDate.trim();
+    const bt = inlineBirthTime.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(bd) || !/^\d{2}:\d{2}$/.test(bt)) {
+      setGenError('请按格式填写：出生日期 YYYY-MM-DD，出生时间 HH:mm');
+      return;
+    }
+    setInlineSaving(true);
+    setGenError(null);
+    try {
+      const updatedUser = await userApi.update(user.id, {
+        birthDate: bd,
+        birthTime: bt,
+        gender: inlineGender,
+        calendarType: inlineCalendarType,
+        isLeapMonth: inlineLeap,
+        timezone: user.timezone || 'Asia/Shanghai',
+      });
+      useUserStore.setState((state) => ({
+        user: state.user ? { ...state.user, ...updatedUser } : state.user,
+      }));
+      await generateChart(inlineGender);
+      setShowInlineBirthForm(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '保存失败，请稍后重试';
+      setGenError(msg);
+    } finally {
+      setInlineSaving(false);
     }
   };
 
@@ -367,8 +416,79 @@ export default function BaziScreen() {
         <TouchableOpacity style={styles.primaryBtn} onPress={handleGenerate} disabled={isLoading}>
           <Text style={styles.primaryBtnText}>{isLoading ? '生成中...' : '生成我的命盘'}</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={() => setShowInlineBirthForm((v) => !v)}>
+          <Text style={styles.link}>{showInlineBirthForm ? '收起填写表单' : '在当前页填写出生信息'}</Text>
+        </TouchableOpacity>
+        {showInlineBirthForm ? (
+          <View style={styles.inlineFormCard}>
+            <Text style={styles.inlineFormHint}>填写后将自动保存到你的资料，并立即生成命盘</Text>
+            <Text style={styles.fieldLabel}>出生日期</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#6F6287"
+              value={inlineBirthDate}
+              onChangeText={setInlineBirthDate}
+            />
+            <Text style={styles.fieldLabel}>出生时间</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="HH:mm（如 14:30）"
+              placeholderTextColor="#6F6287"
+              value={inlineBirthTime}
+              onChangeText={setInlineBirthTime}
+            />
+            <Text style={styles.fieldLabel}>历法</Text>
+            <View style={styles.guestRow}>
+              <TouchableOpacity
+                style={[styles.guestChip, inlineCalendarType === 'solar' && styles.guestChipActive]}
+                onPress={() => setInlineCalendarType('solar')}
+              >
+                <Text style={[styles.guestChipText, inlineCalendarType === 'solar' && styles.guestChipTextActive]}>阳历</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.guestChip, inlineCalendarType === 'lunar' && styles.guestChipActive]}
+                onPress={() => setInlineCalendarType('lunar')}
+              >
+                <Text style={[styles.guestChipText, inlineCalendarType === 'lunar' && styles.guestChipTextActive]}>农历</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.guestChip, inlineLeap && styles.guestChipActive]}
+                onPress={() => setInlineLeap((v) => !v)}
+              >
+                <Text style={[styles.guestChipText, inlineLeap && styles.guestChipTextActive]}>闰月</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.fieldLabel}>性别</Text>
+            <View style={styles.guestRow}>
+              <TouchableOpacity
+                style={[styles.guestChip, inlineGender === 'male' && styles.guestChipActive]}
+                onPress={() => setInlineGender('male')}
+              >
+                <Text style={[styles.guestChipText, inlineGender === 'male' && styles.guestChipTextActive]}>男</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.guestChip, inlineGender === 'female' && styles.guestChipActive]}
+                onPress={() => setInlineGender('female')}
+              >
+                <Text style={[styles.guestChipText, inlineGender === 'female' && styles.guestChipTextActive]}>女</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[styles.primaryBtn, styles.inlineSubmitBtn]}
+              onPress={handleInlineSaveAndGenerate}
+              disabled={inlineSaving || isLoading}
+            >
+              {inlineSaving || isLoading ? (
+                <ActivityIndicator color="#1A0A18" />
+              ) : (
+                <Text style={styles.primaryBtnText}>保存并生成命盘</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : null}
         <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-          <Text style={styles.link}>去完善出生信息</Text>
+          <Text style={styles.link}>去个人资料页完善</Text>
         </TouchableOpacity>
       </View>
     );
@@ -705,4 +825,23 @@ const styles = StyleSheet.create({
     borderColor: '#5D4A89',
   },
   guestBannerText: { color: '#D7C7FF', fontSize: 12, textAlign: 'center' },
+  inlineFormCard: {
+    width: '100%',
+    marginTop: 12,
+    backgroundColor: '#161126',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2F2342',
+    padding: 12,
+  },
+  inlineFormHint: {
+    color: '#B9ACD3',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  inlineSubmitBtn: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
 });
