@@ -808,6 +808,7 @@ export default function HomeScreen() {
             active={persona}
             onSelect={(p) => {
               setActive(p.id);
+              showToast(`已切换灵伴：${p.name}`, 'success');
               setShowPersonaPicker(false);
             }}
             onClose={() => setShowPersonaPicker(false)}
@@ -825,6 +826,12 @@ export default function HomeScreen() {
           {messages.length === 0 && (
             <>
               <View style={styles.welcomeCard}>
+                <View style={styles.welcomePersonaRow}>
+                  <View style={styles.welcomePersonaAvatarWrap}>
+                    <Image source={personaAvatarSource} style={styles.welcomePersonaAvatar} resizeMode="cover" />
+                  </View>
+                  <Text style={styles.welcomePersonaName}>{persona.name}</Text>
+                </View>
                 <Text style={styles.welcomeTag}>今日灵感</Text>
                 <Text style={styles.welcomeText}>
                   {persona.greeting}
@@ -1772,14 +1779,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   personaChip: {
-    flex: 1,
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    maxWidth: '46%',
-    minHeight: 44,
+    minWidth: 116,
+    maxWidth: 168,
+    minHeight: 42,
     paddingRight: 6,
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingLeft: 4,
     borderRadius: 22,
     backgroundColor: '#1B1430',
@@ -1894,6 +1902,32 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#2F2342',
+  },
+  welcomePersonaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  welcomePersonaAvatarWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.45)',
+    backgroundColor: '#2B2342',
+  },
+  welcomePersonaAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+  welcomePersonaName: {
+    color: '#E6D8FF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   welcomeTag: {
     alignSelf: 'center',
