@@ -28,6 +28,7 @@ import {
   userApi,
   chartApi,
 } from '../../src/services/api';
+import { membershipExpiryDate, isMembershipActive } from '../../src/utils/membership';
 
 const colors = theme.dark;
 
@@ -40,23 +41,6 @@ const formatUsd = (price: number) => {
 const DAILY_CHECKIN_POINTS = 10;
 
 const MEMBERSHIP_RENEWAL_NUDGE_KEY = 'shanhai_membership_renewal_nudge';
-
-function membershipExpiryDate(user: { membershipExpiryAt?: string | null } | null | undefined): Date | null {
-  if (!user?.membershipExpiryAt) return null;
-  const d = new Date(user.membershipExpiryAt);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function isMembershipActive(
-  user: { membership?: string; membershipExpiryAt?: string | null } | null | undefined,
-): boolean {
-  if (!user) return false;
-  const tier = user.membership === 'vip' || user.membership === 'premium';
-  if (!tier) return false;
-  const exp = membershipExpiryDate(user);
-  if (exp === null) return true;
-  return exp.getTime() > Date.now();
-}
 
 function formatMembershipExpiryZh(iso: string | null | undefined): string {
   if (!iso) return '';

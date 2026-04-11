@@ -6,6 +6,7 @@ import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
 import { usePersonaStore } from '../../src/store/persona';
 import { pointsApi, PointsSummary, achievementApi, UserAchievement, AchievementProgress } from '../../src/services/api';
+import { getMembershipLabel, isMembershipActive } from '../../src/utils/membership';
 import * as Clipboard from 'expo-clipboard';
 
 const colors = theme.dark;
@@ -88,8 +89,9 @@ export default function ProfileScreen() {
 
   // 检查用户是否登录
   const isLoggedIn = !!user;
-  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
-  const membershipLabel = user?.membership === 'vip' ? 'VIP会员' : user?.membership === 'premium' ? '高级会员' : '免费用户';
+  const membershipActive = isMembershipActive(user);
+  const isVip = membershipActive;
+  const membershipLabel = getMembershipLabel(user);
 
   const handleMembershipPress = () => {
     router.push({

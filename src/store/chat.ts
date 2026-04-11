@@ -26,7 +26,12 @@ interface ChatState {
   currentIntent?: string;
   
   // Actions
-  sendMessage: (message: string, personaId?: string, mood?: string) => Promise<void>;
+  sendMessage: (
+    message: string,
+    personaId?: string,
+    mood?: string,
+    options?: { appendUser?: boolean; replaceAssistantId?: string },
+  ) => Promise<void>;
   clearMessages: () => void;
   removeMessage: (id: string) => void;
   addSystemMessage: (content: string) => void;
@@ -36,21 +41,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isLoading: false,
   
-  sendMessage: async (message: string, personaId?: string, mood?: string) => {
+  sendMessage: async (
+    message: string,
+    personaId?: string,
+    mood?: string,
+    options?: { appendUser?: boolean; replaceAssistantId?: string },
+  ) => {
+    const appendUser = options?.appendUser !== false;
+    const replaceAssistantId = options?.replaceAssistantId;
+    const now = new Date();
     const userMessage: ChatMessage = {
       id: `user_${Date.now()}`,
       role: 'user',
       content: message,
-      timestamp: new Date(),
+      timestamp: now,
     };
 
-    set(state => ({
-      messages: [...state.messages, userMessage],
+    set((state) => ({
+      messages: appendUser ? [...state.messages, userMessage] : state.messages,
       isLoading: true,
     }));
 
-    const recentContext = get()
-      .messages
+    const contextSource = appendUser ? [...get().messages] : get().messages;
+    const recentContext = contextSource
       .slice(-8)
       .map((m) => `${m.role === 'user' ? '用户' : '助手'}：${m.content}`);
 
@@ -62,29 +75,61 @@ export const useChatStore = create<ChatState>((set, get) => ({
       clientLocalHour: new Date().getHours(),
     };
 
-    const assistantId = `assistant_${Date.now()}`;
+    const assistantId = replaceAssistantId || `assistant_${Date.now()}`;
+    let pendingChunk = '';
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    const flushPendingChunks = () => {
+      if (!pendingChunk) return;
+      const mergedChunk = pendingChunk;
+      pendingChunk = '';
+      set((state) => {
+        const msgs = [...state.messages];
+        const idx = msgs.findIndex((m) => m.id === assistantId);
+        if (idx >= 0) {
+          msgs[idx] = { ...msgs[idx], content: msgs[idx].content + mergedChunk };
+        }
+        return { messages: msgs };
+      });
+    };
+    const scheduleChunkFlush = () => {
+      if (flushTimer) return;
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        flushPendingChunks();
+      }, 40);
+    };
     const placeholderMessage: ChatMessage = {
       id: assistantId,
       role: 'assistant',
       content: '',
       timestamp: new Date(),
     };
-    set(state => ({
-      messages: [...state.messages, placeholderMessage],
-    }));
+    set((state) => {
+      if (replaceAssistantId) {
+        return {
+          messages: state.messages.map((m) =>
+            m.id === replaceAssistantId
+              ? { ...m, content: '', timestamp: new Date(), retryWith: undefined }
+              : m,
+          ),
+        };
+      }
+      return {
+        messages: [...state.messages, placeholderMessage],
+      };
+    });
 
     try {
       try {
         const response = await agentApi.chatStream(dto, (chunk) => {
-          set((state) => {
-            const msgs = [...state.messages];
-            const idx = msgs.findIndex((m) => m.id === assistantId);
-            if (idx >= 0) {
-              msgs[idx] = { ...msgs[idx], content: msgs[idx].content + chunk };
-            }
-            return { messages: msgs };
-          });
+          pendingChunk += chunk;
+          scheduleChunkFlush();
         });
+        if (flushTimer) {
+          clearTimeout(flushTimer);
+          flushTimer = null;
+        }
+        flushPendingChunks();
         set((state) => {
           const msgs = [...state.messages];
           const idx = msgs.findIndex((m) => m.id === assistantId);
@@ -105,28 +150,59 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
         return;
       } catch (streamErr) {
+        if (flushTimer) {
+          clearTimeout(flushTimer);
+          flushTimer = null;
+        }
+        flushPendingChunks();
         console.warn('流式请求失败，回退到普通请求', streamErr);
       }
 
-      set((state) => ({
-        messages: state.messages.filter((m) => m.id !== assistantId),
-      }));
+      if (!replaceAssistantId) {
+        set((state) => ({
+          messages: state.messages.filter((m) => m.id !== assistantId),
+        }));
+      }
       const response = await agentApi.chat(dto);
-      const assistantMessage: ChatMessage = {
-        id: assistantId,
-        role: 'assistant',
-        content: response.reply,
-        timestamp: new Date(),
-        intent: response.intent,
-        artifacts: response.artifacts as any,
-        actions: response.actions,
-      };
-      set((state) => ({
-        messages: [...state.messages, assistantMessage],
-        isLoading: false,
-        currentIntent: response.intent,
-      }));
+      set((state) => {
+        if (replaceAssistantId) {
+          return {
+            messages: state.messages.map((m) =>
+              m.id === replaceAssistantId
+                ? {
+                    ...m,
+                    content: response.reply,
+                    timestamp: new Date(),
+                    intent: response.intent,
+                    artifacts: response.artifacts as any,
+                    actions: response.actions,
+                  }
+                : m,
+            ),
+            isLoading: false,
+            currentIntent: response.intent,
+          };
+        }
+        const assistantMessage: ChatMessage = {
+          id: assistantId,
+          role: 'assistant',
+          content: response.reply,
+          timestamp: new Date(),
+          intent: response.intent,
+          artifacts: response.artifacts as any,
+          actions: response.actions,
+        };
+        return {
+          messages: [...state.messages, assistantMessage],
+          isLoading: false,
+          currentIntent: response.intent,
+        };
+      });
     } catch (error) {
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
       console.error('发送消息失败:', error);
       set({ isLoading: false });
 

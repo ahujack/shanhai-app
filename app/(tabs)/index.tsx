@@ -33,7 +33,7 @@ export default function HomeScreen() {
   const params = useLocalSearchParams<{ skipZiNudgeUntil?: string }>();
   const { active: persona, personas, setActive } = usePersonaStore();
   const { user, chart, hasChart, generateChart, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
-  const { messages, isLoading, sendMessage, clearMessages, removeMessage } = useChatStore();
+  const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
   const { setLastFortune } = useDivinationStore();
   
   // 加载签到状态
@@ -131,6 +131,7 @@ export default function HomeScreen() {
   const [chartGender, setChartGender] = useState<'male' | 'female'>('male');
   
   const scrollViewRef = useRef<ScrollView>(null);
+  const shouldAutoScrollRef = useRef(true);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<BlobPart[]>([]);
@@ -196,12 +197,35 @@ export default function HomeScreen() {
   }, [params.skipZiNudgeUntil]);
 
   useEffect(() => {
-    // 滚动到底部
-    if (scrollViewRef.current) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
+    if (!shouldAutoScrollRef.current || !scrollViewRef.current) return;
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages]);
+
+  const updateAutoScrollLock = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event?.nativeEvent || {};
+    const viewportHeight = Number(layoutMeasurement?.height || 0);
+    const contentHeight = Number(contentSize?.height || 0);
+    const y = Number(contentOffset?.y || 0);
+    const distanceToBottom = contentHeight - (y + viewportHeight);
+    shouldAutoScrollRef.current = distanceToBottom <= 140;
+  };
+
+  const userQuestionSeedByAssistantId = React.useMemo(() => {
+    let lastUserMessage = '';
+    const map: Record<string, string> = {};
+    messages.forEach((m) => {
+      if (m.role === 'user' && m.content.trim()) {
+        lastUserMessage = m.content.trim();
+        return;
+      }
+      if (m.role === 'assistant') {
+        map[m.id] = lastUserMessage;
+      }
+    });
+    return map;
   }, [messages]);
 
   useEffect(() => {
@@ -344,7 +368,7 @@ export default function HomeScreen() {
     
     const message = inputText.trim();
     setInputText('');
-    
+    shouldAutoScrollRef.current = true;
     await sendMessage(message, persona.id, 'calm');
 
     // 聊到具体问题时再轻量引导测字，不自动弹窗
@@ -456,6 +480,7 @@ export default function HomeScreen() {
     voiceLatestTextRef.current = '';
     setVoiceDraftText('');
     setInputText('');
+    shouldAutoScrollRef.current = true;
     await sendMessage(message, persona.id, 'calm');
     setVoiceStatusText('');
     if (shouldSuggestZi(message)) {
@@ -825,6 +850,13 @@ export default function HomeScreen() {
             style={styles.chatContainer}
             contentContainerStyle={styles.chatContent}
             showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onScroll={updateAutoScrollLock}
+            onContentSizeChange={() => {
+              if (shouldAutoScrollRef.current) {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+              }
+            }}
           >
           {/* 欢迎消息 */}
           {messages.length === 0 && (
@@ -850,7 +882,11 @@ export default function HomeScreen() {
                     <TouchableOpacity
                       key={q}
                       style={styles.suggestedChip}
-                      onPress={() => !isLoading && sendMessage(q, persona.id, 'calm')}
+                      onPress={() => {
+                        if (isLoading) return;
+                        shouldAutoScrollRef.current = true;
+                        sendMessage(q, persona.id, 'calm');
+                      }}
                       disabled={isLoading}
                       accessibilityLabel={`提问：${q}`}
                     >
@@ -867,7 +903,8 @@ export default function HomeScreen() {
             <ChatBubble
               key={msg.id}
               message={msg}
-              onRetry={msg.retryWith ? () => { removeMessage(msg.id); sendMessage(msg.retryWith!, persona.id, 'calm'); } : undefined}
+              userQuestionSeed={userQuestionSeedByAssistantId[msg.id]}
+              onRetry={msg.retryWith ? () => sendMessage(msg.retryWith!, persona.id, 'calm', { appendUser: false, replaceAssistantId: msg.id }) : undefined}
             />
           ))}
           
@@ -1316,7 +1353,7 @@ export default function HomeScreen() {
 }
 
 // 聊天消息气泡
-function ChatBubble({ message, onRetry }: { message: ChatMessage; onRetry?: () => void }) {
+function ChatBubble({ message, userQuestionSeed, onRetry }: { message: ChatMessage; userQuestionSeed?: string; onRetry?: () => void }) {
   const isUser = message.role === 'user';
   const router = useRouter();
   const { setLastReading } = useDivinationStore();
@@ -1331,9 +1368,12 @@ function ChatBubble({ message, onRetry }: { message: ChatMessage; onRetry?: () =
     const ziFromSuggestion = (message.artifacts as any)?.ziSuggestion?.zi;
     const ziFromContent = extractFirstZi(message.content);
     const zi = ziFromFullResult || ziFromSuggestion || ziFromContent;
+    const safeQuestion = (userQuestionSeed || '').trim();
     router.push({
       pathname: '/(tabs)/zi',
-      params: zi ? { prefillZi: zi, fromChat: '1', userQuestion: message.content } : { fromChat: '1', userQuestion: message.content },
+      params: zi
+        ? (safeQuestion ? { prefillZi: zi, fromChat: '1', userQuestion: safeQuestion } : { prefillZi: zi, fromChat: '1' })
+        : (safeQuestion ? { fromChat: '1', userQuestion: safeQuestion } : { fromChat: '1' }),
     });
   };
 
