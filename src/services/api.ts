@@ -672,6 +672,7 @@ export interface AgentChatDto {
   personaId?: string;
   context?: string[];
   mood?: 'calm' | 'anxious' | 'sad' | 'excited';
+  clientLocalHour?: number;
 }
 
 export interface AgentResponse {

@@ -59,6 +59,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       personaId,
       context: recentContext,
       mood: mood as any,
+      clientLocalHour: new Date().getHours(),
     };
 
     const assistantId = `assistant_${Date.now()}`;
