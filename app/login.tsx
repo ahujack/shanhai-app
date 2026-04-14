@@ -177,6 +177,10 @@ export default function LoginScreen() {
   };
 
   const handleRegister = () => {
+    if (referralCode) {
+      router.push({ pathname: '/register', params: { ref: referralCode } });
+      return;
+    }
     router.push('/register');
   };
 
@@ -191,7 +195,7 @@ export default function LoginScreen() {
     try {
       const userInfo = await signInWithGoogle();
       if (userInfo && userInfo.idToken) {
-        const result = await loginWithSocial('google', userInfo.idToken);
+        const result = await loginWithSocial('google', userInfo.idToken, referralCode);
         if (result.success) {
           showToast('登录成功，欢迎回来！', 'success');
           setTimeout(() => router.replace('/(tabs)'), 500);

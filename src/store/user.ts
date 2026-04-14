@@ -73,7 +73,7 @@ interface UserState {
   register: (email: string, password: string, code: string, name?: string, referralCode?: string) => Promise<{ success: boolean; message?: string }>;
   loginWithPassword: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   loginWithCode: (email?: string, code?: string) => Promise<{ success: boolean; message?: string }>;
-  loginWithSocial: (provider: 'google' | 'facebook', idToken: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithSocial: (provider: 'google' | 'facebook', idToken: string, referralCode?: string) => Promise<{ success: boolean; message?: string }>;
   sendCode: (email?: string, purpose?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   
@@ -250,10 +250,10 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
   
-  loginWithSocial: async (provider, idToken) => {
+  loginWithSocial: async (provider, idToken, referralCode) => {
     set({ isLoading: true });
     try {
-      const result = await authApi.socialLogin({ provider, idToken });
+      const result = await authApi.socialLogin({ provider, idToken, referralCode });
       if (result.success && result.token && result.user) {
         await storage.setItem(USER_ID_KEY, result.user.id);
         await storage.setItem(AUTH_TOKEN_KEY, result.token);

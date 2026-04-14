@@ -296,7 +296,7 @@ export const authApi = {
     }),
   
   // 第三方登录
-  socialLogin: (dto: { provider: 'google' | 'facebook'; idToken: string }) =>
+  socialLogin: (dto: { provider: 'google' | 'facebook'; idToken: string; referralCode?: string }) =>
     request<AuthResponse>('/auth/social-login', {
       method: 'POST',
       body: JSON.stringify(dto),

@@ -174,6 +174,7 @@ export default function RegisterScreen() {
           <Text style={styles.logo}>🏔️</Text>
           <Text style={styles.title}>山海灵境</Text>
           <Text style={styles.subtitle}>创建您的账号</Text>
+          {referralCode ? <Text style={styles.referralHint}>邀请码已识别：{referralCode}</Text> : null}
         </View>
 
         {/* 输入框 */}
@@ -343,6 +344,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8D8DAA',
     marginTop: 8,
+  },
+  referralHint: {
+    marginTop: 8,
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '600',
   },
   inputContainer: {
     gap: 16,
