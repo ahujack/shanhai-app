@@ -23,8 +23,15 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: '#130B1F',
           borderTopColor: '#2C1D3C',
-          paddingTop: 8,
-          height: 72,
+          paddingTop: 10,
+          height: 80,
+        },
+        tabBarIconStyle: {
+          marginBottom: 2,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
         },
         tabBarActiveTintColor: currentTheme.tabIconSelected,
         tabBarInactiveTintColor: currentTheme.tabIconDefault,
@@ -34,28 +41,28 @@ export default function TabLayout() {
         name="index"
         options={{
           title: '对话',
-          tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses-outline" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
         name="zi"
         options={{
           title: '测字',
-          tabBarIcon: ({ color, size }) => <Ionicons name="pencil-outline" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="pencil-outline" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
         name="reading"
         options={{
           title: '占卜',
-          tabBarIcon: ({ color, size }) => <Ionicons name="eye-outline" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="eye-outline" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
         name="bazi"
         options={{
           title: '八字',
-          tabBarIcon: ({ color, size }) => <Ionicons name="reader-outline" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="reader-outline" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -74,7 +81,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: '我的',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={26} color={color} />,
         }}
       />
     </Tabs>

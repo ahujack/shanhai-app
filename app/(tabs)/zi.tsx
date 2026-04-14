@@ -422,10 +422,6 @@ export default function ZiScreen() {
 
   // 手写模式识别并测字
   const handleHandwritingRecognize = async (svgString: string) => {
-    if (!ritualReady) {
-      Alert.alert('提示', '先做3秒静心，再开始写字（也可以点击“跳过，直接写字”）。');
-      return;
-    }
     console.log('开始手写识别，SVG长度:', svgString.length);
     // 清除上一轮解读，避免识别超时/失败时界面仍显示上一字（如「测」）
     setResult(null);
@@ -727,8 +723,7 @@ export default function ZiScreen() {
             // 手写模式 - 书写框在上，静心提示在下
             <View style={styles.handwritingSection}>
               <View
-                style={[styles.handwritingCanvasWrap, !ritualReady && styles.handwritingCanvasWrapLocked]}
-                pointerEvents={ritualReady ? 'auto' : 'none'}
+                style={styles.handwritingCanvasWrap}
               >
                 <HandwritingCanvas 
                   onRecognize={handleHandwritingRecognize}
@@ -741,7 +736,7 @@ export default function ZiScreen() {
                 <View style={styles.ritualCountdownCard}>
                   <Text style={styles.ritualCountdownTitle}>🫧 写字前先静心</Text>
                   <Text style={styles.ritualCountdownText}>
-                    把注意力放在你此刻最想问的一件事上，再落笔，解读会更聚焦。
+                    把注意力放在你此刻最想问的一件事上，再落笔，解读会更聚焦。你也可以直接写，不受限制。
                   </Text>
                   {ritualCountdown > 0 && (
                     <Text style={styles.ritualBreathHint}>{ritualBreathHint}</Text>
@@ -1477,9 +1472,6 @@ const styles = StyleSheet.create({
   handwritingCanvasWrap: {
     width: '100%',
     alignItems: 'center',
-  },
-  handwritingCanvasWrapLocked: {
-    opacity: 0.45,
   },
   progressWrap: {
     marginTop: 10,

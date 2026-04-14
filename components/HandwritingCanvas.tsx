@@ -153,6 +153,8 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
         const newPoint = { x: locationX, y: locationY };
@@ -318,7 +320,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
           styles.canvasContainer,
           { borderColor: wuxingTheme.border, shadowColor: wuxingTheme.border, width: canvasSize, height: canvasSize },
           ...(Platform.OS === 'web'
-            ? [{ cursor: (isDrawing ? 'none' : 'crosshair') as any }]
+            ? [{ cursor: (isDrawing ? 'none' : 'crosshair') as any, touchAction: 'none', userSelect: 'none' } as any]
             : []),
         ]} 
         {...panResponder.panHandlers}

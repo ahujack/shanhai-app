@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, Text, View, TouchableOpacity, StyleSheet, Alert, TextInput, ActivityIndicator } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, StyleSheet, Alert, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -99,6 +99,61 @@ const tenGodMeta: Record<
   },
 };
 
+const normalizeBirthDate = (value: string): string | null => {
+  const raw = value.trim();
+  if (!raw) return null;
+  const compact = raw
+    .replace(/[年./]/g, '-')
+    .replace(/月/g, '-')
+    .replace(/日/g, '')
+    .replace(/\s+/g, '');
+  const m = compact.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  if (!Number.isInteger(year) || year < 1900 || year > 2099) return null;
+  if (!Number.isInteger(month) || month < 1 || month > 12) return null;
+  if (!Number.isInteger(day) || day < 1 || day > 31) return null;
+  const dt = new Date(year, month - 1, day);
+  if (dt.getFullYear() !== year || dt.getMonth() !== month - 1 || dt.getDate() !== day) return null;
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
+const normalizeBirthTime = (value: string): string | null => {
+  const raw = value.trim();
+  if (!raw) return null;
+  const compact = raw
+    .replace(/[点时]/g, ':')
+    .replace(/分/g, '')
+    .replace(/\./g, ':')
+    .replace(/\s+/g, '');
+  let hour = -1;
+  let minute = -1;
+  const hm = compact.match(/^(\d{1,2}):(\d{1,2})$/);
+  const hOnly = compact.match(/^(\d{1,2})$/);
+  const hhmm = compact.match(/^(\d{3,4})$/);
+  if (hm) {
+    hour = Number(hm[1]);
+    minute = Number(hm[2]);
+  } else if (hOnly) {
+    hour = Number(hOnly[1]);
+    minute = 0;
+  } else if (hhmm) {
+    const str = hhmm[1].padStart(4, '0');
+    hour = Number(str.slice(0, 2));
+    minute = Number(str.slice(2, 4));
+  } else {
+    return null;
+  }
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return null;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
+const toDateInputValue = (value: string): string => normalizeBirthDate(value) || '';
+const toTimeInputValue = (value: string): string => normalizeBirthTime(value) || '';
+
 export default function BaziScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -130,6 +185,7 @@ export default function BaziScreen() {
   const [inlineSaving, setInlineSaving] = React.useState(false);
 
   const effectiveChart = chart ?? guestChart;
+  const showWebDatePicker = Platform.OS === 'web';
 
   const trackGodClick = React.useCallback((god: string) => {
     setActiveGod(god);
@@ -274,10 +330,10 @@ export default function BaziScreen() {
 
   const handleInlineSaveAndGenerate = async () => {
     if (!user?.id) return;
-    const bd = inlineBirthDate.trim();
-    const bt = inlineBirthTime.trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(bd) || !/^\d{2}:\d{2}$/.test(bt)) {
-      setGenError('请按格式填写：出生日期 YYYY-MM-DD，出生时间 HH:mm');
+    const bd = normalizeBirthDate(inlineBirthDate);
+    const bt = normalizeBirthTime(inlineBirthTime);
+    if (!bd || !bt) {
+      setGenError('请填写有效时间：日期支持 1999.7.22 / 1999-07-22，时间支持 20.45 / 20:45 / 2045');
       return;
     }
     setInlineSaving(true);
@@ -305,10 +361,10 @@ export default function BaziScreen() {
   };
 
   const handleGuestPreview = async () => {
-    const bd = guestBirthDate.trim();
-    const bt = guestBirthTime.trim();
+    const bd = normalizeBirthDate(guestBirthDate);
+    const bt = normalizeBirthTime(guestBirthTime);
     if (!bd || !bt) {
-      Alert.alert('提示', '请填写出生日期与出生时间（日期 YYYY-MM-DD，时间 HH:mm）');
+      Alert.alert('提示', '请输入有效时间（如 1999.7.22 + 20.45 或 1999-07-22 + 20:45）');
       return;
     }
     setGuestPreviewLoading(true);
@@ -331,6 +387,26 @@ export default function BaziScreen() {
     }
   };
 
+  const handleGuestDatePick = (nextValue: string) => {
+    if (!nextValue) return;
+    setGuestBirthDate(nextValue);
+  };
+
+  const handleGuestTimePick = (nextValue: string) => {
+    if (!nextValue) return;
+    setGuestBirthTime(nextValue);
+  };
+
+  const handleInlineDatePick = (nextValue: string) => {
+    if (!nextValue) return;
+    setInlineBirthDate(nextValue);
+  };
+
+  const handleInlineTimePick = (nextValue: string) => {
+    if (!nextValue) return;
+    setInlineBirthTime(nextValue);
+  };
+
   if (!effectiveChart) {
     if (!user) {
       return (
@@ -340,19 +416,61 @@ export default function BaziScreen() {
           <Text style={styles.fieldLabel}>出生日期</Text>
           <TextInput
             style={styles.input}
-            placeholder="YYYY-MM-DD"
+            placeholder="如 1999-07-22 / 1999.7.22"
             placeholderTextColor="#6F6287"
             value={guestBirthDate}
             onChangeText={setGuestBirthDate}
           />
+          {showWebDatePicker && (
+            <View style={styles.webPickerRow}>
+              {React.createElement('input', {
+                type: 'date',
+                value: toDateInputValue(guestBirthDate),
+                onChange: (e: any) => handleGuestDatePick(e?.target?.value || ''),
+                style: {
+                  width: '100%',
+                  height: 42,
+                  borderRadius: 10,
+                  border: '1px solid #3A2B5A',
+                  backgroundColor: '#1B1430',
+                  color: '#F2EEF9',
+                  fontSize: '14px',
+                  padding: '0 10px',
+                  outline: 'none',
+                },
+              })}
+            </View>
+          )}
           <Text style={styles.fieldLabel}>出生时间</Text>
           <TextInput
             style={styles.input}
-            placeholder="HH:mm（如 14:30）"
+            placeholder="如 20:45 / 20.45 / 2045"
             placeholderTextColor="#6F6287"
             value={guestBirthTime}
             onChangeText={setGuestBirthTime}
           />
+          {showWebDatePicker && (
+            <View style={styles.webPickerRow}>
+              {React.createElement('input', {
+                type: 'time',
+                value: toTimeInputValue(guestBirthTime),
+                onChange: (e: any) => handleGuestTimePick(e?.target?.value || ''),
+                style: {
+                  width: '100%',
+                  height: 42,
+                  borderRadius: 10,
+                  border: '1px solid #3A2B5A',
+                  backgroundColor: '#1B1430',
+                  color: '#F2EEF9',
+                  fontSize: '14px',
+                  padding: '0 10px',
+                  outline: 'none',
+                },
+              })}
+            </View>
+          )}
+          <Text style={styles.inputHint}>支持多种输入：`YYYY-MM-DD`、`YYYY/MM/DD`、`YYYY.MM.DD`、`YYYY年M月D日`</Text>
+          <Text style={styles.inputHint}>时间支持：`20:45`、`20.45`、`2045`、`20点45`</Text>
           <Text style={styles.fieldLabel}>历法</Text>
           <View style={styles.guestRow}>
             <TouchableOpacity
@@ -425,19 +543,61 @@ export default function BaziScreen() {
             <Text style={styles.fieldLabel}>出生日期</Text>
             <TextInput
               style={styles.input}
-              placeholder="YYYY-MM-DD"
+              placeholder="如 1999-07-22 / 1999.7.22"
               placeholderTextColor="#6F6287"
               value={inlineBirthDate}
               onChangeText={setInlineBirthDate}
             />
+            {showWebDatePicker && (
+              <View style={styles.webPickerRow}>
+                {React.createElement('input', {
+                  type: 'date',
+                  value: toDateInputValue(inlineBirthDate),
+                  onChange: (e: any) => handleInlineDatePick(e?.target?.value || ''),
+                  style: {
+                    width: '100%',
+                    height: 42,
+                    borderRadius: 10,
+                    border: '1px solid #3A2B5A',
+                    backgroundColor: '#1B1430',
+                    color: '#F2EEF9',
+                    fontSize: '14px',
+                    padding: '0 10px',
+                    outline: 'none',
+                  },
+                })}
+              </View>
+            )}
             <Text style={styles.fieldLabel}>出生时间</Text>
             <TextInput
               style={styles.input}
-              placeholder="HH:mm（如 14:30）"
+              placeholder="如 20:45 / 20.45 / 2045"
               placeholderTextColor="#6F6287"
               value={inlineBirthTime}
               onChangeText={setInlineBirthTime}
             />
+            {showWebDatePicker && (
+              <View style={styles.webPickerRow}>
+                {React.createElement('input', {
+                  type: 'time',
+                  value: toTimeInputValue(inlineBirthTime),
+                  onChange: (e: any) => handleInlineTimePick(e?.target?.value || ''),
+                  style: {
+                    width: '100%',
+                    height: 42,
+                    borderRadius: 10,
+                    border: '1px solid #3A2B5A',
+                    backgroundColor: '#1B1430',
+                    color: '#F2EEF9',
+                    fontSize: '14px',
+                    padding: '0 10px',
+                    outline: 'none',
+                  },
+                })}
+              </View>
+            )}
+            <Text style={styles.inputHint}>支持多种输入：`YYYY-MM-DD`、`YYYY/MM/DD`、`YYYY.MM.DD`、`YYYY年M月D日`</Text>
+            <Text style={styles.inputHint}>时间支持：`20:45`、`20.45`、`2045`、`20点45`</Text>
             <Text style={styles.fieldLabel}>历法</Text>
             <View style={styles.guestRow}>
               <TouchableOpacity
@@ -803,6 +963,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: '#F2EEF9',
     fontSize: 15,
+  },
+  inputHint: {
+    alignSelf: 'stretch',
+    color: '#8E84A3',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 6,
+  },
+  webPickerRow: {
+    alignSelf: 'stretch',
+    marginTop: 8,
   },
   guestRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6, marginBottom: 4 },
   guestChip: {
