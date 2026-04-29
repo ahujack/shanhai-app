@@ -14,14 +14,14 @@ export default function PaymentCancelScreen() {
           <Text style={styles.body}>未扣款。如需开通 VIP 或充值积分，可在山海灵境内打开「灵石」继续操作。</Text>
           <TouchableOpacity
             style={styles.btn}
-            onPress={() => router.replace({ pathname: '/(tabs)/points', params: { tab: 'subscription' } } as any)}
+            onPress={() => router.replace({ pathname: '/points', params: { tab: 'subscription' } } as any)}
             activeOpacity={0.85}
           >
             <Text style={styles.btnText}>返回订阅</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryBtn}
-            onPress={() => router.replace({ pathname: '/(tabs)/points', params: { tab: 'mall' } } as any)}
+            onPress={() => router.replace({ pathname: '/points', params: { tab: 'mall' } } as any)}
             activeOpacity={0.85}
           >
             <Text style={styles.secondaryBtnText}>去积分商城</Text>

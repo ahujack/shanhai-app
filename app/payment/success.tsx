@@ -131,7 +131,7 @@ export default function PaymentSuccessScreen() {
     };
   }, [paymentId, loadUser, retryTick]);
 
-  const goHome = () => router.replace('/(tabs)/index' as any);
+  const goHome = () => router.replace('/' as any);
   const retryCheck = () => {
     setPhase('polling');
     setMessage('正在重新确认支付结果…');
@@ -143,9 +143,9 @@ export default function PaymentSuccessScreen() {
     Alert.alert('已复制订单号', '订单号已复制，可发给客服 support@shanhai.app 快速排查。');
   };
   const goSubscription = () =>
-    router.replace({ pathname: '/(tabs)/points', params: { tab: 'subscription' } } as any);
+    router.replace({ pathname: '/points', params: { tab: 'subscription' } } as any);
   const goPointsMall = () =>
-    router.replace({ pathname: '/(tabs)/points', params: { tab: 'mall' } } as any);
+    router.replace({ pathname: '/points', params: { tab: 'mall' } } as any);
 
   return (
     <>
@@ -170,7 +170,7 @@ export default function PaymentSuccessScreen() {
             ) : (
               <TouchableOpacity
                 style={styles.primary}
-                onPress={() => router.replace('/(tabs)/points' as any)}
+                onPress={() => router.replace('/points' as any)}
                 activeOpacity={0.85}
               >
                 <Text style={styles.primaryText}>前往灵石</Text>
