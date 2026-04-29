@@ -100,6 +100,10 @@ export default function ReadingScreen() {
   ] as const;
 
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+  const readingTierLabel = isVip ? '深度版（会员）' : '完整版（单次解锁）';
+  const readingTierDesc = isVip
+    ? '包含逐句回应 + 动爻拆解 + 行动计划 + 可继续追问'
+    : '已包含核心解读，升级会员可解锁「无限次深度解读 + 追问模式」';
 
   useEffect(() => {
     let alive = true;
@@ -296,6 +300,18 @@ export default function ReadingScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       >
         <Text style={styles.sectionTitle}>🔮 占卜结果</Text>
+        <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
+          <Text style={styles.tierTitle}>当前解读档位：{readingTierLabel}</Text>
+          <Text style={styles.tierDesc}>{readingTierDesc}</Text>
+          {!isVip && (
+            <TouchableOpacity
+              style={styles.tierUpgradeBtn}
+              onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
+            >
+              <Text style={styles.tierUpgradeText}>立即解锁当前结果，并开启会员深度版</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {fromFortune && lastFortune && (
           <View style={[styles.card, styles.fromFortuneCard, { backgroundColor: colors.surface }]}>
@@ -451,6 +467,20 @@ export default function ReadingScreen() {
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
     >
       <Text style={styles.sectionTitle}>🔮 深度解读</Text>
+      <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
+        <Text style={styles.tierTitle}>解读档位对比</Text>
+        <Text style={styles.tierLine}>简版：一句结论 + 基础建议（适合快速判断）</Text>
+        <Text style={styles.tierLine}>完整版：本卦/变卦/动爻拆解 + 三条行动建议</Text>
+        <Text style={styles.tierLine}>深度版：逐句回应你的问题 + 风险拆解 + 追问模式</Text>
+        {!isVip && (
+          <TouchableOpacity
+            style={styles.tierUpgradeBtn}
+            onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
+          >
+            <Text style={styles.tierUpgradeText}>立即解锁当前结果（可继续追问）</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {fromFortune && lastFortune && (
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -610,6 +640,42 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#2F2342',
+  },
+  tierCard: {
+    borderColor: '#5A417F',
+    borderWidth: 1,
+  },
+  tierTitle: {
+    color: '#F8D05F',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  tierDesc: {
+    color: '#CFC6DE',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  tierLine: {
+    color: '#CFC6DE',
+    fontSize: 13,
+    lineHeight: 21,
+    marginBottom: 6,
+  },
+  tierUpgradeBtn: {
+    marginTop: 10,
+    backgroundColor: '#F8D05F',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  tierUpgradeText: {
+    color: '#1A0A18',
+    fontSize: 13,
+    fontWeight: '700',
   },
   fromFortuneCard: {
     borderColor: '#5E4591',

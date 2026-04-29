@@ -148,6 +148,20 @@ export default function ZiScreen() {
   };
 
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+  const ziTierLabel = !result
+    ? isVip
+      ? '深度版（会员）'
+      : '简版（免费）'
+    : result.interpretation?.premiumHint
+    ? '简版（可升级）'
+    : isVip
+    ? '深度版（会员）'
+    : '完整版（积分解锁）';
+  const ziTierDesc = result?.interpretation?.premiumHint
+    ? '你当前看到的是可用精华版，升级后可直接解锁老师傅深批与行动建议。'
+    : isVip
+    ? '已解锁：部件拆解 + 方向深挖 + 老师傅批注 + 避坑提醒。'
+    : '当前已是完整版，升级会员可继续解锁更深层的年度批注与持续追问。';
 
   useEffect(() => {
     let alive = true;
@@ -830,6 +844,18 @@ export default function ZiScreen() {
                 <Text style={styles.previewBannerText}>已为你先展示首轮结果，深度解读正在补全中…</Text>
               </View>
             )}
+            <View style={styles.tierCard}>
+              <Text style={styles.tierTitle}>当前解读档位：{ziTierLabel}</Text>
+              <Text style={styles.tierDesc}>{ziTierDesc}</Text>
+              {!isVip && (
+                <TouchableOpacity
+                  style={styles.tierUpgradeBtn}
+                  onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
+                >
+                  <Text style={styles.tierUpgradeBtnText}>立即解锁当前结果（老师傅深度版）</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             {/* 冷读话术 - 首先展示 */}
             <View style={styles.section}>
               <TouchableOpacity
@@ -1107,7 +1133,7 @@ export default function ZiScreen() {
                   onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
                 >
                   <Text style={styles.premiumHintText}>🔓 {result.interpretation.premiumHint}</Text>
-                  <Text style={styles.premiumHintLink}>点击升级解锁完整版方向推演</Text>
+                  <Text style={styles.premiumHintLink}>点击升级，本次解读立即升级为老师傅深度版</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -1309,6 +1335,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
+  },
+  tierCard: {
+    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#1B1430',
+    borderWidth: 1,
+    borderColor: '#5A417F',
+  },
+  tierTitle: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  tierDesc: {
+    color: '#CFC6DE',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  tierUpgradeBtn: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+    backgroundColor: '#F8D05F',
+  },
+  tierUpgradeBtnText: {
+    color: '#1A0A18',
+    fontSize: 12,
+    fontWeight: '700',
   },
   content: {
     flex: 1,

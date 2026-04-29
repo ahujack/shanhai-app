@@ -154,6 +154,48 @@ const normalizeBirthTime = (value: string): string | null => {
 const toDateInputValue = (value: string): string => normalizeBirthDate(value) || '';
 const toTimeInputValue = (value: string): string => normalizeBirthTime(value) || '';
 
+type ReadingTier = 'lite' | 'full' | 'deep';
+type UserAccessTier = 'guest' | 'free' | 'premium' | 'vip';
+
+const readingTierMeta: Record<ReadingTier, { label: string; description: string }> = {
+  lite: {
+    label: '简版',
+    description: '先给你关键结论与年度提点，适合快速判断方向。',
+  },
+  full: {
+    label: '完整版',
+    description: '包含完整老师傅点评，给到更细的年度宜忌和窗口月。',
+  },
+  deep: {
+    label: '深度版',
+    description: '在完整版基础上追加深度批注，含关键词、行动一招和避坑提醒。',
+  },
+};
+
+const resolveReadingTier = (chart: BaziChart): ReadingTier => {
+  const annual = chart.detailedReading?.annualForecast || [];
+  const commentaries = annual
+    .map((item) => item.masterCommentary || '')
+    .filter(Boolean)
+    .join(' ');
+  if (/深度版/.test(commentaries)) return 'deep';
+  if (annual.some((item) => !!item.masterCommentary) && !chart.detailedReading?.paywallHint) return 'full';
+  return 'lite';
+};
+
+const resolveUserAccessTier = (
+  user: { membership?: 'free' | 'premium' | 'vip'; membershipExpiryAt?: string | null } | null,
+): UserAccessTier => {
+  if (!user) return 'guest';
+  const tier = user.membership || 'free';
+  if (tier === 'premium' || tier === 'vip') {
+    if (!user.membershipExpiryAt) return tier;
+    const expiryTs = Date.parse(user.membershipExpiryAt);
+    if (!Number.isNaN(expiryTs) && expiryTs > Date.now()) return tier;
+  }
+  return 'free';
+};
+
 export default function BaziScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -655,6 +697,8 @@ export default function BaziScreen() {
   }
 
   const c = effectiveChart;
+  const readingTier = resolveReadingTier(c);
+  const userAccessTier = resolveUserAccessTier(user);
 
   return (
     <ScrollView
@@ -745,6 +789,22 @@ export default function BaziScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>详细解读</Text>
+        <View style={styles.tierRow}>
+          <Text
+            style={[
+              styles.tierBadge,
+              readingTier === 'lite'
+                ? styles.tierBadgeLite
+                : readingTier === 'full'
+                ? styles.tierBadgeFull
+                : styles.tierBadgeDeep,
+            ]}
+          >
+            当前解读档位：{readingTierMeta[readingTier].label}
+          </Text>
+          <Text style={styles.tierDescription}>{readingTierMeta[readingTier].description}</Text>
+          <Text style={styles.tierLegend}>档位说明：简版 / 完整版 / 深度版</Text>
+        </View>
         <View style={[styles.moduleCard, styles.moduleCore]}>
           <Text style={styles.sectionHead}>🧭 核心格局</Text>
           <Text style={styles.body}>{c.detailedReading?.corePattern || '正在生成更细致的盘面解读...'}</Text>
@@ -821,18 +881,44 @@ export default function BaziScreen() {
             </View>
           ))}
           {viewMode === 'compact' ? <Text style={styles.bodyMuted}>* 切换到「专业模式」可查看完整五年流年。</Text> : null}
-        {c.detailedReading?.paywallHint ? (
-          <TouchableOpacity
-            onPress={() =>
-              router.push({
-                pathname: '/(tabs)/points',
-                params: { focus: 'vip' },
-              })
-            }
-          >
-            <Text style={[styles.bodyMuted, styles.paywallLink]}>🔒 {c.detailedReading.paywallHint}（点此解锁）</Text>
-          </TouchableOpacity>
-        ) : null}
+          {readingTier === 'lite' ? (
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/points',
+                  params: { focus: 'vip' },
+                })
+              }
+            >
+              <Text style={[styles.bodyMuted, styles.paywallLink]}>
+                🔓 当前为简版，解锁完整版老师傅点评（含完整年度宜忌与窗口月）
+              </Text>
+              {c.detailedReading?.paywallHint ? (
+                <Text style={[styles.bodyMuted, styles.paywallSubText]}>{c.detailedReading.paywallHint}</Text>
+              ) : null}
+            </TouchableOpacity>
+          ) : null}
+          {readingTier === 'full' ? (
+            userAccessTier === 'premium' ? (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: '/(tabs)/points',
+                    params: { focus: 'vip' },
+                  })
+                }
+              >
+                <Text style={[styles.bodyMuted, styles.paywallLink]}>
+                  ⬆️ 当前为完整版，升级深度版可解锁「关键词 + 年度一招 + 避坑提醒」
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={[styles.bodyMuted, styles.paywallSubText]}>✅ 当前已解锁完整版老师傅点评</Text>
+            )
+          ) : null}
+          {readingTier === 'deep' ? (
+            <Text style={[styles.bodyMuted, styles.tierTopBadge]}>✅ 已解锁最高档：深度版老师傅批注</Text>
+          ) : null}
         </View>
 
         <View style={[styles.moduleCard, styles.moduleAnnual]}>
@@ -943,11 +1029,59 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     color: '#D7C7FF',
   },
+  paywallSubText: {
+    color: '#9D93B3',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  tierTopBadge: {
+    color: '#F8D05F',
+    fontSize: 12,
+  },
   disclaimer: {
     marginTop: 10,
     color: '#8E84A3',
     fontSize: 12,
     lineHeight: 18,
+  },
+  tierRow: {
+    marginBottom: 8,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#3A2D52',
+    backgroundColor: '#1A132A',
+  },
+  tierBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  tierBadgeLite: {
+    color: '#E7D9FF',
+    backgroundColor: '#3F2A60',
+  },
+  tierBadgeFull: {
+    color: '#FFE8AE',
+    backgroundColor: '#4A3A1C',
+  },
+  tierBadgeDeep: {
+    color: '#F8D05F',
+    backgroundColor: '#4E2B12',
+  },
+  tierDescription: {
+    color: '#D6CDE8',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  tierLegend: {
+    color: '#8E84A3',
+    fontSize: 11,
   },
   primaryBtn: { backgroundColor: '#F8D05F', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 12 },
   primaryBtnText: { color: '#1A0A18', fontWeight: 'bold', fontSize: 14 },

@@ -63,6 +63,7 @@ export default function HomeScreen() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [achievementUnlock, setAchievementUnlock] = useState<{ name: string; description: string; icon: string } | null>(null);
   const [lastCheckInPoints, setLastCheckInPoints] = useState(0);
+  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
   
   // 神秘特效动画
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -1128,6 +1129,28 @@ export default function HomeScreen() {
                         <Text style={styles.funCardText}>{drawFortune.mission}</Text>
                       </View>
                     )}
+                    <View style={styles.fortuneTierCard}>
+                      <Text style={styles.fortuneTierTitle}>
+                        当前：{isVip ? '深度版今日签' : '简版今日签'}
+                      </Text>
+                      {isVip ? (
+                        <Text style={styles.fortuneTierText}>
+                          已解锁老师傅四向详批（事业/感情/财运/健康），并可一键进入深度解签继续追问。
+                        </Text>
+                      ) : (
+                        <>
+                          <Text style={styles.fortuneTierText}>
+                            会员版可解锁：老师傅四向详批 + 今日一招 + 七日窗口提醒，让“今天该做什么”更具体。
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.fortuneTierUpgradeBtn}
+                            onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
+                          >
+                            <Text style={styles.fortuneTierUpgradeText}>立即解锁当前签文（深度版）</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </View>
                   </View>
                   
                   <View style={styles.luckyInfo}>
@@ -1192,7 +1215,9 @@ export default function HomeScreen() {
                     style={[styles.modalButton, styles.modalButtonOutline]}
                     onPress={goToReadingPage}
                   >
-                    <Text style={[styles.modalButtonText, styles.modalButtonTextOutline]}>深度解签</Text>
+                    <Text style={[styles.modalButtonText, styles.modalButtonTextOutline]}>
+                      {isVip ? '进入深度解签' : '解锁深度解签'}
+                    </Text>
                   </TouchableOpacity>
                 </>
               ) : isDrawing ? (
@@ -2541,6 +2566,39 @@ const styles = StyleSheet.create({
     color: '#B2B4C8',
     fontSize: 14,
     lineHeight: 22,
+  },
+  fortuneTierCard: {
+    marginTop: 12,
+    backgroundColor: '#1D152B',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#4A3C6D',
+    padding: 10,
+  },
+  fortuneTierTitle: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  fortuneTierText: {
+    color: '#CFC6DE',
+    fontSize: 12,
+    lineHeight: 19,
+  },
+  fortuneTierUpgradeBtn: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+    backgroundColor: '#F8D05F',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  fortuneTierUpgradeText: {
+    color: '#1A0A18',
+    fontSize: 12,
+    fontWeight: '700',
   },
   funCard: {
     marginTop: 10,
