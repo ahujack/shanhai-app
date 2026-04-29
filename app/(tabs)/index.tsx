@@ -1138,17 +1138,9 @@ export default function HomeScreen() {
                           已解锁老师傅四向详批（事业/感情/财运/健康），并可一键进入深度解签继续追问。
                         </Text>
                       ) : (
-                        <>
-                          <Text style={styles.fortuneTierText}>
-                            会员版可解锁：老师傅四向详批 + 今日一招 + 七日窗口提醒，让“今天该做什么”更具体。
-                          </Text>
-                          <TouchableOpacity
-                            style={styles.fortuneTierUpgradeBtn}
-                            onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
-                          >
-                            <Text style={styles.fortuneTierUpgradeText}>立即解锁当前签文（深度版）</Text>
-                          </TouchableOpacity>
-                        </>
+                        <Text style={styles.fortuneTierText}>
+                          会员版可解锁：老师傅四向详批 + 今日一招 + 七日窗口提醒，让“今天该做什么”更具体。
+                        </Text>
                       )}
                     </View>
                   </View>
@@ -2585,20 +2577,6 @@ const styles = StyleSheet.create({
     color: '#CFC6DE',
     fontSize: 12,
     lineHeight: 19,
-  },
-  fortuneTierUpgradeBtn: {
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#F8D05F',
-    backgroundColor: '#F8D05F',
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  fortuneTierUpgradeText: {
-    color: '#1A0A18',
-    fontSize: 12,
-    fontWeight: '700',
   },
   funCard: {
     marginTop: 10,

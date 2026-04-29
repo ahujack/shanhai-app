@@ -303,14 +303,7 @@ export default function ReadingScreen() {
         <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
           <Text style={styles.tierTitle}>当前解读档位：{readingTierLabel}</Text>
           <Text style={styles.tierDesc}>{readingTierDesc}</Text>
-          {!isVip && (
-            <TouchableOpacity
-              style={styles.tierUpgradeBtn}
-              onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
-            >
-              <Text style={styles.tierUpgradeText}>立即解锁当前结果，并开启会员深度版</Text>
-            </TouchableOpacity>
-          )}
+          {!isVip ? <Text style={styles.tierHintInline}>提示：本次结果已解锁，会员用于后续解读免扣与追问。</Text> : null}
         </View>
 
         {fromFortune && lastFortune && (
@@ -676,6 +669,12 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontSize: 13,
     fontWeight: '700',
+  },
+  tierHintInline: {
+    marginTop: 8,
+    color: '#A99EC2',
+    fontSize: 12,
+    lineHeight: 18,
   },
   fromFortuneCard: {
     borderColor: '#5E4591',
