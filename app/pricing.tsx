@@ -23,6 +23,20 @@ export default function PricingScreen() {
   const [points, setPoints] = useState<PaymentProduct[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const loadPricing = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const list = await paymentApi.getProducts();
+      setSubs(list.filter((p) => p.type === 'subscription' && p.isActive));
+      setPoints(list.filter((p) => p.type === 'points' && p.isActive));
+    } catch {
+      setError('暂时无法加载价格，请稍后重试或联系客服。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -86,7 +100,12 @@ export default function PricingScreen() {
             <ActivityIndicator size="large" color="#F8D05F" />
           </View>
         ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
+          <View>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={loadPricing} style={[styles.retryBtn, webPointer]}>
+              <Text style={styles.retryBtnText}>重新加载</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <>
             <Text style={styles.sectionTitle}>会员订阅</Text>
@@ -126,6 +145,9 @@ export default function PricingScreen() {
         <Text style={styles.note}>
           实际扣款币种与金额以结账页面（Creem 等支付通道）展示为准；促销或调价将在本页或应用内同步更新。
         </Text>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/points' as any)} style={[styles.gotoMallBtn, webPointer]}>
+          <Text style={styles.gotoMallText}>前往灵石页购买</Text>
+        </TouchableOpacity>
 
         <SiteComplianceFooter variant="full" />
       </ScrollView>
@@ -195,7 +217,21 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#FF8A80',
     fontSize: 14,
+    marginBottom: 12,
+  },
+  retryBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#F8D05F',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     marginBottom: 16,
+  },
+  retryBtnText: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '600',
   },
   sectionTitle: {
     color: '#F8D05F',
@@ -252,5 +288,19 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 20,
     marginBottom: 8,
+  },
+  gotoMallBtn: {
+    alignSelf: 'flex-start',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.5)',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    marginBottom: 14,
+  },
+  gotoMallText: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

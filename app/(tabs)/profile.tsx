@@ -445,7 +445,7 @@ export default function ProfileScreen() {
                 </Text>
                 <Text style={styles.dailyTaskPoints}>+10</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/')}>
+              <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)')}>
                 <Text style={styles.dailyTaskIcon}>🎯</Text>
                 <Text style={styles.dailyTaskLabel}>抽签</Text>
                 <Text style={styles.dailyTaskPoints}>+5</Text>
@@ -455,7 +455,7 @@ export default function ProfileScreen() {
                 <Text style={styles.dailyTaskLabel}>测字</Text>
                 <Text style={styles.dailyTaskPoints}>+5</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/')}>
+              <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)')}>
                 <Text style={styles.dailyTaskIcon}>💬</Text>
                 <Text style={styles.dailyTaskLabel}>对话</Text>
                 <Text style={styles.dailyTaskPoints}>+5</Text>
@@ -849,7 +849,7 @@ export default function ProfileScreen() {
           {/* 积分和签到状态 */}
           <View style={styles.pointsAndCheckin}>
             {/* 积分显示 */}
-            <TouchableOpacity style={styles.pointsCard} onPress={() => router.push('/points')}>
+            <TouchableOpacity style={styles.pointsCard} onPress={() => router.push('/(tabs)/points')}>
               <View style={styles.pointsItem}>
                 <Text style={styles.pointsIcon}>💎</Text>
                 <View>
@@ -984,7 +984,7 @@ export default function ProfileScreen() {
               <Text style={[styles.dailyTaskLabel, checkInStatus?.todayCheckedIn && styles.dailyTaskDone]}>{checkInStatus?.todayCheckedIn ? '已签到' : '签到'}</Text>
               <Text style={styles.dailyTaskPoints}>+10</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/')}>
+            <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)')}>
               <Text style={styles.dailyTaskIcon}>🎯</Text>
               <Text style={styles.dailyTaskLabel}>抽签</Text>
               <Text style={styles.dailyTaskPoints}>+5</Text>
@@ -994,7 +994,7 @@ export default function ProfileScreen() {
               <Text style={styles.dailyTaskLabel}>测字</Text>
               <Text style={styles.dailyTaskPoints}>+5</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/')}>
+            <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)')}>
               <Text style={styles.dailyTaskIcon}>💬</Text>
               <Text style={styles.dailyTaskLabel}>对话</Text>
               <Text style={styles.dailyTaskPoints}>+5</Text>

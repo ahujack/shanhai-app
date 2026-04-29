@@ -125,6 +125,7 @@ export default function PointsMallScreen() {
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [billingRules, setBillingRules] = useState<BillingRules | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const isPurchasingAny = Boolean(purchasing);
 
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -342,10 +343,16 @@ export default function PointsMallScreen() {
             Alert.alert('提示', `请在浏览器中打开: ${result.url}`);
           }
         }
+      } else {
+        Alert.alert('暂时无法发起支付', '收银台链接生成失败，请稍后重试或联系客服。');
       }
     } catch (error: any) {
       console.error('Purchase failed:', error);
-      Alert.alert('错误', error.message || '支付失败');
+      const rawMessage = String(error?.message || '');
+      const friendlyMessage = /配置异常|not configured|checkout/i.test(rawMessage)
+        ? '支付服务正在维护中，请稍后重试。若持续失败，请联系客服 support@shanhai.app。'
+        : rawMessage || '支付失败';
+      Alert.alert('支付未完成', friendlyMessage);
     } finally {
       setPurchasing(null);
     }
@@ -403,6 +410,14 @@ export default function PointsMallScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor={colors.accent} />}
       >
+        <View style={styles.topHintBanner}>
+          <Text style={styles.topHintText}>
+            {activeTab === 'subscription'
+              ? '订阅适合高频使用，权益在有效期内生效。'
+              : '积分按次消费，适合低频和灵活补充。'}
+          </Text>
+        </View>
+
         {loadError && (
           <View style={styles.errorBanner}>
             <Text style={styles.errorBannerText}>{loadError}</Text>
@@ -479,8 +494,15 @@ export default function PointsMallScreen() {
               <Text style={styles.sectionTitle}>⭐ VIP 会员</Text>
               <Text style={styles.sectionSubtitle}>开通VIP，享无限次AI解读</Text>
               {highlightVip ? <Text style={styles.focusTip}>👑 推荐：解锁八字老师傅批注与完整流年细化</Text> : null}
-              
-              {subscriptionProducts.map((product) => {
+              {subscriptionProducts.length === 0 ? (
+                <View style={styles.emptyStateCard}>
+                  <Text style={styles.emptyStateTitle}>订阅商品准备中</Text>
+                  <Text style={styles.emptyStateBody}>
+                    当前暂无可售订阅，请稍后下拉刷新或联系客服 support@shanhai.app。
+                  </Text>
+                </View>
+              ) : (
+                subscriptionProducts.map((product) => {
                 const isPurchasing = purchasing === product.id;
                 const features = parseProductFeatures(product.features);
                 return (
@@ -488,7 +510,7 @@ export default function PointsMallScreen() {
                     key={product.id}
                     style={styles.vipProductCard}
                     onPress={() => handlePurchase(product)}
-                    disabled={isPurchasing || !user}
+                    disabled={isPurchasingAny || !user}
                   >
                     <View style={styles.vipProductHeader}>
                       <Text style={styles.vipProductName}>{product.name}</Text>
@@ -504,9 +526,9 @@ export default function PointsMallScreen() {
                       ))}
                     </View>
                     <TouchableOpacity
-                      style={[styles.subscribeButton, !user && styles.subscribeButtonDisabled]}
+                      style={[styles.subscribeButton, (isPurchasingAny || !user) && styles.subscribeButtonDisabled]}
                       onPress={() => handlePurchase(product)}
-                      disabled={isPurchasing || !user}
+                      disabled={isPurchasingAny || !user}
                     >
                       {isPurchasing ? (
                         <ActivityIndicator color="#fff" size="small" />
@@ -518,7 +540,8 @@ export default function PointsMallScreen() {
                     </TouchableOpacity>
                   </TouchableOpacity>
                 );
-              })}
+              })
+              )}
             </View>
           </>
         ) : (
@@ -672,14 +695,22 @@ export default function PointsMallScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>🛒 购买积分</Text>
               <Text style={styles.sectionSubtitle}>充值积分，解锁更多解读</Text>
-              {pointsProducts.map((product) => {
+              {pointsProducts.length === 0 ? (
+                <View style={styles.emptyStateCard}>
+                  <Text style={styles.emptyStateTitle}>积分包暂未上架</Text>
+                  <Text style={styles.emptyStateBody}>
+                    可以先通过签到和邀请获取积分，或稍后再来购买积分包。
+                  </Text>
+                </View>
+              ) : (
+                pointsProducts.map((product) => {
                 const isPurchasing = purchasing === product.id;
                 return (
                   <TouchableOpacity
                     key={product.id}
                     style={styles.vipProductCard}
                     onPress={() => handlePurchase(product)}
-                    disabled={isPurchasing || !user}
+                    disabled={isPurchasingAny || !user}
                   >
                     <View style={styles.vipProductHeader}>
                       <Text style={styles.vipProductName}>{product.name}</Text>
@@ -687,9 +718,9 @@ export default function PointsMallScreen() {
                     </View>
                     <Text style={styles.vipProductDesc}>{product.description}</Text>
                     <TouchableOpacity
-                      style={[styles.subscribeButton, !user && styles.subscribeButtonDisabled]}
+                      style={[styles.subscribeButton, (isPurchasingAny || !user) && styles.subscribeButtonDisabled]}
                       onPress={() => handlePurchase(product)}
-                      disabled={isPurchasing || !user}
+                      disabled={isPurchasingAny || !user}
                     >
                       {isPurchasing ? (
                         <ActivityIndicator color="#fff" size="small" />
@@ -701,7 +732,8 @@ export default function PointsMallScreen() {
                     </TouchableOpacity>
                   </TouchableOpacity>
                 );
-              })}
+              })
+              )}
             </View>
           </>
         )}
@@ -758,6 +790,22 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flex: 1,
+  },
+  topHintBanner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+    backgroundColor: '#151327',
+  },
+  topHintText: {
+    color: '#9AA0C0',
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   pointsBalanceCard: {
     margin: 16,
@@ -910,8 +958,13 @@ const styles = StyleSheet.create({
     borderColor: '#3D3D5C',
   },
   vipCardActive: {
-    backgroundColor: 'linear-gradient(135deg, #4C2F80 0%, #2D1B5E 100%)',
+    backgroundColor: '#2D1B5E',
     borderColor: '#F8D05F',
+    shadowColor: '#F8D05F',
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   vipCardExpired: {
     borderColor: '#8D6B4A',
@@ -1153,6 +1206,25 @@ const styles = StyleSheet.create({
   warningText: {
     color: '#fff',
     fontSize: 14,
+  },
+  emptyStateCard: {
+    backgroundColor: '#1A1328',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#322243',
+    padding: 14,
+    marginBottom: 14,
+  },
+  emptyStateTitle: {
+    color: '#F7F6F0',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  emptyStateBody: {
+    color: '#9AA0C0',
+    fontSize: 13,
+    lineHeight: 20,
   },
   errorBanner: {
     marginHorizontal: 16,

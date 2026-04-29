@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { paymentApi, userApi, chartApi, type BaziChart } from '../../src/services/api';
 import { useUserStore } from '../../src/store/user';
+import * as Clipboard from 'expo-clipboard';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -17,6 +18,7 @@ export default function PaymentSuccessScreen() {
 
   const [phase, setPhase] = useState<'polling' | 'done' | 'error' | 'missing'>('polling');
   const [message, setMessage] = useState('正在确认支付结果…');
+  const [retryTick, setRetryTick] = useState(0);
   /**
    * 支付完成时的商品类型：必须在 await 之前同步写入 ref，避免 setState 批处理与异步间隔导致
    * 「文案已是积分、按钮仍显示订阅」的错配。
@@ -127,9 +129,19 @@ export default function PaymentSuccessScreen() {
     return () => {
       cancelled = true;
     };
-  }, [paymentId, loadUser]);
+  }, [paymentId, loadUser, retryTick]);
 
   const goHome = () => router.replace('/(tabs)/index' as any);
+  const retryCheck = () => {
+    setPhase('polling');
+    setMessage('正在重新确认支付结果…');
+    setRetryTick((v) => v + 1);
+  };
+  const copyPaymentId = async () => {
+    if (!paymentId) return;
+    await Clipboard.setStringAsync(paymentId);
+    Alert.alert('已复制订单号', '订单号已复制，可发给客服 support@shanhai.app 快速排查。');
+  };
   const goSubscription = () =>
     router.replace({ pathname: '/(tabs)/points', params: { tab: 'subscription' } } as any);
   const goPointsMall = () =>
@@ -139,13 +151,14 @@ export default function PaymentSuccessScreen() {
     <>
       <Stack.Screen options={{ title: '支付结果 · 山海灵境' }} />
       <View style={styles.container}>
-        {phase === 'polling' && <ActivityIndicator size="large" color="#F8D05F" style={{ marginBottom: 20 }} />}
-        <Text style={styles.title}>
-          {phase === 'done' ? '✅ 支付成功' : phase === 'error' || phase === 'missing' ? '提示' : '处理中'}
-        </Text>
-        <Text style={styles.body}>{message}</Text>
-        {phase !== 'polling' && (
-          <View style={styles.actions}>
+        <View style={styles.panel}>
+          {phase === 'polling' && <ActivityIndicator size="large" color="#F8D05F" style={{ marginBottom: 20 }} />}
+          <Text style={styles.title}>
+            {phase === 'done' ? '✅ 支付成功' : phase === 'error' || phase === 'missing' ? '提示' : '处理中'}
+          </Text>
+          <Text style={styles.body}>{message}</Text>
+          {phase !== 'polling' && (
+            <View style={styles.actions}>
             {phase === 'done' && donePrimaryKind === 'points' ? (
               <TouchableOpacity style={styles.primary} onPress={goPointsMall} activeOpacity={0.85}>
                 <Text style={styles.primaryText}>查看积分</Text>
@@ -166,8 +179,19 @@ export default function PaymentSuccessScreen() {
             <TouchableOpacity style={styles.secondary} onPress={goHome} activeOpacity={0.85}>
               <Text style={styles.secondaryText}>进入山海灵境</Text>
             </TouchableOpacity>
-          </View>
-        )}
+            {(phase === 'error' || phase === 'missing') && paymentId ? (
+              <TouchableOpacity style={styles.ghost} onPress={retryCheck} activeOpacity={0.85}>
+                <Text style={styles.ghostText}>重新查询支付状态</Text>
+              </TouchableOpacity>
+            ) : null}
+            {paymentId ? (
+              <TouchableOpacity style={styles.ghost} onPress={copyPaymentId} activeOpacity={0.85}>
+                <Text style={styles.ghostText}>复制订单号</Text>
+              </TouchableOpacity>
+            ) : null}
+            </View>
+          )}
+        </View>
         {Platform.OS === 'web' && phase === 'polling' && (
           <Text style={styles.hint}>
             支付平台回调服务器可能需要几秒；本页约每秒自动刷新状态，请勿关闭。
@@ -184,6 +208,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0716',
     padding: 24,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  panel: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2F2342',
+    backgroundColor: '#161126',
+    padding: 20,
     alignItems: 'center',
   },
   title: {
@@ -232,6 +266,18 @@ const styles = StyleSheet.create({
   secondaryText: {
     color: '#F8D05F',
     fontSize: 15,
+    fontWeight: '600',
+  },
+  ghost: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3E3354',
+  },
+  ghostText: {
+    color: '#B8A8D8',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
