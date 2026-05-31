@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Keyboard, Image } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -54,7 +54,6 @@ export default function HomeScreen() {
   const [ziNudgeCooldownUntil, setZiNudgeCooldownUntil] = useState(0);
   const [ziNudgeShownDate, setZiNudgeShownDate] = useState('');
   const [showChartModal, setShowChartModal] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceDraftText, setVoiceDraftText] = useState('');
@@ -280,15 +279,6 @@ export default function HomeScreen() {
     hasTrackedFirstResultRef.current = true;
     trackNamedEvent('first_result_rendered', { source: 'home_chat' });
   }, [messages]);
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -939,6 +929,13 @@ export default function HomeScreen() {
                 <Text style={styles.welcomeHint}>
                   {t('home.welcome.hint', '你可以问我关于占卜、命盘的问题，或者只是想聊聊。')}
                 </Text>
+                {!user ? (
+                  <TouchableOpacity style={styles.loginHintBar} onPress={() => router.push('/login')} activeOpacity={0.8}>
+                    <Text style={styles.loginHintText}>
+                      {t('home.login.valueHint', '登录后可保存解读记录、签到积分与会员权益')}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
                 {/* 试试问我 - 示例问题 */}
                 <Text style={styles.suggestedTitle}>{t('home.quick.title', '一键直发')}</Text>
                 <View style={styles.suggestedChips}>
@@ -955,6 +952,11 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+              </View>
+              <View style={styles.emptyRitualWrap}>
+                <Text style={styles.emptyRitualText}>
+                  {t('home.empty.ritual', '说出你此刻最在意的一件事，我先给你一句结论。')}
+                </Text>
               </View>
             </>
           )}
@@ -1003,6 +1005,28 @@ export default function HomeScreen() {
 
           {/* 输入区域 */}
           <View style={styles.inputContainer}>
+            <View style={styles.entryActionRow}>
+              <TouchableOpacity
+                style={[styles.entryActionBtn, styles.entryActionPrimary]}
+                onPress={() => {
+                  if (inputText.trim()) {
+                    void handleSend();
+                    return;
+                  }
+                  setInputText(t('home.input.seed', '我最近有点纠结，想听你先给一句结论。'));
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.entryActionPrimaryText}>{t('home.entry.start', '开始对话')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.entryActionBtn, styles.entryActionSecondary]}
+                onPress={openDrawModal}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.entryActionSecondaryText}>{t('home.entry.draw', '去抽签')}</Text>
+              </TouchableOpacity>
+            </View>
             {isLoading ? (
               <Text style={styles.processHint}>{t('home.processHint', '正在生成第一版结论，通常 3-8 秒即可看到结果。')}</Text>
             ) : null}
@@ -1125,14 +1149,6 @@ export default function HomeScreen() {
           <View style={[styles.bottomFooter, { paddingBottom: insets.bottom + 8 }]}>
             <SiteComplianceFooter variant="dock" />
           </View>
-
-          {/* 悬浮抽签按钮 - 与占卜功能独立 */}
-          {!keyboardVisible && (
-            <TouchableOpacity style={[styles.floatingDrawButton, { bottom: insets.bottom + 156 }]} onPress={openDrawModal}>
-              <Text style={styles.floatingDrawIcon}>☯</Text>
-              <Text style={styles.floatingDrawText}>{t('home.draw', '抽签')}</Text>
-            </TouchableOpacity>
-          )}
         </View>
         </View>
       </View>
@@ -2025,9 +2041,10 @@ const styles = StyleSheet.create({
   },
   welcomeCard: {
     backgroundColor: '#121827',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#2A3448',
   },
@@ -2066,10 +2083,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   welcomeText: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#E8ECF3',
-    lineHeight: 22,
-    marginBottom: 12,
+    lineHeight: 21,
+    marginBottom: 10,
     textAlign: 'center',
   },
   welcomeHint: {
@@ -2082,8 +2099,34 @@ const styles = StyleSheet.create({
     color: '#D6B36A',
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 10,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  loginHintBar: {
+    marginTop: 8,
+    marginBottom: 4,
+    alignSelf: 'center',
+    backgroundColor: '#1A2233',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#2A3448',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  loginHintText: {
+    color: '#B9C1CF',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  emptyRitualWrap: {
+    marginTop: 2,
+    marginBottom: 8,
+    paddingHorizontal: 6,
+  },
+  emptyRitualText: {
+    color: '#7F8AA3',
+    fontSize: 12,
+    textAlign: 'center',
   },
   suggestedChips: {
     flexDirection: 'row',
@@ -2222,10 +2265,43 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 10,
     backgroundColor: '#0B0D14',
     borderTopWidth: 1,
     borderTopColor: '#2A3448',
+  },
+  entryActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  entryActionBtn: {
+    borderRadius: 12,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  entryActionPrimary: {
+    flex: 1.2,
+    backgroundColor: '#D6B36A',
+    borderWidth: 1,
+    borderColor: '#F1D188',
+  },
+  entryActionPrimaryText: {
+    color: '#1A0A18',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  entryActionSecondary: {
+    flex: 1,
+    backgroundColor: '#121827',
+    borderWidth: 1,
+    borderColor: '#2A3448',
+  },
+  entryActionSecondaryText: {
+    color: '#E8ECF3',
+    fontSize: 13,
+    fontWeight: '600',
   },
   processHint: {
     color: '#94A0B8',
@@ -2276,17 +2352,26 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   sendButton: {
-    backgroundColor: '#7C6CFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: '#D6B36A',
+    paddingHorizontal: 18,
+    paddingVertical: 9,
     borderRadius: 16,
     marginLeft: 10,
+    borderWidth: 1,
+    borderColor: '#F1D188',
+    shadowColor: '#D6B36A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 2,
   },
   sendButtonDisabled: {
     backgroundColor: '#4A4A5A',
+    borderColor: '#4A4A5A',
+    shadowOpacity: 0,
   },
   sendButtonText: {
-    color: '#F5F7FB',
+    color: '#1A0A18',
     fontWeight: 'bold',
     fontSize: 14,
   },
@@ -2360,32 +2445,6 @@ const styles = StyleSheet.create({
     color: '#8D8DAA',
     fontSize: 12,
   },
-  floatingDrawButton: {
-    position: 'absolute',
-    right: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 25,
-    backgroundColor: '#D6B36A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#D6B36A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.24,
-    shadowRadius: 6,
-    elevation: 5,
-    zIndex: 20,
-  },
-  floatingDrawIcon: {
-    fontSize: 20,
-  },
-  floatingDrawText: {
-    fontSize: 11,
-    color: '#1A1328',
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-  
   // Toast提示样式
   toastContainer: {
     position: 'absolute',
