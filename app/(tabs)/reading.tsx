@@ -9,25 +9,18 @@ import AccuracyFeedback from '../../components/AccuracyFeedback';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
+import { useI18nStore } from '../../src/store/i18n';
 
 const colors = theme.dark;
 
-const LOADING_HINTS = [
-  '正在起卦...',
-  '感应六爻中...',
-  '解读卦象中...',
-  '生成建议中...',
-  '即将完成...',
-];
-
-function useLoadingHint(isActive: boolean) {
+function useLoadingHint(isActive: boolean, hints: string[]) {
   const [idx, setIdx] = useState(0);
   useEffect(() => {
     if (!isActive) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % LOADING_HINTS.length), 2800);
+    const t = setInterval(() => setIdx((i) => (i + 1) % hints.length), 2800);
     return () => clearInterval(t);
-  }, [isActive]);
-  return LOADING_HINTS[idx];
+  }, [hints.length, isActive]);
+  return hints[idx];
 }
 
 export default function ReadingScreen() {
@@ -40,6 +33,14 @@ export default function ReadingScreen() {
     suggestedCategory?: string | string[];
   }>();
   const { user } = useUserStore();
+  const t = useI18nStore((state) => state.t);
+  const loadingHints = [
+    t('reading.loading.1', '正在起卦...'),
+    t('reading.loading.2', '感应六爻中...'),
+    t('reading.loading.3', '解读卦象中...'),
+    t('reading.loading.4', '生成建议中...'),
+    t('reading.loading.5', '即将完成...'),
+  ];
   const { lastFortune, lastReading } = useDivinationStore();
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState<CreateReadingDto['category']>('general');
@@ -51,7 +52,7 @@ export default function ReadingScreen() {
   const [readingPointsCost, setReadingPointsCost] = useState(15);
   const [availablePoints, setAvailablePoints] = useState<number | null>(null);
   const [showSmartCta, setShowSmartCta] = useState(false);
-  const loadingHint = useLoadingHint(isLoading);
+  const loadingHint = useLoadingHint(isLoading, loadingHints);
 
   const toSingle = (value?: string | string[]) =>
     Array.isArray(value) ? value[0] : value;
@@ -91,12 +92,12 @@ export default function ReadingScreen() {
   }, [fromChatReading, lastReading]);
 
   const categories = [
-    { value: 'general', label: '综合' },
-    { value: 'career', label: '事业' },
-    { value: 'love', label: '感情' },
-    { value: 'wealth', label: '财运' },
-    { value: 'health', label: '健康' },
-    { value: 'growth', label: '成长' },
+    { value: 'general', label: t('reading.category.general', '综合') },
+    { value: 'career', label: t('reading.category.career', '事业') },
+    { value: 'love', label: t('reading.category.love', '感情') },
+    { value: 'wealth', label: t('reading.category.wealth', '财运') },
+    { value: 'health', label: t('reading.category.health', '健康') },
+    { value: 'growth', label: t('reading.category.growth', '成长') },
   ] as const;
 
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
@@ -188,7 +189,7 @@ export default function ReadingScreen() {
       setShowSmartCta(false);
       await refreshPointsBalance();
     } catch (err: any) {
-      const msg = err?.message || '解锁失败，请稍后重试';
+      const msg = err?.message || t('reading.unlock.failed', '解锁失败，请稍后重试');
       if (msg.includes('积分不足')) {
         setShowSmartCta(true);
         trackNamedEvent('paywall_show', { source: 'reading_fortune_error' });
@@ -240,7 +241,7 @@ export default function ReadingScreen() {
         trackNamedEvent('paywall_show', { source: 'reading_submit_error' });
         await refreshPointsBalance();
       }
-      setError(msg || '占卜失败，请稍后重试');
+      setError(msg || t('reading.submit.failed', '占卜失败，请稍后重试'));
     } finally {
       setIsLoading(false);
     }
@@ -315,7 +316,7 @@ export default function ReadingScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       >
-        <Text style={styles.sectionTitle}>🔮 占卜结果</Text>
+        <Text style={styles.sectionTitle}>{t('reading.result.title', '🔮 占卜结果')}</Text>
         <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
           <Text style={styles.tierTitle}>当前解读档位：{readingTierLabel}</Text>
           <Text style={styles.tierDesc}>{readingTierDesc}</Text>
@@ -325,7 +326,7 @@ export default function ReadingScreen() {
         {fromFortune && lastFortune && (
           <View style={[styles.card, styles.fromFortuneCard, { backgroundColor: colors.surface }]}>
             <View style={styles.fromFortuneHeader}>
-              <Text style={styles.fromFortuneTitle}>🎯 来自本次抽签的深度解读</Text>
+            <Text style={styles.fromFortuneTitle}>{t('reading.result.fromFortune', '🎯 来自本次抽签的深度解读')}</Text>
               <View style={styles.fromFortuneHeaderRight}>
                 {!!lastFortune.fortuneRank && (
                   <View style={styles.rankBadge}>
@@ -336,7 +337,7 @@ export default function ReadingScreen() {
                   style={styles.fromFortuneToggle}
                   onPress={() => setShowFortuneSource((v) => !v)}
                 >
-                  <Text style={styles.fromFortuneToggleText}>{showFortuneSource ? '收起' : '展开'}</Text>
+                  <Text style={styles.fromFortuneToggleText}>{showFortuneSource ? t('common.collapse', '收起') : t('common.expand', '展开')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -358,25 +359,25 @@ export default function ReadingScreen() {
 
         {/* 一屏结论 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>🧿 一句话结论</Text>
+          <Text style={styles.cardTitle}>{t('reading.result.conclusion', '🧿 一句话结论')}</Text>
           <Text style={styles.conclusionVerdict}>{result.conclusion?.verdict || result.interpretation.overall}</Text>
           <Text style={styles.conclusionMeta}>
-            情绪趋势：{result.conclusion?.emotionalTone || '中性'}  |  置信度：{result.conclusion?.confidence || confidence}%
+            {t('reading.result.tone', '情绪趋势')}：{result.conclusion?.emotionalTone || t('reading.result.neutral', '中性')}  |  {t('reading.result.confidence', '置信度')}：{result.conclusion?.confidence || confidence}%
           </Text>
-          <Text style={styles.conclusionNext}>下一步：{result.conclusion?.nextStep || '先稳住节奏，再做决定。'}</Text>
+          <Text style={styles.conclusionNext}>{t('reading.result.next', '下一步')}：{result.conclusion?.nextStep || t('reading.result.nextFallback', '先稳住节奏，再做决定。')}</Text>
           <TouchableOpacity style={styles.quickChatBtn} onPress={handleDeepConversation}>
-            <Text style={styles.quickChatBtnText}>先聊聊我的感受</Text>
+            <Text style={styles.quickChatBtnText}>{t('reading.result.talkFeelings', '先聊聊我的感受')}</Text>
           </TouchableOpacity>
           <View style={styles.conclusionActionsRow}>
             <TouchableOpacity style={styles.conclusionSecondaryBtn} onPress={openPricingWithTrack}>
-              <Text style={styles.conclusionSecondaryText}>看方案对比</Text>
+              <Text style={styles.conclusionSecondaryText}>{t('reading.result.comparePlans', '看方案对比')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.conclusionSecondaryBtn} onPress={openVipPlanWithTrack}>
-              <Text style={styles.conclusionSecondaryText}>看会员权益</Text>
+              <Text style={styles.conclusionSecondaryText}>{t('reading.result.memberBenefits', '看会员权益')}</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.toggleDetailsButton} onPress={() => setShowDetails((v) => !v)}>
-            <Text style={styles.toggleDetailsText}>{showDetails ? '收起完整细节' : '展开完整细节'}</Text>
+            <Text style={styles.toggleDetailsText}>{showDetails ? t('reading.result.hideDetails', '收起完整细节') : t('reading.result.showDetails', '展开完整细节')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -404,7 +405,7 @@ export default function ReadingScreen() {
 
         {/* 解读 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>📖 解读</Text>
+          <Text style={styles.cardTitle}>{t('reading.result.interpretation', '📖 解读')}</Text>
           <Text style={styles.interpretationText}>{result.interpretation.overall}</Text>
           <Text style={styles.interpretationText}>{result.interpretation.situation}</Text>
           <Text style={styles.interpretationText}>{result.interpretation.guidance}</Text>
@@ -412,7 +413,7 @@ export default function ReadingScreen() {
 
         {/* 结构化解释卡 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>🧭 结构化解释</Text>
+          <Text style={styles.cardTitle}>{t('reading.result.structured', '🧭 结构化解释')}</Text>
           <View style={styles.structCard}>
             <Text style={styles.structTitle}>依据</Text>
             <Text style={styles.structText}>本卦：{result.hexagram.originalName}</Text>
@@ -435,7 +436,7 @@ export default function ReadingScreen() {
 
         {/* 建议 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>💡 建议</Text>
+          <Text style={styles.cardTitle}>{t('reading.result.suggestions', '💡 建议')}</Text>
           {result.recommendations.map((rec, idx) => (
             <View key={idx} style={styles.recItem}>
               <Text style={styles.recNumber}>{idx + 1}</Text>
@@ -446,19 +447,19 @@ export default function ReadingScreen() {
 
         {/* 时机 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>⏰ 时机判断</Text>
+          <Text style={styles.cardTitle}>{t('reading.result.timing', '⏰ 时机判断')}</Text>
           <Text style={styles.timingText}>✅ {result.timing.suitable}</Text>
           <Text style={styles.timingText}>⚠️ {result.timing.caution}</Text>
         </View>
 
         {/* 情绪承接与深聊 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>🤍 先把心放稳一点</Text>
+          <Text style={styles.cardTitle}>{t('reading.result.supportTitle', '🤍 先把心放稳一点')}</Text>
           <Text style={styles.supportText}>
             这份解读不是在催你立刻行动，而是陪你把感受理顺。你可以先说情绪，再一起慢慢看下一步。
           </Text>
           <TouchableOpacity style={styles.deepChatButton} onPress={handleDeepConversation}>
-            <Text style={styles.deepChatButtonText}>和我聊聊现在的感受</Text>
+            <Text style={styles.deepChatButtonText}>{t('reading.result.deepTalk', '和我聊聊现在的感受')}</Text>
           </TouchableOpacity>
           <Text style={styles.supportHint}>会自动承接当前解读，不需要你重复描述。</Text>
         </View>
@@ -472,7 +473,7 @@ export default function ReadingScreen() {
 
         {/* 再次占卜 */}
         <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-          <Text style={styles.resetButtonText}>再次占卜</Text>
+          <Text style={styles.resetButtonText}>{t('reading.reset', '再次占卜')}</Text>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -483,9 +484,9 @@ export default function ReadingScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
     >
-      <Text style={styles.sectionTitle}>🔮 深度解读</Text>
+      <Text style={styles.sectionTitle}>{t('reading.form.title', '🔮 深度解读')}</Text>
       <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
-        <Text style={styles.tierTitle}>解读档位对比</Text>
+        <Text style={styles.tierTitle}>{t('reading.form.tierTitle', '解读档位对比')}</Text>
         <Text style={styles.tierLine}>简版：一句结论 + 基础建议（适合快速判断）</Text>
         <Text style={styles.tierLine}>完整版：本卦/变卦/动爻拆解 + 三条行动建议</Text>
         <Text style={styles.tierLine}>深度版：逐句回应你的问题 + 风险拆解 + 追问模式</Text>
@@ -497,14 +498,14 @@ export default function ReadingScreen() {
               router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } });
             }}
           >
-            <Text style={styles.tierUpgradeText}>立即解锁当前结果（可继续追问）</Text>
+            <Text style={styles.tierUpgradeText}>{t('reading.form.unlockNow', '立即解锁当前结果（可继续追问）')}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {fromFortune && lastFortune && (
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>🧿 抽签免费摘要</Text>
+          <Text style={styles.cardTitle}>{t('reading.form.fortuneSummary', '🧿 抽签免费摘要')}</Text>
           <Text style={styles.featureText}>签名：{lastFortune.poem.title}</Text>
           {lastFortune.drawCode ? <Text style={styles.featureText}>签号：{lastFortune.drawCode}</Text> : null}
           <Text style={styles.featureText}>今日：{lastFortune.day}</Text>
@@ -521,7 +522,7 @@ export default function ReadingScreen() {
               </View>
             ) : (
               <Text style={styles.submitButtonText}>
-                {isVip ? '解锁深度解签（会员免扣）' : `解锁深度解签（${readingPointsCost} 积分）`}
+                {isVip ? t('reading.form.unlockVip', '解锁深度解签（会员免扣）') : t('reading.form.unlockByPoints', `解锁深度解签（${readingPointsCost} 积分）`)}
               </Text>
             )}
           </TouchableOpacity>
@@ -537,7 +538,7 @@ export default function ReadingScreen() {
         
         <TextInput
           style={styles.textInput}
-          placeholder="例：我即将换工作，但对新团队心里没底，也担心签证问题..."
+          placeholder={t('reading.form.placeholder', '例：我即将换工作，但对新团队心里没底，也担心签证问题...')}
           placeholderTextColor="#6F6287"
           value={question}
           onChangeText={setQuestion}
@@ -547,7 +548,7 @@ export default function ReadingScreen() {
         />
         
         {/* 分类选择 */}
-        <Text style={styles.categoryLabel}>选择占卜类型</Text>
+        <Text style={styles.categoryLabel}>{t('reading.form.categoryLabel', '选择占卜类型')}</Text>
         <View style={styles.categoryContainer}>
           {categories.map((cat) => (
             <TouchableOpacity
@@ -578,16 +579,16 @@ export default function ReadingScreen() {
 
         {showSmartCta && !isVip && (
           <View style={styles.smartCtaWrap}>
-            <Text style={styles.smartCtaTitle}>余额不足，建议优先补充权益</Text>
+            <Text style={styles.smartCtaTitle}>{t('reading.paywall.title', '余额不足，建议优先补充权益')}</Text>
             <Text style={styles.smartCtaHint}>
               {`按每周约 5 次测算，深度解签本月约需 ${projectedMonthlyPoints} 积分（约 ${projectedCheckinDays} 天签到）。`}
             </Text>
             <View style={styles.smartCtaActions}>
               <TouchableOpacity style={styles.smartCtaPrimary} onPress={openPointsMallWithTrack}>
-                <Text style={styles.smartCtaPrimaryText}>去充值积分</Text>
+                <Text style={styles.smartCtaPrimaryText}>{t('reading.paywall.recharge', '去充值积分')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.smartCtaSecondary} onPress={openVipPlanWithTrack}>
-                <Text style={styles.smartCtaSecondaryText}>开会员更划算</Text>
+                <Text style={styles.smartCtaSecondaryText}>{t('reading.paywall.openVip', '开会员更划算')}</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity
@@ -597,7 +598,7 @@ export default function ReadingScreen() {
                 router.push('/');
               }}
             >
-              <Text style={styles.smartCtaGhostText}>先回首页聊聊，不立即解锁</Text>
+              <Text style={styles.smartCtaGhostText}>{t('reading.paywall.chatFirst', '先回首页聊聊，不立即解锁')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -613,7 +614,7 @@ export default function ReadingScreen() {
               <Text style={styles.loadingHint}>{loadingHint}</Text>
             </View>
           ) : (
-            <Text style={styles.submitButtonText}>开始解读</Text>
+            <Text style={styles.submitButtonText}>{t('reading.form.submit', '开始解读')}</Text>
           )}
         </TouchableOpacity>
         
@@ -622,7 +623,7 @@ export default function ReadingScreen() {
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={handleSubmit}
               disabled={isLoading}>
-              <Text style={styles.retryButtonText}>重试</Text>
+              <Text style={styles.retryButtonText}>{t('common.retry', '重试')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -630,7 +631,7 @@ export default function ReadingScreen() {
       
       {/* 说明 */}
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
-        <Text style={styles.cardTitle}>📋 解读包含内容</Text>
+        <Text style={styles.cardTitle}>{t('reading.form.includes', '📋 解读包含内容')}</Text>
         <View style={styles.featureItem}>
           <Text style={styles.featureText}>• 卦象摘要：六爻起卦 + 变爻提示</Text>
         </View>

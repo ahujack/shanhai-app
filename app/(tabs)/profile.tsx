@@ -8,6 +8,8 @@ import { usePersonaStore } from '../../src/store/persona';
 import { pointsApi, PointsSummary, achievementApi, UserAchievement, AchievementProgress } from '../../src/services/api';
 import { getMembershipLabel, isMembershipActive } from '../../src/utils/membership';
 import * as Clipboard from 'expo-clipboard';
+import { useI18nStore } from '../../src/store/i18n';
+import type { AppLanguage } from '../../src/i18n/translations';
 
 const colors = theme.dark;
 
@@ -29,6 +31,9 @@ export default function ProfileScreen() {
   /** 点击顶部「成就」数字时展示已解锁成就详情（不再误跳积分商城） */
   const [achievementsPanelOpen, setAchievementsPanelOpen] = useState(false);
   const [selectedUserAchievement, setSelectedUserAchievement] = useState<UserAchievement | null>(null);
+  const language = useI18nStore((state) => state.language);
+  const setLanguage = useI18nStore((state) => state.setLanguage);
+  const t = useI18nStore((state) => state.t);
 
   // 分享功能
   const handleShare = async () => {
@@ -106,6 +111,34 @@ export default function ProfileScreen() {
       params: { tab: 'mall' },
     });
   };
+
+  const languageOptions: Array<{ value: AppLanguage; label: string }> = [
+    { value: 'zh-CN', label: t('lang.simplified', '简体中文') },
+    { value: 'en-US', label: t('lang.english', 'English') },
+    { value: 'zh-TW', label: t('lang.traditional', '繁體中文') },
+  ];
+
+  const renderLanguageSection = () => (
+    <View style={styles.languageSection}>
+      <Text style={styles.languageTitle}>{t('profile.language.title', '语言设置')}</Text>
+      <Text style={styles.languageHint}>
+        {t('profile.language.hint', '切换后将优先显示对应语言文案（未覆盖部分默认简体）。')}
+      </Text>
+      <View style={styles.languageRow}>
+        {languageOptions.map((item) => (
+          <TouchableOpacity
+            key={item.value}
+            style={[styles.languageChip, language === item.value && styles.languageChipActive]}
+            onPress={() => void setLanguage(item.value)}
+          >
+            <Text style={[styles.languageChipText, language === item.value && styles.languageChipTextActive]}>
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
   
   // 页面加载：根布局已 loadUser 时只拉签到并后台刷新，避免重复串行请求拖慢首屏
   React.useEffect(() => {
@@ -317,7 +350,7 @@ export default function ProfileScreen() {
   if (isInitializing) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background, flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: colors.textSecondary, fontSize: 16 }}>加载中...</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 16 }}>{t('root.loading', '加载中...')}</Text>
       </View>
     );
   }
@@ -428,6 +461,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </>
         )}
+        {renderLanguageSection()}
 
         {/* 今日任务 */}
         {isLoggedIn && (
@@ -973,6 +1007,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </>
       )}
+      {renderLanguageSection()}
 
       {/* 今日任务 - 输入表单视图 */}
       {isLoggedIn && (
@@ -1335,6 +1370,51 @@ function getWuxingColor(key: string): string {
 }
 
 const styles = StyleSheet.create({
+  languageSection: {
+    backgroundColor: '#1A1328',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#322243',
+    padding: 14,
+    marginBottom: 12,
+  },
+  languageTitle: {
+    color: '#F7F6F0',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  languageHint: {
+    color: '#9AA0C0',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  languageRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  languageChip: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#3D3D5C',
+    backgroundColor: '#121827',
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  languageChipActive: {
+    backgroundColor: '#2A3160',
+    borderColor: '#7C6CFF',
+  },
+  languageChipText: {
+    color: '#AAB3C5',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  languageChipTextActive: {
+    color: '#E8ECF3',
+  },
   loadingText: {
     color: '#888',
     fontSize: 16,

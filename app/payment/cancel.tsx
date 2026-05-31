@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { trackNamedEvent } from '../../src/services/analytics';
+import { useI18nStore } from '../../src/store/i18n';
 
 const ui = {
   bg: '#0B0D14',
@@ -15,18 +16,19 @@ const ui = {
 
 export default function PaymentCancelScreen() {
   const router = useRouter();
+  const t = useI18nStore((state) => state.t);
   React.useEffect(() => {
     trackNamedEvent('paywall_show', { source: 'payment_cancel_page' });
   }, []);
 
   return (
     <>
-      <Stack.Screen options={{ title: '已取消支付' }} />
+      <Stack.Screen options={{ title: t('payment.cancel.pageTitle', '已取消支付') }} />
       <View style={styles.container}>
         <View style={styles.panel}>
-          <Text style={styles.title}>支付已取消</Text>
-          <Text style={styles.body}>未发生扣款。你可以回到灵石页继续选择方案，或先用积分包体验。</Text>
-          <Text style={styles.subTip}>建议先按使用频率选方案：低频先积分，高频优先订阅。</Text>
+          <Text style={styles.title}>{t('payment.cancel.title', '支付已取消')}</Text>
+          <Text style={styles.body}>{t('payment.cancel.body', '未发生扣款。你可以回到灵石页继续选择方案，或先用积分包体验。')}</Text>
+          <Text style={styles.subTip}>{t('payment.cancel.subTip', '建议先按使用频率选方案：低频先积分，高频优先订阅。')}</Text>
           <TouchableOpacity
             style={styles.btn}
             onPress={() => {
@@ -35,7 +37,7 @@ export default function PaymentCancelScreen() {
             }}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnText}>返回订阅方案</Text>
+            <Text style={styles.btnText}>{t('payment.cancel.toSubscription', '返回订阅方案')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryBtn}
@@ -45,7 +47,7 @@ export default function PaymentCancelScreen() {
             }}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryBtnText}>去积分包体验</Text>
+            <Text style={styles.secondaryBtnText}>{t('payment.cancel.toPoints', '去积分包体验')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryBtn}
@@ -55,9 +57,9 @@ export default function PaymentCancelScreen() {
             }}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryBtnText}>先看价格对比</Text>
+            <Text style={styles.secondaryBtnText}>{t('payment.cancel.toPricing', '先看价格对比')}</Text>
           </TouchableOpacity>
-          <Text style={styles.tip}>若你已扣款但页面显示取消，请前往「支付成功页」复制订单号并联系客服。</Text>
+          <Text style={styles.tip}>{t('payment.cancel.tip', '若你已扣款但页面显示取消，请前往「支付成功页」复制订单号并联系客服。')}</Text>
         </View>
       </View>
     </>

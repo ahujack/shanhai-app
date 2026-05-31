@@ -7,6 +7,7 @@ import { Alert, useColorScheme, View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { subscribeAuthExpired } from '../src/lib/auth-expired';
 import { useUserStore } from '../src/store/user';
+import { useI18nStore } from '../src/store/i18n';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -49,6 +50,8 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const [isReady, setIsReady] = useState(false);
   const loadUser = useUserStore((state) => state.loadUser);
+  const loadLanguage = useI18nStore((state) => state.loadLanguage);
+  const t = useI18nStore((state) => state.t);
   const router = useRouter();
   const authPromptLockRef = useRef(false);
 
@@ -56,11 +59,12 @@ function RootLayoutNav() {
     // 延迟一下让 Zustand 初始化完成，然后加载用户
     const init = async () => {
       setIsReady(true);
+      await loadLanguage();
       // 加载用户信息（从 localStorage 恢复登录状态）
       await loadUser();
     };
     init();
-  }, []);
+  }, [loadLanguage, loadUser]);
 
   useEffect(() => {
     return subscribeAuthExpired(() => {
@@ -84,16 +88,19 @@ function RootLayoutNav() {
         router.push('/login');
       };
       Alert.alert(
-        '登录已过期',
-        '您之前登录过，当前会话已失效。重新登录后可同步资料、签到与会员权益；也可稍后继续以游客方式使用部分功能。',
+        t('auth.expired.title', '登录已过期'),
+        t(
+          'auth.expired.message',
+          '您之前登录过，当前会话已失效。重新登录后可同步资料、签到与会员权益；也可稍后继续以游客方式使用部分功能。',
+        ),
         [
-          { text: '稍后', style: 'cancel', onPress: dismiss },
-          { text: '重新登录', onPress: goLogin },
+          { text: t('common.later', '稍后'), style: 'cancel', onPress: dismiss },
+          { text: t('auth.relogin', '重新登录'), onPress: goLogin },
         ],
         { cancelable: true, onDismiss: dismiss },
       );
     });
-  }, [router]);
+  }, [router, t]);
 
   if (!isReady) {
     return (

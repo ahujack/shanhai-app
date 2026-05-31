@@ -32,6 +32,7 @@ import {
 import { membershipExpiryDate, isMembershipActive } from '../../src/utils/membership';
 import { trackNamedEvent } from '../../src/services/analytics';
 import { getGrowthConfig, type GrowthConfig } from '../../src/config/growth';
+import { useI18nStore } from '../../src/store/i18n';
 
 const colors = theme.dark;
 const ui = {
@@ -120,6 +121,7 @@ export default function PointsMallScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ focus?: string; tab?: string }>();
   const { user } = useUserStore();
+  const t = useI18nStore((state) => state.t);
   const scrollRef = React.useRef<ScrollView>(null);
 
   const [activeTab, setActiveTab] = useState<TabType>('subscription');
@@ -190,7 +192,7 @@ export default function PointsMallScreen() {
           });
           await refreshMembershipAndChart();
           if (paymentStatus.productType === 'subscription') {
-            Alert.alert('支付成功', '会员权益已到账，八字高级解读已解锁。');
+            Alert.alert(t('common.payment.success', '支付成功'), t('points.alert.vip.arrived', '会员权益已到账，八字高级解读已解锁。'));
             router.push({
               pathname: '/(tabs)/bazi',
               params: { highlight: 'master', fromPayment: '1' },
@@ -198,13 +200,13 @@ export default function PointsMallScreen() {
           } else {
             const pts = await pointsApi.getSummary().catch(() => null);
             setPointsSummary(pts);
-            Alert.alert('支付成功', '积分已到账！');
+            Alert.alert(t('common.payment.success', '支付成功'), t('points.alert.points.arrived', '积分已到账！'));
             setActiveTab('mall');
           }
           return;
         }
         if (paymentStatus.status === 'failed' || paymentStatus.status === 'refunded') {
-          Alert.alert('支付未完成', `当前状态：${paymentStatus.status}`);
+          Alert.alert(t('common.payment.incomplete', '支付未完成'), t('points.alert.status', `当前状态：${paymentStatus.status}`));
           return;
         }
       } catch {
@@ -307,7 +309,7 @@ export default function PointsMallScreen() {
       }
     } catch (error) {
       console.error('Failed to load products:', error);
-      setLoadError('加载支付商品失败，请检查网络后重试');
+      setLoadError(t('points.error.load', '加载支付商品失败，请检查网络后重试'));
     } finally {
       setLoading(false);
     }
@@ -326,7 +328,7 @@ export default function PointsMallScreen() {
 
   const handlePurchase = async (product: PaymentProduct) => {
     if (!user) {
-      Alert.alert('提示', '请先登录');
+      Alert.alert(t('common.notice', '提示'), t('common.loginFirst', '请先登录'));
       router.push('/login');
       return;
     }
@@ -345,12 +347,12 @@ export default function PointsMallScreen() {
       if (result.mock) {
         const isSubscription = product.type === 'subscription';
         Alert.alert(
-          '测试模式',
+          t('points.mock.title', '测试模式'),
           `Creem 未配置，这是一个模拟支付。\n\n产品: ${product.name}\n价格: $${formatUsd(product.price)}`,
           [
-            { text: '取消', style: 'cancel' },
+            { text: t('common.cancel', '取消'), style: 'cancel' },
             {
-              text: '模拟支付成功',
+              text: t('points.mock.success', '模拟支付成功'),
               onPress: async () => {
                 try {
                   await paymentApi.mockPayment(result.paymentId);
@@ -362,7 +364,7 @@ export default function PointsMallScreen() {
                   });
                   await refreshMembershipAndChart();
                   if (isSubscription) {
-                    Alert.alert('成功', 'VIP会员已开通！');
+                    Alert.alert(t('common.success', '成功'), t('points.alert.vip.opened', 'VIP会员已开通！'));
                     router.push({
                       pathname: '/(tabs)/bazi',
                       params: { highlight: 'master', fromPayment: '1' },
@@ -370,11 +372,11 @@ export default function PointsMallScreen() {
                   } else {
                     const pts = await pointsApi.getSummary().catch(() => null);
                     setPointsSummary(pts);
-                    Alert.alert('成功', '积分已到账！');
+                    Alert.alert(t('common.success', '成功'), t('points.alert.points.arrived', '积分已到账！'));
                     setActiveTab('mall');
                   }
                 } catch (e) {
-                  Alert.alert('错误', '支付处理失败');
+                  Alert.alert(t('common.error', '错误'), t('points.alert.processFail', '支付处理失败'));
                 }
               },
             },
@@ -396,19 +398,22 @@ export default function PointsMallScreen() {
               pollPaymentCompletion(result.paymentId).catch(() => null);
             }
           } else {
-            Alert.alert('提示', `请在浏览器中打开: ${result.url}`);
+            Alert.alert(t('common.notice', '提示'), t('points.alert.openInBrowser', `请在浏览器中打开: ${result.url}`));
           }
         }
       } else {
-        Alert.alert('暂时无法发起支付', '收银台链接生成失败，请稍后重试或联系客服。');
+        Alert.alert(
+          t('points.alert.checkoutUnavailable.title', '暂时无法发起支付'),
+          t('points.alert.checkoutUnavailable.body', '收银台链接生成失败，请稍后重试或联系客服。'),
+        );
       }
     } catch (error: any) {
       console.error('Purchase failed:', error);
       const rawMessage = String(error?.message || '');
       const friendlyMessage = /配置异常|not configured|checkout/i.test(rawMessage)
-        ? '支付服务正在维护中，请稍后重试。若持续失败，请联系客服 support@shanhai.app。'
-        : rawMessage || '支付失败';
-      Alert.alert('支付未完成', friendlyMessage);
+        ? t('points.alert.maintain', '支付服务正在维护中，请稍后重试。若持续失败，请联系客服 support@shanhai.app。')
+        : rawMessage || t('points.alert.fail', '支付失败');
+      Alert.alert(t('common.payment.incomplete', '支付未完成'), friendlyMessage);
     } finally {
       setPurchasing(null);
     }
@@ -469,7 +474,7 @@ export default function PointsMallScreen() {
           }}
         >
           <Text style={[styles.tabText, activeTab === 'subscription' && styles.tabTextActive]}>
-            👑 订阅
+            {t('points.tab.subscription', '👑 订阅')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -480,7 +485,7 @@ export default function PointsMallScreen() {
           }}
         >
           <Text style={[styles.tabText, activeTab === 'mall' && styles.tabTextActive]}>
-            🎁 积分商城
+            {t('points.tab.mall', '🎁 积分商城')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -495,11 +500,11 @@ export default function PointsMallScreen() {
           <Text style={styles.topHintText}>
             {activeTab === 'subscription'
               ? growthConfig?.pointsTopHintVariant === 'price_first'
-                ? '先看回本阈值再决策：高频订阅更省，低频积分更灵活。'
-                : '先看适配频率，再选方案：高频更建议订阅，省去每次决策与扣分焦虑。'
+                ? t('points.hint.sub.priceFirst', '先看回本阈值再决策：高频订阅更省，低频积分更灵活。')
+                : t('points.hint.sub.frequencyFirst', '先看适配频率，再选方案：高频更建议订阅，省去每次决策与扣分焦虑。')
               : growthConfig?.pointsTopHintVariant === 'price_first'
-                ? '积分适合先验证价值：小额按次，后续再按频率升级。'
-                : '低频先走积分最稳妥：按次付费、小额验证，觉得有价值再升级。'}
+                ? t('points.hint.mall.priceFirst', '积分适合先验证价值：小额按次，后续再按频率升级。')
+                : t('points.hint.mall.frequencyFirst', '低频先走积分最稳妥：按次付费、小额验证，觉得有价值再升级。')}
           </Text>
         </View>
 
@@ -507,7 +512,7 @@ export default function PointsMallScreen() {
           <View style={styles.errorBanner}>
             <Text style={styles.errorBannerText}>{loadError}</Text>
             <TouchableOpacity style={styles.errorBannerBtn} onPress={loadProducts}>
-              <Text style={styles.errorBannerBtnText}>重试</Text>
+              <Text style={styles.errorBannerBtnText}>{t('common.retry', '重试')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -520,34 +525,34 @@ export default function PointsMallScreen() {
                 <Text style={styles.vipIcon}>👑</Text>
                 <View style={styles.vipInfo}>
                   <Text style={styles.vipTitle}>
-                    {membershipActive ? 'VIP 会员' : expiredTier ? '会员已过期' : '普通用户'}
+                    {membershipActive ? t('points.vip.active', 'VIP 会员') : expiredTier ? t('points.vip.expired', '会员已过期') : t('points.vip.free', '普通用户')}
                   </Text>
                   <Text style={styles.vipSubtitle}>
                     {membershipActive
                       ? expiryZh
                         ? `有效期至：${expiryZh}`
-                        : '会员权益生效中'
+                        : t('points.vip.effective', '会员权益生效中')
                       : expiredTier
-                        ? '请于下方续费以恢复 VIP 权益'
-                        : '开通VIP，解锁全部功能'}
+                        ? t('points.vip.renewNudge', '请于下方续费以恢复 VIP 权益')
+                        : t('points.vip.openNow', '开通VIP，解锁全部功能')}
                   </Text>
                 </View>
               </View>
               {membershipActive && (
                 <View style={styles.vipBadge}>
-                  <Text style={styles.vipBadgeText}>已开通</Text>
+                  <Text style={styles.vipBadgeText}>{t('points.vip.opened', '已开通')}</Text>
                 </View>
               )}
             </View>
 
             <View style={styles.renewalCard}>
-              <Text style={styles.renewalTitle}>续费说明</Text>
+              <Text style={styles.renewalTitle}>{t('points.renewal.title', '续费说明')}</Text>
               <Text style={styles.renewalBody}>
                 当前为单次购买：支付成功后获得对应时长，到期前需手动续订。支付平台侧「自动扣款 / 自动续订」若后续开放，将在此处提供开关。
               </Text>
               <View style={styles.renewalRow}>
                 <View style={styles.renewalRowTextWrap}>
-                  <Text style={styles.renewalRowTitle}>到期续费提醒</Text>
+                  <Text style={styles.renewalRowTitle}>{t('points.renewal.remindTitle', '到期续费提醒')}</Text>
                   <Text style={styles.renewalRowSub}>在本机记录偏好，便于后续在应用内提醒你（不涉及自动扣款）。</Text>
                 </View>
                 <Switch
@@ -560,7 +565,7 @@ export default function PointsMallScreen() {
             </View>
 
             <View style={styles.memberValueCard}>
-              <Text style={styles.memberValueTitle}>🌟 会员专属价值</Text>
+              <Text style={styles.memberValueTitle}>{t('points.member.title', '🌟 会员专属价值')}</Text>
               <View style={styles.memberValueList}>
                 <Text style={styles.memberValueItem}>• 八字老师傅批注（会员专属，当前不支持单次积分解锁）</Text>
                 <Text style={styles.memberValueItem}>• 测字甲骨文完整异体图与差异解读（会员可解锁）</Text>
@@ -572,7 +577,7 @@ export default function PointsMallScreen() {
             </View>
             {membershipValue && membershipValue.membership !== 'free' ? (
               <View style={styles.memberValueCard}>
-                <Text style={styles.memberValueTitle}>📈 你的会员价值（近30天）</Text>
+                <Text style={styles.memberValueTitle}>{t('points.member.snapshot', '📈 你的会员价值（近30天）')}</Text>
                 <View style={styles.memberValueList}>
                   <Text style={styles.memberValueItem}>• 深度解读使用次数：{membershipValue.deepReadings30d} 次</Text>
                   <Text style={styles.memberValueItem}>• 预计节省积分：{membershipValue.estimatedSavedPoints30d} 点</Text>
@@ -589,10 +594,10 @@ export default function PointsMallScreen() {
               style={[styles.section, highlightVip ? styles.vipSectionHighlight : undefined]}
               onLayout={(event) => setVipSectionY(event.nativeEvent.layout.y)}
             >
-              <Text style={styles.sectionTitle}>⭐ VIP 会员</Text>
-              <Text style={styles.sectionSubtitle}>开通VIP，享无限次AI解读</Text>
+              <Text style={styles.sectionTitle}>{t('points.section.vip', '⭐ VIP 会员')}</Text>
+              <Text style={styles.sectionSubtitle}>{t('points.section.vipSub', '开通VIP，享无限次AI解读')}</Text>
               <View style={styles.decisionCard}>
-                <Text style={styles.decisionTitle}>如何判断现在适合订阅？</Text>
+                <Text style={styles.decisionTitle}>{t('points.decision.title', '如何判断现在适合订阅？')}</Text>
                 <Text style={styles.decisionLine}>
                   过去 7 天若你有 3 次以上深度解读需求，订阅通常比按次补积分更省心。
                 </Text>
@@ -600,7 +605,7 @@ export default function PointsMallScreen() {
                   你也可以先选月卡验证，再决定是否切年卡，避免一次性决策压力。
                 </Text>
               </View>
-              {highlightVip ? <Text style={styles.focusTip}>👑 推荐：解锁八字老师傅批注与完整流年细化</Text> : null}
+              {highlightVip ? <Text style={styles.focusTip}>{t('points.focus.vip', '👑 推荐：解锁八字老师傅批注与完整流年细化')}</Text> : null}
               {subscriptionProducts.length === 0 ? (
                 <View style={styles.emptyStateCard}>
                   <Text style={styles.emptyStateTitle}>订阅商品准备中</Text>
@@ -623,7 +628,7 @@ export default function PointsMallScreen() {
                     <View style={styles.vipProductHeader}>
                       <View style={styles.vipProductNameWrap}>
                         <Text style={styles.vipProductName}>{product.name}</Text>
-                        {isRecommended ? <Text style={styles.recommendedTag}>主推</Text> : null}
+                        {isRecommended ? <Text style={styles.recommendedTag}>{t('common.recommend', '主推')}</Text> : null}
                       </View>
                       <Text style={styles.vipProductPrice}>${formatUsd(product.price)}</Text>
                     </View>
@@ -646,11 +651,11 @@ export default function PointsMallScreen() {
                         <ActivityIndicator color="#fff" size="small" />
                       ) : (
                         <Text style={styles.subscribeButtonText}>
-                          {!user ? '请先登录' : membershipActive ? '续费并保持权益' : '升级解锁专业能力'}
+                          {!user ? t('common.loginFirst', '请先登录') : membershipActive ? t('points.vip.keep', '续费并保持权益') : t('points.vip.upgrade', '升级解锁专业能力')}
                         </Text>
                       )}
                     </TouchableOpacity>
-                    <Text style={styles.checkoutTrustText}>支付后 1-3 分钟内到账；异常可携订单号联系 support@shanhai.app</Text>
+                    <Text style={styles.checkoutTrustText}>{t('points.trust.vip', '支付后 1-3 分钟内到账；异常可携订单号联系 support@shanhai.app')}</Text>
                   </TouchableOpacity>
                 );
               })
@@ -661,7 +666,7 @@ export default function PointsMallScreen() {
           <>
             {/* 积分余额 */}
             <View style={styles.pointsBalanceCard}>
-              <Text style={styles.pointsBalanceLabel}>当前积分</Text>
+              <Text style={styles.pointsBalanceLabel}>{t('points.balance', '当前积分')}</Text>
               <Text style={styles.pointsBalanceValue}>{pointsSummary?.availablePoints ?? 0}</Text>
               {user ? (
                 <Text style={styles.pointsBalanceSub}>
@@ -686,9 +691,9 @@ export default function PointsMallScreen() {
                   }}
                 >
                   <View style={styles.ledgerHeaderTextWrap}>
-                    <Text style={styles.ledgerTitle}>📒 收支明细</Text>
+                    <Text style={styles.ledgerTitle}>{t('points.ledger.title', '📒 收支明细')}</Text>
                     <Text style={styles.ledgerSubtitle}>
-                      {recordsExpanded ? '点击收起' : `展开查看最近 ${POINT_RECORDS_LIMIT} 笔流水`}
+                      {recordsExpanded ? t('points.ledger.collapse', '点击收起') : t('points.ledger.expand', `展开查看最近 ${POINT_RECORDS_LIMIT} 笔流水`)}
                     </Text>
                   </View>
                   <Text style={styles.ledgerChevron}>{recordsExpanded ? '▲' : '▼'}</Text>
@@ -729,7 +734,7 @@ export default function PointsMallScreen() {
             ) : null}
 
             <View style={styles.mallExplainCard}>
-              <Text style={styles.mallExplainTitle}>订阅 和 积分 怎么选？</Text>
+              <Text style={styles.mallExplainTitle}>{t('points.guide.title', '订阅 和 积分 怎么选？')}</Text>
               <Text style={styles.mallExplainBody}>
                 <Text style={styles.mallExplainEm}>VIP 订阅</Text>
                 ：在会员有效期内，按规则使用测字、占卜可免扣积分，且可解锁部分会员专属能力，适合高频用户。
@@ -742,7 +747,7 @@ export default function PointsMallScreen() {
             </View>
 
             <View style={styles.mallExplainCard}>
-              <Text style={styles.mallExplainTitle}>📐 价值换算（按当前最优惠积分包）</Text>
+              <Text style={styles.mallExplainTitle}>{t('points.calc.title', '📐 价值换算（按当前最优惠积分包）')}</Text>
               <Text style={styles.mallExplainBody}>
                 <Text style={styles.mallExplainEm}>月卡回本：</Text>
                 {monthlyBreakEvenReading != null && monthlyBreakEvenZi != null
@@ -762,7 +767,7 @@ export default function PointsMallScreen() {
 
             {/* 积分获取 */}
             <View style={styles.pointsCard}>
-              <Text style={styles.pointsTitle}>📝 积分获取方式</Text>
+              <Text style={styles.pointsTitle}>{t('points.earn.title', '📝 积分获取方式')}</Text>
               <View style={styles.pointsList}>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>📅</Text>
@@ -781,7 +786,7 @@ export default function PointsMallScreen() {
 
             {/* 积分消耗说明 */}
             <View style={styles.pointsCard}>
-              <Text style={styles.pointsTitle}>💡 积分消耗规则</Text>
+              <Text style={styles.pointsTitle}>{t('points.cost.title', '💡 积分消耗规则')}</Text>
               <View style={styles.pointsList}>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>✍️</Text>
@@ -806,8 +811,8 @@ export default function PointsMallScreen() {
 
             {/* 积分包购买 */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🛒 购买积分</Text>
-              <Text style={styles.sectionSubtitle}>充值积分，解锁更多解读</Text>
+              <Text style={styles.sectionTitle}>{t('points.buy.title', '🛒 购买积分')}</Text>
+              <Text style={styles.sectionSubtitle}>{t('points.buy.sub', '充值积分，解锁更多解读')}</Text>
               {pointsProducts.length === 0 ? (
                 <View style={styles.emptyStateCard}>
                   <Text style={styles.emptyStateTitle}>积分包暂未上架</Text>
@@ -839,11 +844,11 @@ export default function PointsMallScreen() {
                         <ActivityIndicator color="#fff" size="small" />
                       ) : (
                         <Text style={styles.subscribeButtonText}>
-                          {!user ? '请先登录' : '购买并立即到账'}
+                          {!user ? t('common.loginFirst', '请先登录') : t('points.buy.now', '购买并立即到账')}
                         </Text>
                       )}
                     </TouchableOpacity>
-                    <Text style={styles.checkoutTrustText}>按次扣费更灵活，后续可随时切换订阅；价格与到账时效以收银台为准</Text>
+                    <Text style={styles.checkoutTrustText}>{t('points.trust.mall', '按次扣费更灵活，后续可随时切换订阅；价格与到账时效以收银台为准')}</Text>
                   </TouchableOpacity>
                 );
               })
@@ -854,12 +859,12 @@ export default function PointsMallScreen() {
 
         {!creemConfigured && (
           <View style={styles.warningBanner}>
-            <Text style={styles.warningText}>⚠️ Creem 未配置，当前为测试模式</Text>
+            <Text style={styles.warningText}>{t('points.warning', '⚠️ Creem 未配置，当前为测试模式')}</Text>
           </View>
         )}
 
         <TouchableOpacity style={styles.pricingLinkWrap} onPress={() => router.push('/pricing')} activeOpacity={0.7}>
-          <Text style={styles.pricingLinkText}>📋 价格公示：查看全站明码标价与说明</Text>
+          <Text style={styles.pricingLinkText}>{t('points.link.pricing', '📋 价格公示：查看全站明码标价与说明')}</Text>
         </TouchableOpacity>
 
         <View style={styles.bottomPadding} />

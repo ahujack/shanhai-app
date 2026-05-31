@@ -4,12 +4,14 @@ import { useColorScheme } from 'react-native';
 import { useEffect, useRef } from 'react';
 import theme from '../../constants/Colors';
 import { trackScreenView } from '../../src/services/analytics';
+import { useI18nStore } from '../../src/store/i18n';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'dark';
   const currentTheme = theme[colorScheme];
   const pathname = usePathname();
   const lastPath = useRef<string>('');
+  const t = useI18nStore((state) => state.t);
 
   useEffect(() => {
     if (!pathname || pathname === lastPath.current) return;
@@ -40,28 +42,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '对话',
+          title: t('tab.chat', '对话'),
           tabBarIcon: ({ color }) => <Ionicons name="chatbubble-ellipses-outline" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
         name="zi"
         options={{
-          title: '测字',
+          title: t('tab.zi', '测字'),
           tabBarIcon: ({ color }) => <Ionicons name="pencil-outline" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
         name="reading"
         options={{
-          title: '占卜',
+          title: t('tab.reading', '占卜'),
           tabBarIcon: ({ color }) => <Ionicons name="eye-outline" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
         name="bazi"
         options={{
-          title: '八字',
+          title: t('tab.bazi', '八字'),
           tabBarIcon: ({ color }) => <Ionicons name="reader-outline" size={26} color={color} />,
         }}
       />
@@ -80,7 +82,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: '我的',
+          title: t('tab.profile', '我的'),
           tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={26} color={color} />,
         }}
       />

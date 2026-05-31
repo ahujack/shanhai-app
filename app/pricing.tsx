@@ -14,6 +14,7 @@ import { paymentApi, PaymentProduct } from '../src/services/api';
 import { SiteComplianceFooter, SUPPORT_EMAIL } from '../components/SiteComplianceFooter';
 import { trackNamedEvent } from '../src/services/analytics';
 import { getGrowthConfig, type GrowthConfig } from '../src/config/growth';
+import { useI18nStore } from '../src/store/i18n';
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
 const ui = {
@@ -35,6 +36,7 @@ export default function PricingScreen() {
   const [points, setPoints] = useState<PaymentProduct[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [growthConfig, setGrowthConfig] = useState<GrowthConfig | null>(null);
+  const t = useI18nStore((state) => state.t);
 
   const loadPricing = async () => {
     setLoading(true);
@@ -44,7 +46,7 @@ export default function PricingScreen() {
       setSubs(list.filter((p) => p.type === 'subscription' && p.isActive));
       setPoints(list.filter((p) => p.type === 'points' && p.isActive));
     } catch {
-      setError('暂时无法加载价格，请稍后重试或联系客服。');
+      setError(t('pricing.error.load', '暂时无法加载价格，请稍后重试或联系客服。'));
     } finally {
       setLoading(false);
     }
@@ -60,7 +62,7 @@ export default function PricingScreen() {
         setSubs(list.filter((p) => p.type === 'subscription' && p.isActive));
         setPoints(list.filter((p) => p.type === 'points' && p.isActive));
       } catch {
-        if (!cancelled) setError('暂时无法加载价格，请稍后重试或联系客服。');
+        if (!cancelled) setError(t('pricing.error.load', '暂时无法加载价格，请稍后重试或联系客服。'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -96,36 +98,39 @@ export default function PricingScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, webPointer]} hitSlop={12}>
-          <Text style={styles.backText}>‹ 返回</Text>
+          <Text style={styles.backText}>{t('common.back', '‹ 返回')}</Text>
         </TouchableOpacity>
-        <Text style={styles.pageTitle}>价格说明</Text>
+        <Text style={styles.pageTitle}>{t('pricing.title', '价格说明')}</Text>
         <View style={styles.backBtn} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroCard}>
-          <Text style={styles.heroTitle}>让每一次推演都更有分量</Text>
+          <Text style={styles.heroTitle}>{t('pricing.hero.title', '让每一次推演都更有分量')}</Text>
           <Text style={styles.heroSub}>
-            先按次体验，再根据频率选择订阅；把玄学陪伴变成长期稳定的支持。
+            {t('pricing.hero.sub', '先按次体验，再根据频率选择订阅；把玄学陪伴变成长期稳定的支持。')}
           </Text>
         </View>
         {growthConfig?.showPricingCompareCard !== false ? (
           <View style={styles.compareCard}>
-            <Text style={styles.compareTitle}>3 秒选方案</Text>
-            <Text style={styles.compareLine}>低频（每周 1-2 次）：先选积分包，按次体验最灵活。</Text>
-            <Text style={styles.compareLine}>高频（每周 3 次及以上）：优先订阅，省去重复决策和扣分焦虑。</Text>
-            <Text style={styles.compareLine}>不确定：先月卡验证，满意后再升级年卡。</Text>
+            <Text style={styles.compareTitle}>{t('pricing.compare.title', '3 秒选方案')}</Text>
+            <Text style={styles.compareLine}>{t('pricing.compare.low', '低频（每周 1-2 次）：先选积分包，按次体验最灵活。')}</Text>
+            <Text style={styles.compareLine}>{t('pricing.compare.high', '高频（每周 3 次及以上）：优先订阅，省去重复决策和扣分焦虑。')}</Text>
+            <Text style={styles.compareLine}>{t('pricing.compare.uncertain', '不确定：先月卡验证，满意后再升级年卡。')}</Text>
           </View>
         ) : null}
         <Text style={styles.lead}>
-          以下为山海灵境当前在售的数字化产品标价（含税费以支付页为准）。购买与退款规则见服务条款。
+          {t(
+            'pricing.lead',
+            '以下为山海灵境当前在售的数字化产品标价（含税费以支付页为准）。购买与退款规则见服务条款。',
+          )}
         </Text>
         <TouchableOpacity onPress={() => router.push('/terms')} style={[styles.termsBtn, webPointer]}>
-          <Text style={styles.leadLink}>查看服务条款 →</Text>
+          <Text style={styles.leadLink}>{t('pricing.terms', '查看服务条款 →')}</Text>
         </TouchableOpacity>
 
         <Text style={styles.supportLine}>
-          客服邮箱（与商户信息一致）：
+          {t('pricing.support.label', '客服邮箱（与商户信息一致）：')}
           <Text style={styles.supportEmail}> {SUPPORT_EMAIL}</Text>
         </Text>
 
@@ -137,14 +142,14 @@ export default function PricingScreen() {
           <View>
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity onPress={loadPricing} style={[styles.retryBtn, webPointer]}>
-              <Text style={styles.retryBtnText}>重新加载</Text>
+              <Text style={styles.retryBtnText}>{t('common.retry', '重新加载')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>会员订阅</Text>
+            <Text style={styles.sectionTitle}>{t('pricing.section.subscription', '会员订阅')}</Text>
             {subs.length === 0 ? (
-              <Text style={styles.empty}>暂无订阅商品或稍后更新。</Text>
+              <Text style={styles.empty}>{t('pricing.empty.subscription', '暂无订阅商品或稍后更新。')}</Text>
             ) : (
               subs.map((p) => (
                 <View key={p.id} style={styles.card}>
@@ -158,9 +163,9 @@ export default function PricingScreen() {
               ))
             )}
 
-            <Text style={styles.sectionTitle}>积分充值</Text>
+            <Text style={styles.sectionTitle}>{t('pricing.section.points', '积分充值')}</Text>
             {points.length === 0 ? (
-              <Text style={styles.empty}>暂无积分包或稍后更新。</Text>
+              <Text style={styles.empty}>{t('pricing.empty.points', '暂无积分包或稍后更新。')}</Text>
             ) : (
               points.map((p) => (
                 <View key={p.id} style={styles.card}>
@@ -177,10 +182,16 @@ export default function PricingScreen() {
         )}
 
         <Text style={styles.note}>
-          实际扣款币种与金额以结账页面（Creem 等支付通道）展示为准；促销或调价将在本页或应用内同步更新。
+          {t(
+            'pricing.note.1',
+            '实际扣款币种与金额以结账页面（Creem 等支付通道）展示为准；促销或调价将在本页或应用内同步更新。',
+          )}
         </Text>
         <Text style={styles.note}>
-          到账通常在 1-3 分钟内完成；若显示异常，可在支付结果页复制订单号联系 {SUPPORT_EMAIL}。
+          {t(
+            'pricing.note.2',
+            `到账通常在 1-3 分钟内完成；若显示异常，可在支付结果页复制订单号联系 ${SUPPORT_EMAIL}。`,
+          )}
         </Text>
         <TouchableOpacity
           onPress={() => {
@@ -189,7 +200,7 @@ export default function PricingScreen() {
           }}
           style={[styles.gotoMallBtn, webPointer]}
         >
-          <Text style={styles.gotoMallText}>去灵石页，按使用频率选择方案</Text>
+          <Text style={styles.gotoMallText}>{t('pricing.goto', '去灵石页，按使用频率选择方案')}</Text>
         </TouchableOpacity>
 
         <SiteComplianceFooter variant="full" />

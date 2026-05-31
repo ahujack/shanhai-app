@@ -14,6 +14,7 @@ import PersonaPicker from '../../components/PersonaPicker';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import OnboardingModal from '../../components/OnboardingModal';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
+import { useI18nStore } from '../../src/store/i18n';
 
 // 主题颜色
 const colors = theme.dark;
@@ -27,18 +28,12 @@ const DRAW_ANIMATION_CONFIG = {
   resultGlowMs: 1800,
 };
 const D1_RETURN_KEY = 'analytics_last_active_date';
-const QUICK_START_PROMPTS = [
-  { label: '关系', sub: '先判断要不要继续', prompt: '我现在这段感情该不该继续？请先给一句结论，再给我下一步。' },
-  { label: '事业', sub: '帮我看近期决策', prompt: '我最近在工作上很纠结，想知道现在该稳住还是主动调整。' },
-  { label: '命盘', sub: '用命盘看趋势', prompt: '结合我的命盘，帮我看接下来一个月的重点趋势和避坑点。' },
-  { label: '测字', sub: '先来轻量拆解', prompt: '我想测一个字，先帮我快速看看最近的整体状态。' },
-];
-
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ skipZiNudgeUntil?: string }>();
   const { active: persona, personas, setActive } = usePersonaStore();
+  const t = useI18nStore((state) => state.t);
   const { user, chart, hasChart, generateChart, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
   const { setLastFortune } = useDivinationStore();
@@ -71,6 +66,31 @@ export default function HomeScreen() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [achievementUnlock, setAchievementUnlock] = useState<{ name: string; description: string; icon: string } | null>(null);
   const [lastCheckInPoints, setLastCheckInPoints] = useState(0);
+  const quickStartPrompts = React.useMemo(
+    () => [
+      {
+        label: t('home.quick.relationship.label', '关系'),
+        sub: t('home.quick.relationship.sub', '先判断要不要继续'),
+        prompt: t('home.quick.relationship.prompt', '我现在这段感情该不该继续？请先给一句结论，再给我下一步。'),
+      },
+      {
+        label: t('home.quick.career.label', '事业'),
+        sub: t('home.quick.career.sub', '帮我看近期决策'),
+        prompt: t('home.quick.career.prompt', '我最近在工作上很纠结，想知道现在该稳住还是主动调整。'),
+      },
+      {
+        label: t('home.quick.chart.label', '命盘'),
+        sub: t('home.quick.chart.sub', '用命盘看趋势'),
+        prompt: t('home.quick.chart.prompt', '结合我的命盘，帮我看接下来一个月的重点趋势和避坑点。'),
+      },
+      {
+        label: t('home.quick.zi.label', '测字'),
+        sub: t('home.quick.zi.sub', '先来轻量拆解'),
+        prompt: t('home.quick.zi.prompt', '我想测一个字，先帮我快速看看最近的整体状态。'),
+      },
+    ],
+    [t],
+  );
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
   
   // 神秘特效动画
@@ -343,7 +363,7 @@ export default function HomeScreen() {
         rank: fortune.fortuneRank ?? null,
       });
     } catch (error) {
-      showToast('抽签失败，请稍后重试', 'error');
+      showToast(t('home.toast.drawFailed', '抽签失败，请稍后重试'), 'error');
     } finally {
       const elapsed = Date.now() - startAt;
       if (elapsed < DRAW_MIN_DISPLAY_MS) {
@@ -383,16 +403,16 @@ export default function HomeScreen() {
   // 创建命盘
   const handleCreateChart = async () => {
     if (!user?.id) {
-      showToast('请先登录后再创建命盘', 'error');
+      showToast(t('home.toast.loginCreateChart', '请先登录后再创建命盘'), 'error');
       return;
     }
     
     try {
       await generateChart(chartGender);
-      showToast('命盘已创建', 'success');
+      showToast(t('home.toast.chartCreated', '命盘已创建'), 'success');
       setShowChartModal(false);
     } catch (error) {
-      showToast('命盘创建失败，请稍后重试', 'error');
+      showToast(t('home.toast.chartCreateFailed', '命盘创建失败，请稍后重试'), 'error');
     }
   };
 
@@ -515,7 +535,7 @@ export default function HomeScreen() {
   const sendVoiceResultIfNeeded = async () => {
     const recognized = voiceLatestTextRef.current.trim();
     if (!recognized) {
-      setVoiceStatusText('我这次没听清，你再说一遍试试');
+      setVoiceStatusText(t('home.voice.notClear', '我这次没听清，你再说一遍试试'));
       return;
     }
     setInputText(recognized);
@@ -529,13 +549,13 @@ export default function HomeScreen() {
   const loadingStageText = React.useMemo(() => {
     if (!isLoading) return '';
     if (lastSendSource === 'quick_template') {
-      return `${persona.name} 正在把你的情境转成可执行建议...`;
+      return t('home.loading.quick', `${persona.name} 正在把你的情境转成可执行建议...`);
     }
     if (lastSendSource === 'voice') {
-      return `${persona.name} 正在整理你刚才的语音重点...`;
+      return t('home.loading.voice', `${persona.name} 正在整理你刚才的语音重点...`);
     }
-    return `${persona.name} 正在拆解问题并生成第一版结论...`;
-  }, [isLoading, lastSendSource, persona.name]);
+    return t('home.loading.default', `${persona.name} 正在拆解问题并生成第一版结论...`);
+  }, [isLoading, lastSendSource, persona.name, t]);
 
   const handleInputKeyPress = (e: any) => {
     if (Platform.OS !== 'web') return;
@@ -582,7 +602,7 @@ export default function HomeScreen() {
 
   const toggleVoiceInput = async () => {
     if (!voiceSupported) {
-      Alert.alert('不可用', '当前浏览器不支持录音能力，请使用最新版 Chrome/Edge/Safari。');
+      Alert.alert(t('common.unavailable', '不可用'), t('home.voice.unsupported', '当前浏览器不支持录音能力，请使用最新版 Chrome/Edge/Safari。'));
       return;
     }
     if (isVoiceListening) {
@@ -626,12 +646,12 @@ export default function HomeScreen() {
       voiceBaseTextRef.current = inputText.trim();
       voiceLatestTextRef.current = '';
       setVoiceDraftText('');
-      setVoiceHint('我在听...');
+      setVoiceHint(t('home.voice.listening', '我在听...'));
       setVoiceStatusText('');
 
       recorder.onstart = () => {
         setIsVoiceListening(true);
-        setVoiceHint('我在听...');
+        setVoiceHint(t('home.voice.listening', '我在听...'));
         setVoiceStatusText('');
       };
       recorder.ondataavailable = (event: any) => {
@@ -646,8 +666,8 @@ export default function HomeScreen() {
         mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
         mediaStreamRef.current = null;
         setVoiceDraftText('');
-        setVoiceStatusText('麦克风好像没打开，请检查权限');
-        showToast('录音失败，请检查麦克风权限', 'error');
+        setVoiceStatusText(t('home.voice.permissionNeeded', '麦克风好像没打开，请检查权限'));
+        showToast(t('home.voice.recordFailed', '录音失败，请检查麦克风权限'), 'error');
       };
       recorder.onstop = async () => {
         setIsVoiceListening(false);
@@ -658,7 +678,7 @@ export default function HomeScreen() {
         mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
         mediaStreamRef.current = null;
         if (!chunks.length) {
-          setVoiceStatusText('没有听到声音，再试一次吧');
+          setVoiceStatusText(t('home.voice.noSound', '没有听到声音，再试一次吧'));
           return;
         }
         try {
@@ -679,7 +699,7 @@ export default function HomeScreen() {
           setVoiceStatusText('');
           void sendVoiceResultIfNeeded();
         } catch (error: any) {
-          const msg = String(error?.message || '这次语音处理失败了，请再试一次');
+          const msg = String(error?.message || t('home.voice.transcribeFailed', '这次语音处理失败了，请再试一次'));
           setVoiceStatusText(msg);
           showToast(msg, 'error');
         }
@@ -688,8 +708,8 @@ export default function HomeScreen() {
       recorder.start();
     } catch {
       setIsVoiceListening(false);
-      setVoiceStatusText('没拿到麦克风权限，请在浏览器里允许麦克风');
-      Alert.alert('启动失败', '无法获取麦克风权限，请检查浏览器地址栏权限后重试。');
+      setVoiceStatusText(t('home.voice.noPermission', '没拿到麦克风权限，请在浏览器里允许麦克风'));
+      Alert.alert(t('common.startFailed', '启动失败'), t('home.voice.noPermissionDetail', '无法获取麦克风权限，请检查浏览器地址栏权限后重试。'));
     }
   };
 
@@ -720,7 +740,7 @@ export default function HomeScreen() {
   const handleCheckIn = async () => {
     console.log('[签到] user:', user, 'checkInStatus:', checkInStatus);
     if (!user?.id) {
-      showToast('请先登录后签到', 'error');
+      showToast(t('home.toast.loginCheckin', '请先登录后签到'), 'error');
       return;
     }
     console.log('[签到] 开始签到');
@@ -732,21 +752,21 @@ export default function HomeScreen() {
         if (result.achievement) {
           setAchievementUnlock(result.achievement);
         } else {
-          showToast(`🎉 签到成功！+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`, 'success');
+        showToast(t('home.toast.checkinSuccess', `🎉 签到成功！+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`), 'success');
         }
       } else {
-        showToast(result?.message || '签到失败', 'error');
+        showToast(result?.message || t('home.toast.checkinFailed', '签到失败'), 'error');
       }
     } catch (error) {
       console.error('[签到] 错误:', error);
-      showToast('签到失败，请稍后重试', 'error');
+      showToast(t('home.toast.checkinRetry', '签到失败，请稍后重试'), 'error');
     }
   };
 
   // 分享功能
   const handleShare = async () => {
     if (!user) {
-      showToast('请先登录后分享', 'error');
+      showToast(t('home.toast.loginShare', '请先登录后分享'), 'error');
       return;
     }
     
@@ -778,7 +798,7 @@ export default function HomeScreen() {
   // 解读分享功能 - 分享用户的命盘解读
   const handleShareReading = async () => {
     if (!user || !chart) {
-      showToast('请先生成命盘', 'error');
+      showToast(t('home.toast.needChart', '请先生成命盘'), 'error');
       return;
     }
     
@@ -835,7 +855,7 @@ export default function HomeScreen() {
                   <Image source={personaAvatarSource} style={styles.personaAvatar} resizeMode="cover" />
                 </View>
                 <View style={styles.personaChipTextCol}>
-                  <Text style={styles.personaChipLabel}>灵伴</Text>
+                  <Text style={styles.personaChipLabel}>{t('home.persona', '灵伴')}</Text>
                   <Text style={styles.personaChipName} numberOfLines={1}>
                     {persona.name}
                   </Text>
@@ -853,10 +873,10 @@ export default function HomeScreen() {
                     style={styles.checkInButton}
                     onPress={handleCheckIn}
                     activeOpacity={0.7}
-                    accessibilityLabel={checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
+                    accessibilityLabel={checkInStatus?.todayCheckedIn ? t('home.checkin.done', '已签到') : t('home.checkin', '签到')}
                   >
                     <Text style={styles.checkInButtonText}>
-                      {checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
+                      {checkInStatus?.todayCheckedIn ? t('home.checkin.done', '已签到') : t('home.checkin', '签到')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -864,7 +884,7 @@ export default function HomeScreen() {
                   style={styles.loginButton}
                   onPress={() => user ? router.push('/(tabs)/profile') : router.push('/login')}
                 >
-                  <Text style={styles.loginButtonText}>{user ? '我的' : '登录'}</Text>
+                  <Text style={styles.loginButtonText}>{user ? t('tab.profile', '我的') : t('common.login', '登录')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -917,12 +937,12 @@ export default function HomeScreen() {
                   {persona.greeting}
                 </Text>
                 <Text style={styles.welcomeHint}>
-                  你可以问我关于占卜、命盘的问题，或者只是想聊聊。
+                  {t('home.welcome.hint', '你可以问我关于占卜、命盘的问题，或者只是想聊聊。')}
                 </Text>
                 {/* 试试问我 - 示例问题 */}
-                <Text style={styles.suggestedTitle}>一键直发</Text>
+                <Text style={styles.suggestedTitle}>{t('home.quick.title', '一键直发')}</Text>
                 <View style={styles.suggestedChips}>
-                  {QUICK_START_PROMPTS.map((item) => (
+                  {quickStartPrompts.map((item) => (
                     <TouchableOpacity
                       key={item.label}
                       style={styles.suggestedChip}
@@ -953,13 +973,13 @@ export default function HomeScreen() {
           {isLoading && (
             <View style={[styles.typingIndicator, { backgroundColor: colors.surface }]}>
               <ActivityIndicator size="small" color={colors.accent} />
-              <Text style={styles.typingText}>{loadingStageText || `${persona.name} 正在思考...`}</Text>
+              <Text style={styles.typingText}>{loadingStageText || t('home.loading.thinking', `${persona.name} 正在思考...`)}</Text>
             </View>
           )}
 
           {showZiNudge && !showZiModal && (
             <View style={styles.ziNudgeCard}>
-              <Text style={styles.ziNudgeTitle}>✍️ 要不要试试测字小游戏？</Text>
+              <Text style={styles.ziNudgeTitle}>{t('home.ziNudge.title', '✍️ 要不要试试测字小游戏？')}</Text>
               <Text style={styles.ziNudgeText}>
                 你刚聊到一个具体困扰，我可以用「{detectedZi || '这个字'}」帮你做一版轻量拆解。
               </Text>
@@ -968,13 +988,13 @@ export default function HomeScreen() {
                   style={styles.ziNudgePrimary}
                   onPress={() => setShowZiModal(true)}
                 >
-                  <Text style={styles.ziNudgePrimaryText}>试一下</Text>
+                <Text style={styles.ziNudgePrimaryText}>{t('common.tryNow', '试一下')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.ziNudgeSecondary}
                   onPress={() => setShowZiNudge(false)}
                 >
-                  <Text style={styles.ziNudgeSecondaryText}>先继续聊</Text>
+                  <Text style={styles.ziNudgeSecondaryText}>{t('home.ziNudge.later', '先继续聊')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -984,21 +1004,25 @@ export default function HomeScreen() {
           {/* 输入区域 */}
           <View style={styles.inputContainer}>
             {isLoading ? (
-              <Text style={styles.processHint}>正在生成第一版结论，通常 3-8 秒即可看到结果。</Text>
+              <Text style={styles.processHint}>{t('home.processHint', '正在生成第一版结论，通常 3-8 秒即可看到结果。')}</Text>
             ) : null}
             {(isVoiceListening || voiceDraftText.trim().length > 0) && (
               <View style={styles.voicePreviewBar}>
                 <Text style={styles.voicePreviewText} numberOfLines={2}>
                   {isVoiceListening
-                    ? (voiceDraftText ? `我听到的是：${voiceDraftText}` : (voiceHint || '我在听，你可以开始说啦...'))
-                    : `你刚刚说：${voiceDraftText}`}
+                    ? (voiceDraftText ? t('home.voice.heard', `我听到的是：${voiceDraftText}`) : (voiceHint || t('home.voice.startTalk', '我在听，你可以开始说啦...')))
+                    : t('home.voice.youSaid', `你刚刚说：${voiceDraftText}`)}
                 </Text>
               </View>
             )}
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
-                placeholder={Platform.OS === 'web' ? '输入问题（回车发送，Shift+回车换行）...' : '输入你的问题或心声...'}
+                placeholder={
+                  Platform.OS === 'web'
+                    ? t('home.input.web', '输入问题（回车发送，Shift+回车换行）...')
+                    : t('home.input.mobile', '输入你的问题或心声...')
+                }
                 placeholderTextColor="#6F6287"
                 value={inputText}
                 onChangeText={setInputText}
@@ -1081,7 +1105,7 @@ export default function HomeScreen() {
                     />
                   </View>
                 ) : (
-                  <Text style={styles.voiceButtonText}>语音</Text>
+                  <Text style={styles.voiceButtonText}>{t('home.voice.button', '语音')}</Text>
                 )}
               </TouchableOpacity>
               <TouchableOpacity 
@@ -1092,7 +1116,7 @@ export default function HomeScreen() {
                 onPress={handleSend}
                 disabled={!inputText.trim() || isLoading}
               >
-                <Text style={styles.sendButtonText}>发送</Text>
+                <Text style={styles.sendButtonText}>{t('common.send', '发送')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1106,7 +1130,7 @@ export default function HomeScreen() {
           {!keyboardVisible && (
             <TouchableOpacity style={[styles.floatingDrawButton, { bottom: insets.bottom + 156 }]} onPress={openDrawModal}>
               <Text style={styles.floatingDrawIcon}>☯</Text>
-              <Text style={styles.floatingDrawText}>抽签</Text>
+              <Text style={styles.floatingDrawText}>{t('home.draw', '抽签')}</Text>
             </TouchableOpacity>
           )}
         </View>
