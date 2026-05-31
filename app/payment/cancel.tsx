@@ -3,6 +3,16 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { trackNamedEvent } from '../../src/services/analytics';
 
+const ui = {
+  bg: '#0B0D14',
+  card: '#121827',
+  border: '#2A3448',
+  text: '#E8ECF3',
+  textSub: '#AAB3C5',
+  gold: '#D6B36A',
+  primary: '#7C6CFF',
+};
+
 export default function PaymentCancelScreen() {
   const router = useRouter();
   React.useEffect(() => {
@@ -15,7 +25,7 @@ export default function PaymentCancelScreen() {
       <View style={styles.container}>
         <View style={styles.panel}>
           <Text style={styles.title}>支付已取消</Text>
-          <Text style={styles.body}>未扣款。你可以先回到灵石页继续选择套餐，或切换积分包先小额体验。</Text>
+          <Text style={styles.body}>未发生扣款。你可以回到灵石页继续选择方案，或先用积分包体验。</Text>
           <TouchableOpacity
             style={styles.btn}
             onPress={() => {
@@ -46,7 +56,7 @@ export default function PaymentCancelScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0716',
+    backgroundColor: ui.bg,
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
@@ -56,52 +66,52 @@ const styles = StyleSheet.create({
     maxWidth: 380,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2F2342',
-    backgroundColor: '#161126',
+    borderColor: ui.border,
+    backgroundColor: ui.card,
     padding: 20,
     alignItems: 'center',
   },
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#F7F6F0',
+    color: ui.gold,
     marginBottom: 12,
   },
   body: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#BFC8E8',
+    color: ui.textSub,
     textAlign: 'center',
     maxWidth: 340,
     marginBottom: 28,
   },
   btn: {
-    backgroundColor: '#F8D05F',
+    backgroundColor: ui.primary,
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 12,
   },
   btnText: {
-    color: '#1A0A18',
+    color: '#F5F7FB',
     fontSize: 16,
     fontWeight: '700',
   },
   secondaryBtn: {
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#F8D05F',
+    borderColor: ui.border,
     paddingVertical: 12,
     paddingHorizontal: 28,
     borderRadius: 12,
   },
   secondaryBtnText: {
-    color: '#F8D05F',
+    color: ui.text,
     fontSize: 14,
     fontWeight: '700',
   },
   tip: {
     marginTop: 18,
-    color: '#8D8DAA',
+    color: ui.textSub,
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',

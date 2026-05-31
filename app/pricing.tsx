@@ -15,6 +15,16 @@ import { SiteComplianceFooter, SUPPORT_EMAIL } from '../components/SiteComplianc
 import { trackNamedEvent } from '../src/services/analytics';
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
+const ui = {
+  bg: '#0B0D14',
+  card: '#121827',
+  panel: '#1A2233',
+  border: '#2A3448',
+  text: '#E8ECF3',
+  textSub: '#AAB3C5',
+  gold: '#D6B36A',
+  primary: '#7C6CFF',
+};
 
 export default function PricingScreen() {
   const insets = useSafeAreaInsets();
@@ -86,9 +96,9 @@ export default function PricingScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroCard}>
-          <Text style={styles.heroTitle}>把好结果，变成稳定产能</Text>
+          <Text style={styles.heroTitle}>让每一次推演都更有分量</Text>
           <Text style={styles.heroSub}>
-            你可以先从积分按次体验，再升级订阅获得更高频、更稳定的深度能力。
+            先按次体验，再根据频率选择订阅；把玄学陪伴变成长期稳定的支持。
           </Text>
         </View>
         <Text style={styles.lead}>
@@ -172,7 +182,7 @@ export default function PricingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0716',
+    backgroundColor: ui.bg,
   },
   topBar: {
     flexDirection: 'row',
@@ -181,18 +191,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(248, 208, 95, 0.2)',
+    borderBottomColor: ui.border,
   },
   backBtn: {
     minWidth: 64,
     paddingVertical: 6,
   },
   backText: {
-    color: '#F8D05F',
+    color: ui.gold,
     fontSize: 16,
   },
   pageTitle: {
-    color: '#F7F6F0',
+    color: ui.text,
     fontSize: 17,
     fontWeight: '700',
   },
@@ -201,27 +211,27 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   lead: {
-    color: '#C4B8DC',
+    color: ui.textSub,
     fontSize: 14,
     lineHeight: 22,
     marginBottom: 12,
   },
   heroCard: {
-    backgroundColor: '#151024',
+    backgroundColor: ui.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(248, 208, 95, 0.24)',
+    borderColor: ui.border,
     padding: 14,
     marginBottom: 12,
   },
   heroTitle: {
-    color: '#F7F6F0',
+    color: ui.gold,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 6,
   },
   heroSub: {
-    color: '#BCAFD7',
+    color: ui.textSub,
     fontSize: 13,
     lineHeight: 20,
   },
@@ -230,17 +240,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   leadLink: {
-    color: '#F8D05F',
+    color: ui.gold,
     fontSize: 14,
     textDecorationLine: 'underline',
   },
   supportLine: {
-    color: '#8D8DAA',
+    color: ui.textSub,
     fontSize: 14,
     marginBottom: 20,
   },
   supportEmail: {
-    color: '#F8D05F',
+    color: ui.gold,
     fontWeight: '700',
   },
   center: {
@@ -248,43 +258,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    color: '#FF8A80',
+    color: '#DCA3A3',
     fontSize: 14,
     marginBottom: 12,
   },
   retryBtn: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#F8D05F',
+    borderColor: ui.border,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 8,
     marginBottom: 16,
   },
   retryBtnText: {
-    color: '#F8D05F',
+    color: ui.text,
     fontSize: 13,
     fontWeight: '600',
   },
   sectionTitle: {
-    color: '#F8D05F',
+    color: ui.gold,
     fontSize: 16,
     fontWeight: '700',
     marginTop: 8,
     marginBottom: 12,
   },
   empty: {
-    color: '#8D8DAA',
+    color: ui.textSub,
     fontSize: 14,
     marginBottom: 16,
   },
   card: {
-    backgroundColor: '#161126',
+    backgroundColor: ui.card,
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(248, 208, 95, 0.2)',
+    borderColor: ui.border,
   },
   cardHead: {
     flexDirection: 'row',
@@ -294,29 +304,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cardName: {
-    color: '#F7F6F0',
+    color: ui.text,
     fontSize: 16,
     fontWeight: '600',
     flex: 1,
   },
   cardPrice: {
-    color: '#F8D05F',
+    color: ui.gold,
     fontSize: 16,
     fontWeight: '700',
   },
   cardDesc: {
-    color: '#B8A8D8',
+    color: ui.textSub,
     fontSize: 13,
     lineHeight: 20,
     marginBottom: 6,
   },
   cardMeta: {
-    color: '#6F6287',
+    color: '#94A0B8',
     fontSize: 12,
     lineHeight: 18,
   },
   note: {
-    color: '#6F6287',
+    color: '#94A0B8',
     fontSize: 12,
     lineHeight: 18,
     marginTop: 20,
@@ -326,13 +336,13 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(248, 208, 95, 0.5)',
+    borderColor: ui.primary,
     paddingHorizontal: 14,
     paddingVertical: 9,
     marginBottom: 14,
   },
   gotoMallText: {
-    color: '#F8D05F',
+    color: ui.text,
     fontSize: 13,
     fontWeight: '700',
   },

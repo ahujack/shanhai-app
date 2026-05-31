@@ -7,6 +7,16 @@ import * as Clipboard from 'expo-clipboard';
 import { trackNamedEvent } from '../../src/services/analytics';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const ui = {
+  bg: '#0B0D14',
+  card: '#121827',
+  panel: '#1A2233',
+  border: '#2A3448',
+  text: '#E8ECF3',
+  textSub: '#AAB3C5',
+  gold: '#D6B36A',
+  primary: '#7C6CFF',
+};
 
 export default function PaymentSuccessScreen() {
   const router = useRouter();
@@ -162,9 +172,9 @@ export default function PaymentSuccessScreen() {
       <Stack.Screen options={{ title: '支付结果 · 山海灵境' }} />
       <View style={styles.container}>
         <View style={styles.panel}>
-          {phase === 'polling' && <ActivityIndicator size="large" color="#F8D05F" style={{ marginBottom: 20 }} />}
+          {phase === 'polling' && <ActivityIndicator size="large" color={ui.gold} style={{ marginBottom: 20 }} />}
           <Text style={styles.title}>
-            {phase === 'done' ? '✅ 支付成功' : phase === 'error' || phase === 'missing' ? '提示' : '处理中'}
+            {phase === 'done' ? '✅ 陪伴已续上' : phase === 'error' || phase === 'missing' ? '提示' : '处理中'}
           </Text>
           <Text style={styles.body}>{message}</Text>
           {phase !== 'polling' && (
@@ -187,7 +197,7 @@ export default function PaymentSuccessScreen() {
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.secondary} onPress={goHome} activeOpacity={0.85}>
-              <Text style={styles.secondaryText}>进入山海灵境</Text>
+              <Text style={styles.secondaryText}>返回首页</Text>
             </TouchableOpacity>
             {(phase === 'error' || phase === 'missing') && paymentId ? (
               <TouchableOpacity style={styles.ghost} onPress={retryCheck} activeOpacity={0.85}>
@@ -215,7 +225,7 @@ export default function PaymentSuccessScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0716',
+    backgroundColor: ui.bg,
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
@@ -225,29 +235,29 @@ const styles = StyleSheet.create({
     maxWidth: 380,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2F2342',
-    backgroundColor: '#161126',
+    borderColor: ui.border,
+    backgroundColor: ui.card,
     padding: 20,
     alignItems: 'center',
   },
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#F7F6F0',
+    color: ui.gold,
     marginBottom: 12,
     textAlign: 'center',
   },
   body: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#BFC8E8',
+    color: ui.textSub,
     textAlign: 'center',
     maxWidth: 360,
   },
   hint: {
     marginTop: 24,
     fontSize: 12,
-    color: '#6F6287',
+    color: '#94A0B8',
   },
   actions: {
     marginTop: 28,
@@ -256,25 +266,25 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primary: {
-    backgroundColor: '#F8D05F',
+    backgroundColor: ui.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
   primaryText: {
-    color: '#1A0A18',
+    color: '#F5F7FB',
     fontSize: 16,
     fontWeight: '700',
   },
   secondary: {
     borderWidth: 1,
-    borderColor: 'rgba(248, 208, 95, 0.45)',
+    borderColor: ui.border,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
   secondaryText: {
-    color: '#F8D05F',
+    color: ui.text,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -283,10 +293,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#3E3354',
+    borderColor: ui.border,
   },
   ghostText: {
-    color: '#B8A8D8',
+    color: ui.textSub,
     fontSize: 14,
     fontWeight: '600',
   },
