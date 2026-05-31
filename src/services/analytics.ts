@@ -35,6 +35,10 @@ export function trackScreenView(path: string): void {
   void trackEvents([{ name: 'screen_view', props: { path } }]);
 }
 
+export function trackNamedEvent(name: string, props?: Record<string, unknown>): void {
+  void trackEvents([{ name, props }]);
+}
+
 export function trackFeature(name: string, props?: Record<string, unknown>): void {
   void trackEvents([{ name: 'feature_use', props: { feature: name, ...props } }]);
 }

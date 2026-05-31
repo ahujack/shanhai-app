@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { paymentApi, PaymentProduct } from '../src/services/api';
 import { SiteComplianceFooter, SUPPORT_EMAIL } from '../components/SiteComplianceFooter';
+import { trackNamedEvent } from '../src/services/analytics';
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
 
@@ -38,6 +39,7 @@ export default function PricingScreen() {
   };
 
   useEffect(() => {
+    trackNamedEvent('paywall_show', { source: 'pricing_page' });
     let cancelled = false;
     (async () => {
       try {
@@ -83,6 +85,12 @@ export default function PricingScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.heroCard}>
+          <Text style={styles.heroTitle}>把好结果，变成稳定产能</Text>
+          <Text style={styles.heroSub}>
+            你可以先从积分按次体验，再升级订阅获得更高频、更稳定的深度能力。
+          </Text>
+        </View>
         <Text style={styles.lead}>
           以下为山海灵境当前在售的数字化产品标价（含税费以支付页为准）。购买与退款规则见服务条款。
         </Text>
@@ -145,8 +153,14 @@ export default function PricingScreen() {
         <Text style={styles.note}>
           实际扣款币种与金额以结账页面（Creem 等支付通道）展示为准；促销或调价将在本页或应用内同步更新。
         </Text>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/points' as any)} style={[styles.gotoMallBtn, webPointer]}>
-          <Text style={styles.gotoMallText}>前往灵石页购买</Text>
+        <TouchableOpacity
+          onPress={() => {
+            trackNamedEvent('plan_select', { plan: 'goto_points', source: 'pricing_page' });
+            router.push('/(tabs)/points' as any);
+          }}
+          style={[styles.gotoMallBtn, webPointer]}
+        >
+          <Text style={styles.gotoMallText}>前往灵石页，解锁专业能力</Text>
         </TouchableOpacity>
 
         <SiteComplianceFooter variant="full" />
@@ -191,6 +205,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     marginBottom: 12,
+  },
+  heroCard: {
+    backgroundColor: '#151024',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.24)',
+    padding: 14,
+    marginBottom: 12,
+  },
+  heroTitle: {
+    color: '#F7F6F0',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  heroSub: {
+    color: '#BCAFD7',
+    fontSize: 13,
+    lineHeight: 20,
   },
   termsBtn: {
     alignSelf: 'flex-start',

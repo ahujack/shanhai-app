@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { paymentApi, userApi, chartApi, type BaziChart } from '../../src/services/api';
 import { useUserStore } from '../../src/store/user';
 import * as Clipboard from 'expo-clipboard';
+import { trackNamedEvent } from '../../src/services/analytics';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -39,6 +40,10 @@ export default function PaymentSuccessScreen() {
     const v = Array.isArray(a) ? a[0] : a;
     return v && String(v).trim() && !String(v).includes('CHECKOUT_SESSION') ? String(v).trim() : '';
   })();
+
+  useEffect(() => {
+    trackNamedEvent('paywall_show', { source: 'payment_success_page', paymentId: paymentId || null });
+  }, [paymentId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +94,11 @@ export default function PaymentSuccessScreen() {
               );
               await syncUser();
               setPhase('done');
+              trackNamedEvent('payment_success', {
+                source: 'success_page_polling',
+                paymentId,
+                productType: kind,
+              });
               let msg =
                 kind === 'subscription'
                   ? '会员权益已生效，感谢支持！'
@@ -161,11 +171,11 @@ export default function PaymentSuccessScreen() {
             <View style={styles.actions}>
             {phase === 'done' && donePrimaryKind === 'points' ? (
               <TouchableOpacity style={styles.primary} onPress={goPointsMall} activeOpacity={0.85}>
-                <Text style={styles.primaryText}>查看积分</Text>
+                <Text style={styles.primaryText}>查看积分并继续任务</Text>
               </TouchableOpacity>
             ) : phase === 'done' && donePrimaryKind === 'subscription' ? (
               <TouchableOpacity style={styles.primary} onPress={goSubscription} activeOpacity={0.85}>
-                <Text style={styles.primaryText}>查看订阅与到期时间</Text>
+                <Text style={styles.primaryText}>查看订阅权益与到期时间</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -173,7 +183,7 @@ export default function PaymentSuccessScreen() {
                 onPress={() => router.replace('/points' as any)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.primaryText}>前往灵石</Text>
+                <Text style={styles.primaryText}>前往灵石继续配置</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.secondary} onPress={goHome} activeOpacity={0.85}>

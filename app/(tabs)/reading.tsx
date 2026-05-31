@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
 import { readingApi, CreateReadingDto, DivinationResult, pointsApi } from '../../src/services/api';
-import { trackFeature } from '../../src/services/analytics';
+import { trackFeature, trackNamedEvent } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
+import ResultActionBar, { ResultAction } from '../../components/ui/ResultActionBar';
 
 const colors = theme.dark;
 
@@ -167,6 +169,7 @@ export default function ReadingScreen() {
         if (checkRes.hasEnough === false) {
           setError(`积分不足：解锁深度解签需要 ${readingPointsCost} 积分`);
           setShowSmartCta(true);
+          trackNamedEvent('paywall_show', { source: 'reading_fortune_unlock' });
           await refreshPointsBalance();
           return;
         }
@@ -190,6 +193,7 @@ export default function ReadingScreen() {
       const msg = err?.message || '解锁失败，请稍后重试';
       if (msg.includes('积分不足')) {
         setShowSmartCta(true);
+        trackNamedEvent('paywall_show', { source: 'reading_fortune_error' });
         await refreshPointsBalance();
       }
       setError(msg);
@@ -207,6 +211,7 @@ export default function ReadingScreen() {
         if (checkRes.hasEnough === false) {
           setError(`积分不足：本次占卜需要 ${readingPointsCost} 积分`);
           setShowSmartCta(true);
+          trackNamedEvent('paywall_show', { source: 'reading_submit_precheck' });
           await refreshPointsBalance();
           return;
         }
@@ -234,6 +239,7 @@ export default function ReadingScreen() {
       const msg = err?.message || '';
       if (msg.includes('积分不足')) {
         setShowSmartCta(true);
+        trackNamedEvent('paywall_show', { source: 'reading_submit_error' });
         await refreshPointsBalance();
       }
       setError(msg || '占卜失败，请稍后重试');
@@ -288,6 +294,41 @@ export default function ReadingScreen() {
     }));
 
     router.push('/');
+  };
+  const resultActions: ResultAction[] = [
+    { key: 'copy', label: '复制结论' },
+    { key: 'summary', label: '生成执行摘要' },
+    { key: 'risk', label: '只看风险提醒' },
+    { key: 'chat', label: '继续追问' },
+  ];
+  const handleResultAction = async (action: ResultAction) => {
+    if (!result) return;
+    trackNamedEvent('result_action_click', { action: action.key, source: 'reading_result' });
+    if (action.key === 'copy') {
+      await Clipboard.setStringAsync(result.conclusion?.verdict || result.interpretation.overall || '');
+      return;
+    }
+    if (action.key === 'chat') {
+      handleDeepConversation();
+      return;
+    }
+    if (action.key === 'summary') {
+      setQuestion(`请把这次占卜结论整理成「今天/本周/本月」执行清单：${result.question}`);
+      setResult(null);
+      return;
+    }
+    if (action.key === 'risk') {
+      setQuestion(`请基于当前卦象只输出风险预警与规避动作：${result.question}`);
+      setResult(null);
+    }
+  };
+  const openPointsMallWithTrack = () => {
+    trackNamedEvent('plan_select', { plan: 'points_pack', source: 'reading_paywall' });
+    openPointsMall();
+  };
+  const openVipPlanWithTrack = () => {
+    trackNamedEvent('plan_select', { plan: 'vip', source: 'reading_paywall' });
+    openVipPlan();
   };
 
   if (result) {
@@ -354,6 +395,13 @@ export default function ReadingScreen() {
           <TouchableOpacity style={styles.toggleDetailsButton} onPress={() => setShowDetails((v) => !v)}>
             <Text style={styles.toggleDetailsText}>{showDetails ? '收起详细解读' : '展开详细解读'}</Text>
           </TouchableOpacity>
+          <ResultActionBar actions={resultActions} onPress={handleResultAction} />
+        </View>
+        <View style={[styles.card, styles.assetCard, { backgroundColor: colors.surface }]}>
+          <Text style={styles.cardTitle}>📌 结果摘要资产</Text>
+          <Text style={styles.assetText}>问题：{result.question}</Text>
+          <Text style={styles.assetText}>关键结论：{result.conclusion?.verdict || result.interpretation.overall}</Text>
+          <Text style={styles.assetHint}>你可以用上方动作条一键变成执行清单，继续追问时会继承本次结果上下文。</Text>
         </View>
 
         {showDetails && (
@@ -468,7 +516,10 @@ export default function ReadingScreen() {
         {!isVip && (
           <TouchableOpacity
             style={styles.tierUpgradeBtn}
-            onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
+            onPress={() => {
+              trackNamedEvent('plan_select', { plan: 'vip', source: 'reading_tier_card' });
+              router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } });
+            }}
           >
             <Text style={styles.tierUpgradeText}>立即解锁当前结果（可继续追问）</Text>
           </TouchableOpacity>
@@ -556,10 +607,10 @@ export default function ReadingScreen() {
               {`按每周约 5 次测算，深度解签本月约需 ${projectedMonthlyPoints} 积分（约 ${projectedCheckinDays} 天签到）。`}
             </Text>
             <View style={styles.smartCtaActions}>
-              <TouchableOpacity style={styles.smartCtaPrimary} onPress={openPointsMall}>
+              <TouchableOpacity style={styles.smartCtaPrimary} onPress={openPointsMallWithTrack}>
                 <Text style={styles.smartCtaPrimaryText}>去充值积分</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.smartCtaSecondary} onPress={openVipPlan}>
+              <TouchableOpacity style={styles.smartCtaSecondary} onPress={openVipPlanWithTrack}>
                 <Text style={styles.smartCtaSecondaryText}>开会员更划算</Text>
               </TouchableOpacity>
             </View>
@@ -1080,6 +1131,20 @@ const styles = StyleSheet.create({
     color: '#F7F6F0',
     fontSize: 13,
     fontWeight: '600',
+  },
+  assetCard: {
+    borderColor: '#5A417F',
+  },
+  assetText: {
+    color: '#D7CEE8',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  assetHint: {
+    color: '#9688B2',
+    fontSize: 12,
+    lineHeight: 18,
   },
   toggleDetailsText: {
     color: '#F8D05F',

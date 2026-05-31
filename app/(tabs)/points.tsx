@@ -29,6 +29,7 @@ import {
   chartApi,
 } from '../../src/services/api';
 import { membershipExpiryDate, isMembershipActive } from '../../src/utils/membership';
+import { trackNamedEvent } from '../../src/services/analytics';
 
 const colors = theme.dark;
 
@@ -168,6 +169,11 @@ export default function PointsMallScreen() {
       try {
         const paymentStatus = await paymentApi.getByIdStatus(paymentId);
         if (paymentStatus.status === 'completed') {
+          trackNamedEvent('payment_success', {
+            source: 'polling',
+            productType: paymentStatus.productType,
+            paymentId,
+          });
           await refreshMembershipAndChart();
           if (paymentStatus.productType === 'subscription') {
             Alert.alert('支付成功', '会员权益已到账，八字高级解读已解锁。');
@@ -228,6 +234,9 @@ export default function PointsMallScreen() {
   useEffect(() => {
     const tab = params.tab as TabType | undefined;
     const focusVip = params.focus === 'vip';
+    if (focusVip) {
+      trackNamedEvent('paywall_show', { source: 'points_focus_vip' });
+    }
     if (tab === 'mall') setActiveTab('mall');
     else if (tab === 'subscription' || focusVip) setActiveTab('subscription');
   }, [params.tab, params.focus]);
@@ -289,6 +298,12 @@ export default function PointsMallScreen() {
 
     try {
       setPurchasing(product.id);
+      trackNamedEvent('checkout_start', {
+        productId: product.id,
+        productCode: product.code,
+        productType: product.type,
+        price: product.price,
+      });
       
       const result: CheckoutResult = await paymentApi.createCheckout(product.id);
       
@@ -304,6 +319,12 @@ export default function PointsMallScreen() {
               onPress: async () => {
                 try {
                   await paymentApi.mockPayment(result.paymentId);
+                  trackNamedEvent('payment_success', {
+                    source: 'mock',
+                    productType: product.type,
+                    productId: product.id,
+                    paymentId: result.paymentId,
+                  });
                   await refreshMembershipAndChart();
                   if (isSubscription) {
                     Alert.alert('成功', 'VIP会员已开通！');
@@ -375,6 +396,7 @@ export default function PointsMallScreen() {
   const bestPointUnitPrice = getBestPointUnitPrice(pointsProducts);
   const vipMonthly = subscriptionProducts.find((p) => p.code === 'vip_monthly');
   const vipYearly = subscriptionProducts.find((p) => p.code === 'vip_yearly');
+  const recommendedPlanCode = vipYearly?.code || vipMonthly?.code || null;
   const monthlyBreakEvenReading = calcBreakEvenRuns(vipMonthly?.price ?? 0, readingCost, bestPointUnitPrice);
   const monthlyBreakEvenZi = calcBreakEvenRuns(vipMonthly?.price ?? 0, ziCost, bestPointUnitPrice);
   const yearlyBreakEvenReading = calcBreakEvenRuns(vipYearly?.price ?? 0, readingCost, bestPointUnitPrice);
@@ -388,7 +410,10 @@ export default function PointsMallScreen() {
       <View style={styles.tabRow}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'subscription' && styles.tabActive]}
-          onPress={() => setActiveTab('subscription')}
+          onPress={() => {
+            setActiveTab('subscription');
+            trackNamedEvent('plan_select', { plan: 'subscription_tab', source: 'points_tabs' });
+          }}
         >
           <Text style={[styles.tabText, activeTab === 'subscription' && styles.tabTextActive]}>
             👑 订阅
@@ -396,7 +421,10 @@ export default function PointsMallScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'mall' && styles.tabActive]}
-          onPress={() => setActiveTab('mall')}
+          onPress={() => {
+            setActiveTab('mall');
+            trackNamedEvent('plan_select', { plan: 'points_tab', source: 'points_tabs' });
+          }}
         >
           <Text style={[styles.tabText, activeTab === 'mall' && styles.tabTextActive]}>
             🎁 积分商城
@@ -413,8 +441,8 @@ export default function PointsMallScreen() {
         <View style={styles.topHintBanner}>
           <Text style={styles.topHintText}>
             {activeTab === 'subscription'
-              ? '订阅适合高频使用，权益在有效期内生效。'
-              : '积分按次消费，适合低频和灵活补充。'}
+              ? '订阅更适合高频用户：稳定拿到深度结果，减少单次决策成本。'
+              : '积分适合低频灵活补充：按次付费，先小额验证价值。'}
           </Text>
         </View>
 
@@ -505,15 +533,19 @@ export default function PointsMallScreen() {
                 subscriptionProducts.map((product) => {
                 const isPurchasing = purchasing === product.id;
                 const features = parseProductFeatures(product.features);
+                const isRecommended = recommendedPlanCode === product.code;
                 return (
                   <TouchableOpacity
                     key={product.id}
-                    style={styles.vipProductCard}
+                    style={[styles.vipProductCard, isRecommended && styles.recommendedCard]}
                     onPress={() => handlePurchase(product)}
                     disabled={isPurchasingAny || !user}
                   >
                     <View style={styles.vipProductHeader}>
-                      <Text style={styles.vipProductName}>{product.name}</Text>
+                      <View style={styles.vipProductNameWrap}>
+                        <Text style={styles.vipProductName}>{product.name}</Text>
+                        {isRecommended ? <Text style={styles.recommendedTag}>主推</Text> : null}
+                      </View>
                       <Text style={styles.vipProductPrice}>${formatUsd(product.price)}</Text>
                     </View>
                     <Text style={styles.vipProductDesc}>{product.description}</Text>
@@ -534,7 +566,7 @@ export default function PointsMallScreen() {
                         <ActivityIndicator color="#fff" size="small" />
                       ) : (
                         <Text style={styles.subscribeButtonText}>
-                          {!user ? '请先登录' : membershipActive ? '续费 / 延长会员' : '立即订阅'}
+                          {!user ? '请先登录' : membershipActive ? '续费并保持权益' : '升级解锁专业能力'}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -726,7 +758,7 @@ export default function PointsMallScreen() {
                         <ActivityIndicator color="#fff" size="small" />
                       ) : (
                         <Text style={styles.subscribeButtonText}>
-                          {!user ? '请先登录' : '立即购买'}
+                          {!user ? '请先登录' : '购买并立即到账'}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -1144,16 +1176,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#3D3D5C',
   },
+  recommendedCard: {
+    borderColor: '#F8D05F',
+    shadowColor: '#F8D05F',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
   vipProductHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
+  vipProductNameWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
   vipProductName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#F7F6F0',
+  },
+  recommendedTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: '#F8D05F',
+    color: '#1A1A2E',
+    fontSize: 10,
+    fontWeight: '700',
   },
   vipProductPrice: {
     fontSize: 24,

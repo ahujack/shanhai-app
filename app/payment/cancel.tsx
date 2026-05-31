@@ -1,9 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
+import { trackNamedEvent } from '../../src/services/analytics';
 
 export default function PaymentCancelScreen() {
   const router = useRouter();
+  React.useEffect(() => {
+    trackNamedEvent('paywall_show', { source: 'payment_cancel_page' });
+  }, []);
 
   return (
     <>
@@ -11,20 +15,26 @@ export default function PaymentCancelScreen() {
       <View style={styles.container}>
         <View style={styles.panel}>
           <Text style={styles.title}>支付已取消</Text>
-          <Text style={styles.body}>未扣款。如需开通 VIP 或充值积分，可在山海灵境内打开「灵石」继续操作。</Text>
+          <Text style={styles.body}>未扣款。你可以先回到灵石页继续选择套餐，或切换积分包先小额体验。</Text>
           <TouchableOpacity
             style={styles.btn}
-            onPress={() => router.replace({ pathname: '/points', params: { tab: 'subscription' } } as any)}
+            onPress={() => {
+              trackNamedEvent('plan_select', { plan: 'subscription_tab', source: 'payment_cancel_page' });
+              router.replace({ pathname: '/points', params: { tab: 'subscription' } } as any);
+            }}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnText}>返回订阅</Text>
+            <Text style={styles.btnText}>返回订阅方案</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryBtn}
-            onPress={() => router.replace({ pathname: '/points', params: { tab: 'mall' } } as any)}
+            onPress={() => {
+              trackNamedEvent('plan_select', { plan: 'points_tab', source: 'payment_cancel_page' });
+              router.replace({ pathname: '/points', params: { tab: 'mall' } } as any);
+            }}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryBtnText}>去积分商城</Text>
+            <Text style={styles.secondaryBtnText}>去积分包体验</Text>
           </TouchableOpacity>
           <Text style={styles.tip}>若你已扣款但页面显示取消，请前往「支付成功页」复制订单号并联系客服。</Text>
         </View>
