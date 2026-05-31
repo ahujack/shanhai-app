@@ -3,7 +3,6 @@ import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, Keyboa
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Clipboard from 'expo-clipboard';
 import theme from '../../constants/Colors';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
@@ -15,9 +14,6 @@ import PersonaPicker from '../../components/PersonaPicker';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import OnboardingModal from '../../components/OnboardingModal';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
-import PromptChips from '../../components/ui/PromptChips';
-import TaskStepper from '../../components/ui/TaskStepper';
-import ResultActionBar, { ResultAction } from '../../components/ui/ResultActionBar';
 
 // 主题颜色
 const colors = theme.dark;
@@ -30,13 +26,6 @@ const DRAW_ANIMATION_CONFIG = {
   particleBaseMs: 1800,
   resultGlowMs: 1800,
 };
-const CHAT_TASK_STEPS = ['目标确认', '资料收集', '草稿生成', '优化完成', '可导出'];
-const HOME_PROMPTS = [
-  '帮我做一个7天复购活动，预算5000',
-  '把这段产品介绍改成高转化口播',
-  '做一份竞品卖点与定价分析',
-  '帮我把想法整理成执行清单',
-];
 const D1_RETURN_KEY = 'analytics_last_active_date';
 
 export default function HomeScreen() {
@@ -240,23 +229,6 @@ export default function HomeScreen() {
     });
     return map;
   }, [messages]);
-  const lastAssistantMessage = React.useMemo(
-    () => [...messages].reverse().find((m) => m.role === 'assistant'),
-    [messages],
-  );
-  const currentTaskStep = React.useMemo(() => {
-    if (!messages.length) return 0;
-    if (isLoading) return 2;
-    if (lastAssistantMessage) return 3;
-    return 1;
-  }, [messages.length, isLoading, lastAssistantMessage]);
-  const resultActions: ResultAction[] = [
-    { key: 'continue', label: '继续优化' },
-    { key: 'tone', label: '换风格' },
-    { key: 'short', label: '压缩到300字' },
-    { key: 'todo', label: '生成执行清单' },
-    { key: 'export', label: '导出摘要' },
-  ];
 
   useEffect(() => {
     trackNamedEvent('home_view', { personaId: persona.id });
@@ -429,30 +401,6 @@ export default function HomeScreen() {
       AsyncStorage.setItem(ziNudgeDailyStorageKey, todayKey).catch(() => null);
     }
   };
-  const handleResultAction = async (action: ResultAction) => {
-    if (!lastAssistantMessage || isLoading) return;
-    trackNamedEvent('result_action_click', { action: action.key, source: 'chat_home' });
-    if (action.key === 'export') {
-      await Clipboard.setStringAsync(lastAssistantMessage.content || '');
-      showToast('摘要已复制，可直接导出使用', 'success');
-      return;
-    }
-    const promptByAction: Record<string, string> = {
-      continue: '请在上一版基础上继续优化，让结构更清晰并给出优先级。',
-      tone: '请把上一版改成更专业、更像顾问交付稿的语气。',
-      short: '请把上一版压缩成300字以内，保留核心建议。',
-      todo: '请把上一版改成可执行任务清单，按今天/本周/本月分组。',
-    };
-    const prompt = promptByAction[action.key];
-    if (!prompt) return;
-    shouldAutoScrollRef.current = true;
-    await sendMessage(prompt, persona.id, 'calm');
-  };
-  useEffect(() => {
-    if (lastAssistantMessage && messages.filter((m) => m.role === 'assistant').length === 1) {
-      trackNamedEvent('first_result_rendered', { scene: 'chat_home' });
-    }
-  }, [lastAssistantMessage, messages]);
 
   const encodeWavFromAudioBuffer = (audioBuffer: AudioBuffer): Blob => {
     const targetSampleRate = 16000;
@@ -917,11 +865,6 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.contentRail}>
-          <View style={styles.workspacePanel}>
-            <Text style={styles.workspaceTitle}>把复杂问题，变成可执行结果</Text>
-            <Text style={styles.workspaceSubtitle}>输入目标后会自动生成方案、步骤和下一步建议。</Text>
-            <TaskStepper currentStep={currentTaskStep} labels={CHAT_TASK_STEPS} />
-          </View>
           <ScrollView 
             ref={scrollViewRef}
             style={styles.chatContainer}
@@ -949,18 +892,28 @@ export default function HomeScreen() {
                 <Text style={styles.welcomeText}>
                   {persona.greeting}
                 </Text>
-                <Text style={styles.welcomeHint}>你可以直接输入诉求，也可以先试试这些高价值模板。</Text>
-                <Text style={styles.suggestedTitle}>快速开始</Text>
-                <PromptChips
-                  items={HOME_PROMPTS}
-                  disabled={isLoading}
-                  onSelect={(q) => {
-                    if (isLoading) return;
-                    trackNamedEvent('example_click', { value: q });
-                    shouldAutoScrollRef.current = true;
-                    setInputText(q);
-                  }}
-                />
+                <Text style={styles.welcomeHint}>
+                  你可以问我关于占卜、命盘的问题，或者只是想聊聊。
+                </Text>
+                {/* 试试问我 - 示例问题 */}
+                <Text style={styles.suggestedTitle}>试试问我</Text>
+                <View style={styles.suggestedChips}>
+                  {['感情该不该继续？', '我的命盘', '帮我占卜一下', '测一个字'].map((q) => (
+                    <TouchableOpacity
+                      key={q}
+                      style={styles.suggestedChip}
+                      onPress={() => {
+                        if (isLoading) return;
+                        shouldAutoScrollRef.current = true;
+                        sendMessage(q, persona.id, 'calm');
+                      }}
+                      disabled={isLoading}
+                      accessibilityLabel={`提问：${q}`}
+                    >
+                      <Text style={styles.suggestedChipText}>{q}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             </>
           )}
@@ -1003,12 +956,6 @@ export default function HomeScreen() {
                   <Text style={styles.ziNudgeSecondaryText}>先继续聊</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          )}
-          {!isLoading && lastAssistantMessage && (
-            <View style={styles.resultActionCard}>
-              <Text style={styles.resultActionTitle}>下一步</Text>
-              <ResultActionBar actions={resultActions} onPress={handleResultAction} />
             </View>
           )}
           </ScrollView>
@@ -2024,28 +1971,6 @@ const styles = StyleSheet.create({
   chatContainer: {
     flex: 1,
   },
-  workspacePanel: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 4,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#2F2342',
-    backgroundColor: '#141024',
-  },
-  workspaceTitle: {
-    color: '#F8D05F',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  workspaceSubtitle: {
-    color: '#B9ACD3',
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 10,
-  },
   chatContent: {
     padding: 16,
     paddingBottom: 18,
@@ -2128,19 +2053,6 @@ const styles = StyleSheet.create({
   suggestedChipText: {
     color: '#B2B4C8',
     fontSize: 13,
-  },
-  resultActionCard: {
-    marginTop: 10,
-    backgroundColor: '#171129',
-    borderRadius: 12,
-    borderColor: '#322243',
-    borderWidth: 1,
-    padding: 12,
-  },
-  resultActionTitle: {
-    color: '#EBDDA7',
-    fontSize: 13,
-    fontWeight: '700',
   },
   bubbleContainer: {
     marginBottom: 12,

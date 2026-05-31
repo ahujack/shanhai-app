@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import theme from '../../constants/Colors';
@@ -10,7 +9,6 @@ import AccuracyFeedback from '../../components/AccuracyFeedback';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
-import ResultActionBar, { ResultAction } from '../../components/ui/ResultActionBar';
 
 const colors = theme.dark;
 
@@ -295,33 +293,6 @@ export default function ReadingScreen() {
 
     router.push('/');
   };
-  const resultActions: ResultAction[] = [
-    { key: 'copy', label: '复制结论' },
-    { key: 'summary', label: '生成执行摘要' },
-    { key: 'risk', label: '只看风险提醒' },
-    { key: 'chat', label: '继续追问' },
-  ];
-  const handleResultAction = async (action: ResultAction) => {
-    if (!result) return;
-    trackNamedEvent('result_action_click', { action: action.key, source: 'reading_result' });
-    if (action.key === 'copy') {
-      await Clipboard.setStringAsync(result.conclusion?.verdict || result.interpretation.overall || '');
-      return;
-    }
-    if (action.key === 'chat') {
-      handleDeepConversation();
-      return;
-    }
-    if (action.key === 'summary') {
-      setQuestion(`请把这次占卜结论整理成「今天/本周/本月」执行清单：${result.question}`);
-      setResult(null);
-      return;
-    }
-    if (action.key === 'risk') {
-      setQuestion(`请基于当前卦象只输出风险预警与规避动作：${result.question}`);
-      setResult(null);
-    }
-  };
   const openPointsMallWithTrack = () => {
     trackNamedEvent('plan_select', { plan: 'points_pack', source: 'reading_paywall' });
     openPointsMall();
@@ -395,13 +366,6 @@ export default function ReadingScreen() {
           <TouchableOpacity style={styles.toggleDetailsButton} onPress={() => setShowDetails((v) => !v)}>
             <Text style={styles.toggleDetailsText}>{showDetails ? '收起详细解读' : '展开详细解读'}</Text>
           </TouchableOpacity>
-          <ResultActionBar actions={resultActions} onPress={handleResultAction} />
-        </View>
-        <View style={[styles.card, styles.assetCard, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>📌 结果摘要资产</Text>
-          <Text style={styles.assetText}>问题：{result.question}</Text>
-          <Text style={styles.assetText}>关键结论：{result.conclusion?.verdict || result.interpretation.overall}</Text>
-          <Text style={styles.assetHint}>你可以用上方动作条一键变成执行清单，继续追问时会继承本次结果上下文。</Text>
         </View>
 
         {showDetails && (
@@ -1131,20 +1095,6 @@ const styles = StyleSheet.create({
     color: '#F7F6F0',
     fontSize: 13,
     fontWeight: '600',
-  },
-  assetCard: {
-    borderColor: '#5A417F',
-  },
-  assetText: {
-    color: '#D7CEE8',
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  assetHint: {
-    color: '#9688B2',
-    fontSize: 12,
-    lineHeight: 18,
   },
   toggleDetailsText: {
     color: '#F8D05F',
