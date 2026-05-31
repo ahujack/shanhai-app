@@ -945,6 +945,7 @@ export default function HomeScreen() {
                       style={styles.suggestedChip}
                       onPress={() => void sendUserMessage(item.prompt, 'quick_template')}
                       disabled={isLoading}
+                      activeOpacity={0.82}
                       accessibilityLabel={`提问：${item.prompt}`}
                     >
                       <Text style={styles.suggestedChipLabel}>{item.label}</Text>
@@ -2036,7 +2037,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     paddingBottom: 18,
   },
   welcomeCard: {
@@ -2136,11 +2138,11 @@ const styles = StyleSheet.create({
   suggestedChip: {
     backgroundColor: '#1A2233',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2A3448',
-    minWidth: 92,
+    borderColor: '#33415A',
+    minWidth: 96,
   },
   suggestedChipLabel: {
     color: '#E8ECF3',
@@ -2149,7 +2151,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   suggestedChipText: {
-    color: '#AAB3C5',
+    color: '#B8C0D0',
     fontSize: 12,
     lineHeight: 16,
   },
@@ -2273,7 +2275,7 @@ const styles = StyleSheet.create({
   entryActionRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 9,
   },
   entryActionBtn: {
     borderRadius: 12,
@@ -2337,7 +2339,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#2A3448',
+    borderColor: '#33415A',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -2374,6 +2376,7 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
     fontWeight: 'bold',
     fontSize: 14,
+    letterSpacing: 0.2,
   },
   voiceButton: {
     backgroundColor: '#1A2233',
