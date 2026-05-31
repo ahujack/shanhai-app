@@ -413,6 +413,19 @@ export default function PointsMallScreen() {
   const yearlyBreakEvenZi = calcBreakEvenRuns(vipYearly?.price ?? 0, ziCost, bestPointUnitPrice);
   const monthlyReadingPoints = readingCost * 20;
   const monthlyReadingCheckinDays = Math.ceil(monthlyReadingPoints / DAILY_CHECKIN_POINTS);
+  const getPlanFitHint = (product: PaymentProduct) => {
+    if (product.code === 'vip_yearly') {
+      return yearlyBreakEvenReading != null
+        ? `适合长期稳定使用：约每年 ${yearlyBreakEvenReading} 次深度解签可覆盖积分成本。`
+        : '适合长期稳定使用，年度心智负担更低。';
+    }
+    if (product.code === 'vip_monthly') {
+      return monthlyBreakEvenReading != null
+        ? `适合近期高频使用：约每月 ${monthlyBreakEvenReading} 次深度解签可覆盖积分成本。`
+        : '适合近期高频使用，先小周期验证价值。';
+    }
+    return '适合想持续使用完整能力的用户。';
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -451,8 +464,8 @@ export default function PointsMallScreen() {
         <View style={styles.topHintBanner}>
           <Text style={styles.topHintText}>
             {activeTab === 'subscription'
-              ? '订阅更适合高频用户：稳定拿到深度结果，减少单次决策成本。'
-              : '积分适合低频灵活补充：按次付费，先小额验证价值。'}
+              ? '先看适配频率，再选方案：高频更建议订阅，省去每次决策与扣分焦虑。'
+              : '低频先走积分最稳妥：按次付费、小额验证，觉得有价值再升级。'}
           </Text>
         </View>
 
@@ -531,6 +544,15 @@ export default function PointsMallScreen() {
             >
               <Text style={styles.sectionTitle}>⭐ VIP 会员</Text>
               <Text style={styles.sectionSubtitle}>开通VIP，享无限次AI解读</Text>
+              <View style={styles.decisionCard}>
+                <Text style={styles.decisionTitle}>如何判断现在适合订阅？</Text>
+                <Text style={styles.decisionLine}>
+                  过去 7 天若你有 3 次以上深度解读需求，订阅通常比按次补积分更省心。
+                </Text>
+                <Text style={styles.decisionLine}>
+                  你也可以先选月卡验证，再决定是否切年卡，避免一次性决策压力。
+                </Text>
+              </View>
               {highlightVip ? <Text style={styles.focusTip}>👑 推荐：解锁八字老师傅批注与完整流年细化</Text> : null}
               {subscriptionProducts.length === 0 ? (
                 <View style={styles.emptyStateCard}>
@@ -559,6 +581,7 @@ export default function PointsMallScreen() {
                       <Text style={styles.vipProductPrice}>${formatUsd(product.price)}</Text>
                     </View>
                     <Text style={styles.vipProductDesc}>{product.description}</Text>
+                    <Text style={styles.planFitHint}>{getPlanFitHint(product)}</Text>
                     <View style={styles.featuresList}>
                       {features.map((feature: string, index: number) => (
                         <View key={index} style={styles.featureItem}>
@@ -580,6 +603,7 @@ export default function PointsMallScreen() {
                         </Text>
                       )}
                     </TouchableOpacity>
+                    <Text style={styles.checkoutTrustText}>支付后 1-3 分钟内到账；异常可携订单号联系 support@shanhai.app</Text>
                   </TouchableOpacity>
                 );
               })
@@ -772,6 +796,7 @@ export default function PointsMallScreen() {
                         </Text>
                       )}
                     </TouchableOpacity>
+                    <Text style={styles.checkoutTrustText}>按次扣费更灵活，后续可随时切换订阅；价格与到账时效以收银台为准</Text>
                   </TouchableOpacity>
                 );
               })
@@ -1167,6 +1192,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 10,
   },
+  decisionCard: {
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: ui.border,
+    backgroundColor: ui.card,
+  },
+  decisionTitle: {
+    color: ui.text,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  decisionLine: {
+    color: ui.textSub,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -1228,7 +1273,13 @@ const styles = StyleSheet.create({
   vipProductDesc: {
     fontSize: 14,
     color: ui.textSub,
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  planFitHint: {
+    color: '#94A0B8',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 12,
   },
   featuresList: {
     gap: 8,
@@ -1260,6 +1311,12 @@ const styles = StyleSheet.create({
     color: '#F5F7FB',
     fontSize: 16,
     fontWeight: '600',
+  },
+  checkoutTrustText: {
+    marginTop: 8,
+    color: '#94A0B8',
+    fontSize: 11,
+    lineHeight: 16,
   },
   warningBanner: {
     margin: 16,

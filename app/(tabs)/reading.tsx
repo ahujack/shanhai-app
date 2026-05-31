@@ -46,7 +46,7 @@ export default function ReadingScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DivinationResult | null>(null);
-  const [showDetails, setShowDetails] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
   const [showFortuneSource, setShowFortuneSource] = useState(true);
   const [readingPointsCost, setReadingPointsCost] = useState(15);
   const [availablePoints, setAvailablePoints] = useState<number | null>(null);
@@ -87,7 +87,7 @@ export default function ReadingScreen() {
   useEffect(() => {
     if (!fromChatReading || !lastReading) return;
     setResult(lastReading);
-    setShowDetails(true);
+    setShowDetails(false);
   }, [fromChatReading, lastReading]);
 
   const categories = [
@@ -184,7 +184,7 @@ export default function ReadingScreen() {
       });
       setResult(deepReading);
       trackFeature('reading_complete', { source: 'fortune', category: inferCategoryFromFortuneTheme() });
-      setShowDetails(true);
+      setShowDetails(false);
       setShowSmartCta(false);
       await refreshPointsBalance();
     } catch (err: any) {
@@ -301,6 +301,10 @@ export default function ReadingScreen() {
     trackNamedEvent('plan_select', { plan: 'vip', source: 'reading_paywall' });
     openVipPlan();
   };
+  const openPricingWithTrack = () => {
+    trackNamedEvent('plan_select', { plan: 'pricing_compare', source: 'reading_result' });
+    router.push('/pricing');
+  };
 
   if (result) {
     const movingLines = result.hexagram.lines.filter((line) => line === '6' || line === '9').length;
@@ -363,8 +367,16 @@ export default function ReadingScreen() {
           <TouchableOpacity style={styles.quickChatBtn} onPress={handleDeepConversation}>
             <Text style={styles.quickChatBtnText}>先聊聊我的感受</Text>
           </TouchableOpacity>
+          <View style={styles.conclusionActionsRow}>
+            <TouchableOpacity style={styles.conclusionSecondaryBtn} onPress={openPricingWithTrack}>
+              <Text style={styles.conclusionSecondaryText}>看方案对比</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.conclusionSecondaryBtn} onPress={openVipPlanWithTrack}>
+              <Text style={styles.conclusionSecondaryText}>看会员权益</Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity style={styles.toggleDetailsButton} onPress={() => setShowDetails((v) => !v)}>
-            <Text style={styles.toggleDetailsText}>{showDetails ? '收起详细解读' : '展开详细解读'}</Text>
+            <Text style={styles.toggleDetailsText}>{showDetails ? '收起完整细节' : '展开完整细节'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -578,6 +590,15 @@ export default function ReadingScreen() {
                 <Text style={styles.smartCtaSecondaryText}>开会员更划算</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              style={styles.smartCtaGhost}
+              onPress={() => {
+                trackNamedEvent('plan_select', { plan: 'chat_first', source: 'reading_paywall' });
+                router.push('/');
+              }}
+            >
+              <Text style={styles.smartCtaGhostText}>先回首页聊聊，不立即解锁</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -846,6 +867,7 @@ const styles = StyleSheet.create({
   smartCtaActions: {
     flexDirection: 'row',
     gap: 10,
+    marginBottom: 10,
   },
   smartCtaPrimary: {
     flex: 1,
@@ -872,6 +894,19 @@ const styles = StyleSheet.create({
     color: '#E8ECF3',
     fontSize: 13,
     fontWeight: '700',
+  },
+  smartCtaGhost: {
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2A3448',
+    backgroundColor: '#121827',
+  },
+  smartCtaGhostText: {
+    color: '#AAB3C5',
+    fontSize: 12,
+    fontWeight: '600',
   },
   errorBox: {
     marginTop: 16,
@@ -1075,6 +1110,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     marginBottom: 12,
+  },
+  conclusionActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  conclusionSecondaryBtn: {
+    flex: 1,
+    backgroundColor: '#1A2233',
+    borderWidth: 1,
+    borderColor: '#2A3448',
+    borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  conclusionSecondaryText: {
+    color: '#E8ECF3',
+    fontSize: 12,
+    fontWeight: '600',
   },
   toggleDetailsButton: {
     alignSelf: 'flex-start',

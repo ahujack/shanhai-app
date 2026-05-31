@@ -26,6 +26,7 @@ export default function PaymentCancelScreen() {
         <View style={styles.panel}>
           <Text style={styles.title}>支付已取消</Text>
           <Text style={styles.body}>未发生扣款。你可以回到灵石页继续选择方案，或先用积分包体验。</Text>
+          <Text style={styles.subTip}>建议先按使用频率选方案：低频先积分，高频优先订阅。</Text>
           <TouchableOpacity
             style={styles.btn}
             onPress={() => {
@@ -45,6 +46,16 @@ export default function PaymentCancelScreen() {
             activeOpacity={0.85}
           >
             <Text style={styles.secondaryBtnText}>去积分包体验</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() => {
+              trackNamedEvent('plan_select', { plan: 'pricing_compare', source: 'payment_cancel_page' });
+              router.replace('/pricing' as any);
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryBtnText}>先看价格对比</Text>
           </TouchableOpacity>
           <Text style={styles.tip}>若你已扣款但页面显示取消，请前往「支付成功页」复制订单号并联系客服。</Text>
         </View>
@@ -84,6 +95,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 340,
     marginBottom: 28,
+  },
+  subTip: {
+    color: ui.text,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+    maxWidth: 340,
+    marginBottom: 12,
   },
   btn: {
     backgroundColor: ui.primary,

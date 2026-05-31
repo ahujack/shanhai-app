@@ -44,6 +44,16 @@ export default function PaymentSuccessScreen() {
     if (message.includes('会员权益已生效')) return 'subscription';
     return 'neutral';
   }, [phase, message]);
+  const nextStepTip = useMemo(() => {
+    if (phase !== 'done') return '';
+    if (donePrimaryKind === 'points') {
+      return '下一步建议：先确认积分余额，再继续占卜或深度解签。';
+    }
+    if (donePrimaryKind === 'subscription') {
+      return '下一步建议：先确认会员有效期，再进入占卜页继续当前问题。';
+    }
+    return '下一步建议：回到灵石页确认权益状态后继续使用。';
+  }, [phase, donePrimaryKind]);
 
   const paymentId = (() => {
     const a = params.paymentId ?? params.paymentid;
@@ -166,6 +176,10 @@ export default function PaymentSuccessScreen() {
     router.replace({ pathname: '/points', params: { tab: 'subscription' } } as any);
   const goPointsMall = () =>
     router.replace({ pathname: '/points', params: { tab: 'mall' } } as any);
+  const goReading = () => {
+    trackNamedEvent('plan_select', { plan: 'continue_reading', source: 'payment_success_page' });
+    router.replace('/(tabs)/reading' as any);
+  };
 
   return (
     <>
@@ -177,6 +191,7 @@ export default function PaymentSuccessScreen() {
             {phase === 'done' ? '✅ 陪伴已续上' : phase === 'error' || phase === 'missing' ? '提示' : '处理中'}
           </Text>
           <Text style={styles.body}>{message}</Text>
+          {nextStepTip ? <Text style={styles.nextStepTip}>{nextStepTip}</Text> : null}
           {phase !== 'polling' && (
             <View style={styles.actions}>
             {phase === 'done' && donePrimaryKind === 'points' ? (
@@ -197,8 +212,13 @@ export default function PaymentSuccessScreen() {
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.secondary} onPress={goHome} activeOpacity={0.85}>
-              <Text style={styles.secondaryText}>返回首页</Text>
+              <Text style={styles.secondaryText}>{phase === 'done' ? '返回首页聊天' : '返回首页'}</Text>
             </TouchableOpacity>
+            {phase === 'done' ? (
+              <TouchableOpacity style={styles.ghost} onPress={goReading} activeOpacity={0.85}>
+                <Text style={styles.ghostText}>去占卜页继续</Text>
+              </TouchableOpacity>
+            ) : null}
             {(phase === 'error' || phase === 'missing') && paymentId ? (
               <TouchableOpacity style={styles.ghost} onPress={retryCheck} activeOpacity={0.85}>
                 <Text style={styles.ghostText}>重新查询支付状态</Text>
@@ -253,6 +273,13 @@ const styles = StyleSheet.create({
     color: ui.textSub,
     textAlign: 'center',
     maxWidth: 360,
+  },
+  nextStepTip: {
+    marginTop: 10,
+    color: ui.text,
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   hint: {
     marginTop: 24,

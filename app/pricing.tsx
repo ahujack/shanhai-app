@@ -101,6 +101,12 @@ export default function PricingScreen() {
             先按次体验，再根据频率选择订阅；把玄学陪伴变成长期稳定的支持。
           </Text>
         </View>
+        <View style={styles.compareCard}>
+          <Text style={styles.compareTitle}>3 秒选方案</Text>
+          <Text style={styles.compareLine}>低频（每周 1-2 次）：先选积分包，按次体验最灵活。</Text>
+          <Text style={styles.compareLine}>高频（每周 3 次及以上）：优先订阅，省去重复决策和扣分焦虑。</Text>
+          <Text style={styles.compareLine}>不确定：先月卡验证，满意后再升级年卡。</Text>
+        </View>
         <Text style={styles.lead}>
           以下为山海灵境当前在售的数字化产品标价（含税费以支付页为准）。购买与退款规则见服务条款。
         </Text>
@@ -163,6 +169,9 @@ export default function PricingScreen() {
         <Text style={styles.note}>
           实际扣款币种与金额以结账页面（Creem 等支付通道）展示为准；促销或调价将在本页或应用内同步更新。
         </Text>
+        <Text style={styles.note}>
+          到账通常在 1-3 分钟内完成；若显示异常，可在支付结果页复制订单号联系 {SUPPORT_EMAIL}。
+        </Text>
         <TouchableOpacity
           onPress={() => {
             trackNamedEvent('plan_select', { plan: 'goto_points', source: 'pricing_page' });
@@ -170,7 +179,7 @@ export default function PricingScreen() {
           }}
           style={[styles.gotoMallBtn, webPointer]}
         >
-          <Text style={styles.gotoMallText}>前往灵石页，解锁专业能力</Text>
+          <Text style={styles.gotoMallText}>去灵石页，按使用频率选择方案</Text>
         </TouchableOpacity>
 
         <SiteComplianceFooter variant="full" />
@@ -234,6 +243,26 @@ const styles = StyleSheet.create({
     color: ui.textSub,
     fontSize: 13,
     lineHeight: 20,
+  },
+  compareCard: {
+    backgroundColor: ui.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: ui.border,
+    padding: 12,
+    marginBottom: 12,
+  },
+  compareTitle: {
+    color: ui.text,
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  compareLine: {
+    color: ui.textSub,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
   },
   termsBtn: {
     alignSelf: 'flex-start',

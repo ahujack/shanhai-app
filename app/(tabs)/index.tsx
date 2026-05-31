@@ -27,6 +27,12 @@ const DRAW_ANIMATION_CONFIG = {
   resultGlowMs: 1800,
 };
 const D1_RETURN_KEY = 'analytics_last_active_date';
+const QUICK_START_PROMPTS = [
+  { label: '关系', sub: '先判断要不要继续', prompt: '我现在这段感情该不该继续？请先给一句结论，再给我下一步。' },
+  { label: '事业', sub: '帮我看近期决策', prompt: '我最近在工作上很纠结，想知道现在该稳住还是主动调整。' },
+  { label: '命盘', sub: '用命盘看趋势', prompt: '结合我的命盘，帮我看接下来一个月的重点趋势和避坑点。' },
+  { label: '测字', sub: '先来轻量拆解', prompt: '我想测一个字，先帮我快速看看最近的整体状态。' },
+];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -59,6 +65,7 @@ export default function HomeScreen() {
   const [voiceDraftText, setVoiceDraftText] = useState('');
   const [voiceHint, setVoiceHint] = useState('');
   const [voiceStatusText, setVoiceStatusText] = useState('');
+  const [lastSendSource, setLastSendSource] = useState<'manual' | 'quick_template' | 'voice'>('manual');
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -380,18 +387,22 @@ export default function HomeScreen() {
     }
   };
 
-  const handleSend = async () => {
-    if (!inputText.trim() || isLoading) return;
-    
-    const message = inputText.trim();
+  const sendUserMessage = async (
+    rawText: string,
+    source: 'manual' | 'quick_template' | 'voice' = 'manual',
+  ) => {
+    const message = rawText.trim();
+    if (!message || isLoading) return;
     if (messages.length === 0) {
-      trackNamedEvent('first_input_submit', { source: 'manual' });
+      trackNamedEvent('first_input_submit', { source });
+    }
+    if (source === 'quick_template') {
+      trackNamedEvent('example_click', { source: 'home_quick_template', prompt: message.slice(0, 40) });
     }
     setInputText('');
     shouldAutoScrollRef.current = true;
+    setLastSendSource(source);
     await sendMessage(message, persona.id, 'calm');
-
-    // 聊到具体问题时再轻量引导测字，不自动弹窗
     if (shouldSuggestZi(message)) {
       setDetectedZi(extractZiCandidate(message));
       setZiQuestionSeed(message.slice(0, 120));
@@ -400,6 +411,10 @@ export default function HomeScreen() {
       setZiNudgeShownDate(todayKey);
       AsyncStorage.setItem(ziNudgeDailyStorageKey, todayKey).catch(() => null);
     }
+  };
+
+  const handleSend = async () => {
+    await sendUserMessage(inputText, 'manual');
   };
 
   const encodeWavFromAudioBuffer = (audioBuffer: AudioBuffer): Blob => {
@@ -496,22 +511,22 @@ export default function HomeScreen() {
     }
     setInputText(recognized);
     if (isLoading) return;
-    const message = recognized;
     voiceLatestTextRef.current = '';
     setVoiceDraftText('');
-    setInputText('');
-    shouldAutoScrollRef.current = true;
-    await sendMessage(message, persona.id, 'calm');
+    await sendUserMessage(recognized, 'voice');
     setVoiceStatusText('');
-    if (shouldSuggestZi(message)) {
-      setDetectedZi(extractZiCandidate(message));
-      setZiQuestionSeed(message.slice(0, 120));
-      setShowZiNudge(true);
-      const todayKey = getLocalDateKey();
-      setZiNudgeShownDate(todayKey);
-      AsyncStorage.setItem(ziNudgeDailyStorageKey, todayKey).catch(() => null);
-    }
   };
+
+  const loadingStageText = React.useMemo(() => {
+    if (!isLoading) return '';
+    if (lastSendSource === 'quick_template') {
+      return `${persona.name} 正在把你的情境转成可执行建议...`;
+    }
+    if (lastSendSource === 'voice') {
+      return `${persona.name} 正在整理你刚才的语音重点...`;
+    }
+    return `${persona.name} 正在拆解问题并生成第一版结论...`;
+  }, [isLoading, lastSendSource, persona.name]);
 
   const handleInputKeyPress = (e: any) => {
     if (Platform.OS !== 'web') return;
@@ -896,21 +911,18 @@ export default function HomeScreen() {
                   你可以问我关于占卜、命盘的问题，或者只是想聊聊。
                 </Text>
                 {/* 试试问我 - 示例问题 */}
-                <Text style={styles.suggestedTitle}>试试问我</Text>
+                <Text style={styles.suggestedTitle}>一键直发</Text>
                 <View style={styles.suggestedChips}>
-                  {['感情该不该继续？', '我的命盘', '帮我占卜一下', '测一个字'].map((q) => (
+                  {QUICK_START_PROMPTS.map((item) => (
                     <TouchableOpacity
-                      key={q}
+                      key={item.label}
                       style={styles.suggestedChip}
-                      onPress={() => {
-                        if (isLoading) return;
-                        shouldAutoScrollRef.current = true;
-                        sendMessage(q, persona.id, 'calm');
-                      }}
+                      onPress={() => void sendUserMessage(item.prompt, 'quick_template')}
                       disabled={isLoading}
-                      accessibilityLabel={`提问：${q}`}
+                      accessibilityLabel={`提问：${item.prompt}`}
                     >
-                      <Text style={styles.suggestedChipText}>{q}</Text>
+                      <Text style={styles.suggestedChipLabel}>{item.label}</Text>
+                      <Text style={styles.suggestedChipText}>{item.sub}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -932,7 +944,7 @@ export default function HomeScreen() {
           {isLoading && (
             <View style={[styles.typingIndicator, { backgroundColor: colors.surface }]}>
               <ActivityIndicator size="small" color={colors.accent} />
-              <Text style={styles.typingText}>{persona.name} 正在思考...</Text>
+              <Text style={styles.typingText}>{loadingStageText || `${persona.name} 正在思考...`}</Text>
             </View>
           )}
 
@@ -962,6 +974,9 @@ export default function HomeScreen() {
 
           {/* 输入区域 */}
           <View style={styles.inputContainer}>
+            {isLoading ? (
+              <Text style={styles.processHint}>正在生成第一版结论，通常 3-8 秒即可看到结果。</Text>
+            ) : null}
             {(isVoiceListening || voiceDraftText.trim().length > 0) && (
               <View style={styles.voicePreviewBar}>
                 <Text style={styles.voicePreviewText} numberOfLines={2}>
@@ -2049,10 +2064,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#2A3448',
+    minWidth: 92,
+  },
+  suggestedChipLabel: {
+    color: '#E8ECF3',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   suggestedChipText: {
     color: '#AAB3C5',
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 16,
   },
   bubbleContainer: {
     marginBottom: 12,
@@ -2170,6 +2193,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#0B0D14',
     borderTopWidth: 1,
     borderTopColor: '#2A3448',
+  },
+  processHint: {
+    color: '#94A0B8',
+    fontSize: 11,
+    marginBottom: 6,
+    paddingHorizontal: 2,
   },
   voicePreviewBar: {
     marginBottom: 8,
