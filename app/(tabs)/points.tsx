@@ -25,11 +25,13 @@ import {
   PointsSummary,
   PointRecord,
   BillingRules,
+  MembershipValueSnapshot,
   userApi,
   chartApi,
 } from '../../src/services/api';
 import { membershipExpiryDate, isMembershipActive } from '../../src/utils/membership';
 import { trackNamedEvent } from '../../src/services/analytics';
+import { getGrowthConfig, type GrowthConfig } from '../../src/config/growth';
 
 const colors = theme.dark;
 const ui = {
@@ -135,6 +137,8 @@ export default function PointsMallScreen() {
   const [pointRecords, setPointRecords] = useState<PointRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [billingRules, setBillingRules] = useState<BillingRules | null>(null);
+  const [membershipValue, setMembershipValue] = useState<MembershipValueSnapshot | null>(null);
+  const [growthConfig, setGrowthConfig] = useState<GrowthConfig | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const isPurchasingAny = Boolean(purchasing);
 
@@ -214,6 +218,21 @@ export default function PointsMallScreen() {
   }, []);
 
   useEffect(() => {
+    getGrowthConfig()
+      .then(setGrowthConfig)
+      .catch(() => null);
+  }, []);
+
+  useEffect(() => {
+    if (!membershipValue) return;
+    trackNamedEvent('member_value_view', {
+      membership: membershipValue.membership,
+      deepReadings30d: membershipValue.deepReadings30d,
+      estimatedSavedPoints30d: membershipValue.estimatedSavedPoints30d,
+    });
+  }, [membershipValue]);
+
+  useEffect(() => {
     let alive = true;
     AsyncStorage.getItem(MEMBERSHIP_RENEWAL_NUDGE_KEY).then((v) => {
       if (alive) setRenewalNudgeEnabled(v === '1');
@@ -280,6 +299,12 @@ export default function PointsMallScreen() {
       setCreemConfigured(paymentConfigured);
       setPointsSummary(pointsData);
       setBillingRules(rulesData);
+      if (user?.id) {
+        const value = await pointsApi.getMembershipValue().catch(() => null);
+        setMembershipValue(value);
+      } else {
+        setMembershipValue(null);
+      }
     } catch (error) {
       console.error('Failed to load products:', error);
       setLoadError('加载支付商品失败，请检查网络后重试');
@@ -406,7 +431,12 @@ export default function PointsMallScreen() {
   const bestPointUnitPrice = getBestPointUnitPrice(pointsProducts);
   const vipMonthly = subscriptionProducts.find((p) => p.code === 'vip_monthly');
   const vipYearly = subscriptionProducts.find((p) => p.code === 'vip_yearly');
-  const recommendedPlanCode = vipYearly?.code || vipMonthly?.code || null;
+  const recommendedPlanCode =
+    growthConfig?.recommendedPlan === 'vip_monthly'
+      ? vipMonthly?.code || vipYearly?.code || null
+      : growthConfig?.recommendedPlan === 'vip_yearly'
+        ? vipYearly?.code || vipMonthly?.code || null
+        : vipYearly?.code || vipMonthly?.code || null;
   const monthlyBreakEvenReading = calcBreakEvenRuns(vipMonthly?.price ?? 0, readingCost, bestPointUnitPrice);
   const monthlyBreakEvenZi = calcBreakEvenRuns(vipMonthly?.price ?? 0, ziCost, bestPointUnitPrice);
   const yearlyBreakEvenReading = calcBreakEvenRuns(vipYearly?.price ?? 0, readingCost, bestPointUnitPrice);
@@ -464,8 +494,12 @@ export default function PointsMallScreen() {
         <View style={styles.topHintBanner}>
           <Text style={styles.topHintText}>
             {activeTab === 'subscription'
-              ? '先看适配频率，再选方案：高频更建议订阅，省去每次决策与扣分焦虑。'
-              : '低频先走积分最稳妥：按次付费、小额验证，觉得有价值再升级。'}
+              ? growthConfig?.pointsTopHintVariant === 'price_first'
+                ? '先看回本阈值再决策：高频订阅更省，低频积分更灵活。'
+                : '先看适配频率，再选方案：高频更建议订阅，省去每次决策与扣分焦虑。'
+              : growthConfig?.pointsTopHintVariant === 'price_first'
+                ? '积分适合先验证价值：小额按次，后续再按频率升级。'
+                : '低频先走积分最稳妥：按次付费、小额验证，觉得有价值再升级。'}
           </Text>
         </View>
 
@@ -536,6 +570,19 @@ export default function PointsMallScreen() {
                 参考：若每周约 5 次深度解签，月均约需 {monthlyReadingPoints} 积分（约 {monthlyReadingCheckinDays} 天签到）。
               </Text>
             </View>
+            {membershipValue && membershipValue.membership !== 'free' ? (
+              <View style={styles.memberValueCard}>
+                <Text style={styles.memberValueTitle}>📈 你的会员价值（近30天）</Text>
+                <View style={styles.memberValueList}>
+                  <Text style={styles.memberValueItem}>• 深度解读使用次数：{membershipValue.deepReadings30d} 次</Text>
+                  <Text style={styles.memberValueItem}>• 预计节省积分：{membershipValue.estimatedSavedPoints30d} 点</Text>
+                  <Text style={styles.memberValueItem}>• 预计节省金额：${membershipValue.estimatedSavedUsd30d.toFixed(2)}</Text>
+                </View>
+                <Text style={styles.memberValueFootnote}>
+                  当前会员剩余约 {membershipValue.daysLeft} 天。以上为估算值，用于帮助你判断使用收益。
+                </Text>
+              </View>
+            ) : null}
 
             {/* VIP 订阅 */}
             <View

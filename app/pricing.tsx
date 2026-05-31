@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { paymentApi, PaymentProduct } from '../src/services/api';
 import { SiteComplianceFooter, SUPPORT_EMAIL } from '../components/SiteComplianceFooter';
 import { trackNamedEvent } from '../src/services/analytics';
+import { getGrowthConfig, type GrowthConfig } from '../src/config/growth';
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
 const ui = {
@@ -33,6 +34,7 @@ export default function PricingScreen() {
   const [subs, setSubs] = useState<PaymentProduct[]>([]);
   const [points, setPoints] = useState<PaymentProduct[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [growthConfig, setGrowthConfig] = useState<GrowthConfig | null>(null);
 
   const loadPricing = async () => {
     setLoading(true);
@@ -68,6 +70,12 @@ export default function PricingScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    getGrowthConfig()
+      .then(setGrowthConfig)
+      .catch(() => null);
+  }, []);
+
   const formatPrice = (p: PaymentProduct) => {
     const n = Number(p.price);
     if (!Number.isFinite(n)) return '—';
@@ -101,12 +109,14 @@ export default function PricingScreen() {
             先按次体验，再根据频率选择订阅；把玄学陪伴变成长期稳定的支持。
           </Text>
         </View>
-        <View style={styles.compareCard}>
-          <Text style={styles.compareTitle}>3 秒选方案</Text>
-          <Text style={styles.compareLine}>低频（每周 1-2 次）：先选积分包，按次体验最灵活。</Text>
-          <Text style={styles.compareLine}>高频（每周 3 次及以上）：优先订阅，省去重复决策和扣分焦虑。</Text>
-          <Text style={styles.compareLine}>不确定：先月卡验证，满意后再升级年卡。</Text>
-        </View>
+        {growthConfig?.showPricingCompareCard !== false ? (
+          <View style={styles.compareCard}>
+            <Text style={styles.compareTitle}>3 秒选方案</Text>
+            <Text style={styles.compareLine}>低频（每周 1-2 次）：先选积分包，按次体验最灵活。</Text>
+            <Text style={styles.compareLine}>高频（每周 3 次及以上）：优先订阅，省去重复决策和扣分焦虑。</Text>
+            <Text style={styles.compareLine}>不确定：先月卡验证，满意后再升级年卡。</Text>
+          </View>
+        ) : null}
         <Text style={styles.lead}>
           以下为山海灵境当前在售的数字化产品标价（含税费以支付页为准）。购买与退款规则见服务条款。
         </Text>

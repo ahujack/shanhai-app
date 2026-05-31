@@ -149,6 +149,7 @@ export default function HomeScreen() {
   const voiceWaveLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const voiceBaseTextRef = useRef('');
   const isInputComposingRef = useRef(false);
+  const hasTrackedFirstResultRef = useRef(false);
   const ziNudgeDailyStorageKey = `zi_nudge_daily_${user?.id || 'guest'}`;
 
   const getLocalDateKey = () => {
@@ -251,6 +252,14 @@ export default function HomeScreen() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (hasTrackedFirstResultRef.current) return;
+    const hasAssistantReply = messages.some((m) => m.role === 'assistant' && m.content?.trim());
+    if (!hasAssistantReply) return;
+    hasTrackedFirstResultRef.current = true;
+    trackNamedEvent('first_result_rendered', { source: 'home_chat' });
+  }, [messages]);
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));

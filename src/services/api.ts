@@ -938,6 +938,15 @@ export interface BillingRules {
   };
 }
 
+export interface MembershipValueSnapshot {
+  membership: 'free' | 'premium' | 'vip';
+  membershipExpiryAt: string | null;
+  daysLeft: number;
+  deepReadings30d: number;
+  estimatedSavedPoints30d: number;
+  estimatedSavedUsd30d: number;
+}
+
 export const pointsApi = {
   // 获取积分概况
   getSummary: () =>
@@ -963,6 +972,9 @@ export const pointsApi = {
   // 获取扣费规则与会员权益映射
   getRules: () =>
     request<BillingRules>('/points/rules'),
+  // 获取会员价值快照（用于展示“本月已节省”）
+  getMembershipValue: () =>
+    request<MembershipValueSnapshot>('/points/membership-value'),
 };
 
 // ========== 支付 API ==========
