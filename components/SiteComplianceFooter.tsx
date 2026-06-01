@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, Platform, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useI18nStore } from '../src/store/i18n';
 
 /** 与 Creem / 应用内文案一致，请与商户后台、域名邮箱保持一致 */
 export const SUPPORT_EMAIL = 'support@shanhai.app';
@@ -18,6 +19,7 @@ type Props = {
 
 export function SiteComplianceFooter({ variant = 'compact' }: Props) {
   const router = useRouter();
+  const t = useI18nStore((state) => state.t);
 
   const openMail = () => {
     Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() => null);
@@ -47,16 +49,18 @@ export function SiteComplianceFooter({ variant = 'compact' }: Props) {
       ]}
     >
       <View style={[styles.row, isDock && styles.rowDock]}>
-        <FooterLink label="隐私政策" href="/privacy" />
+        <FooterLink label={t('common.privacy', '隐私政策')} href="/privacy" />
         <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
-        <FooterLink label="服务条款" href="/terms" />
+        <FooterLink label={t('common.terms', '服务条款')} href="/terms" />
         <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
-        <FooterLink label="价格说明" href="/pricing" />
+        <FooterLink label={t('pricing.title', '价格说明')} href="/pricing" />
         <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
-        <FooterLink label="常见问题" href="/faq" />
+        <FooterLink label={t('common.faq', '常见问题')} href="/faq" />
       </View>
       <TouchableOpacity onPress={openMail} style={webPointer} accessibilityRole="link">
-        <Text style={[styles.email, isDock && styles.emailDock]}>客服邮箱：{SUPPORT_EMAIL}</Text>
+        <Text style={[styles.email, isDock && styles.emailDock]}>
+          {t('common.supportEmail', '客服邮箱：{email}').replace('{email}', SUPPORT_EMAIL)}
+        </Text>
       </TouchableOpacity>
     </View>
   );

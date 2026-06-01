@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { AppLanguage, t as translate } from '../i18n/translations';
+import { setGlobalAppLanguage } from '../services/api';
 
 const LANGUAGE_KEY = 'shanhai_app_language';
 
@@ -37,22 +38,29 @@ interface I18nState {
   t: (key: string, fallback?: string) => string;
 }
 
-export const useI18nStore = create<I18nState>((set, get) => ({
+function createTranslator(language: AppLanguage) {
+  return (key: string, fallback?: string) => translate(language, key, fallback);
+}
+
+export const useI18nStore = create<I18nState>((set) => ({
   language: 'zh-CN',
   initialized: false,
+  t: createTranslator('zh-CN'),
   loadLanguage: async () => {
     try {
       const stored = await storage.getItem(LANGUAGE_KEY);
-      set({ language: normalizeLanguage(stored), initialized: true });
+      const normalized = normalizeLanguage(stored);
+      setGlobalAppLanguage(normalized);
+      set({ language: normalized, initialized: true, t: createTranslator(normalized) });
     } catch {
       set({ initialized: true });
     }
   },
   setLanguage: async (language: AppLanguage) => {
     const normalized = normalizeLanguage(language);
-    set({ language: normalized });
+    setGlobalAppLanguage(normalized);
+    set({ language: normalized, t: createTranslator(normalized) });
     await storage.setItem(LANGUAGE_KEY, normalized);
   },
-  t: (key: string, fallback?: string) => translate(get().language, key, fallback),
 }));
 

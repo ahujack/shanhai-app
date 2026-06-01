@@ -7,10 +7,11 @@ import theme from '../../constants/Colors';
 import { useUserStore } from '../../src/store/user';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { userApi, chartApi, BaziChart } from '../../src/services/api';
+import { useI18nStore } from '../../src/store/i18n';
 
 const colors = theme.dark;
 
-const tenGodMeta: Record<
+type TenGodMetaMap = Record<
   string,
   {
     title: string;
@@ -19,7 +20,9 @@ const tenGodMeta: Record<
     risks: string;
     empathy: string;
   }
-> = {
+>;
+
+const tenGodMetaZh: TenGodMetaMap = {
   比肩: {
     title: '比肩',
     psych: '自我边界清晰，强调独立与平等关系',
@@ -98,6 +101,172 @@ const tenGodMeta: Record<
     empathy: '你现在的状态值得被认真看见，不需要立刻有标准答案。',
   },
 };
+
+const tenGodMetaEn: TenGodMetaMap = {
+  比肩: {
+    title: 'Peer Star',
+    psych: 'Clear self-boundary and independence-oriented mindset.',
+    strengths: 'Execution, independence, pressure tolerance.',
+    risks: 'Over-carrying burdens and under-asking for support.',
+    empathy: 'You may be used to carrying things alone. You have already done a lot.',
+  },
+  劫财: {
+    title: 'Rival Star',
+    psych: 'Strong competitive drive and control tendency in relationships.',
+    strengths: 'Fast action, pioneering spirit, social activation.',
+    risks: 'Impulsive decisions and resource imbalance.',
+    empathy: 'Your inner drive is strong, but it may keep you in constant tension.',
+  },
+  食神: {
+    title: 'Expression Star',
+    psych: 'Creative and expressive tendency with gentle output style.',
+    strengths: 'Content creation, communication, aesthetics, creativity.',
+    risks: 'Staying too long in comfort zone.',
+    empathy: 'You are naturally gifted in expression and creativity.',
+  },
+  伤官: {
+    title: 'Insight Star',
+    psych: 'Strong critical thinking and self-opinion emphasis.',
+    strengths: 'Root-cause insight, innovation, unconventional thinking.',
+    risks: 'Over-sharp expression may create friction.',
+    empathy: 'You see deeply, which can also make you feel misunderstood.',
+  },
+  正印: {
+    title: 'Support Star',
+    psych: 'Security comes from order, knowledge and stable ties.',
+    strengths: 'Learning ability, system thinking, empathy and care.',
+    risks: 'Over-conservative strategy switching.',
+    empathy: 'Seeking order is not weakness, it is a protective strength.',
+  },
+  偏印: {
+    title: 'Reflection Star',
+    psych: 'Sensitive inner world with deep reflective processing.',
+    strengths: 'Research depth, abstraction, complex problem handling.',
+    risks: 'Overthinking and slow launch.',
+    empathy: 'It is not procrastination; your mind is processing multiple layers.',
+  },
+  正财: {
+    title: 'Wealth Star',
+    psych: 'Pragmatic and sustainable accumulation orientation.',
+    strengths: 'Resource management, steady progress, responsibility.',
+    risks: 'Over-pragmatism and emotional neglect.',
+    empathy: 'You have been carrying the burden of stability for long.',
+  },
+  偏财: {
+    title: 'Opportunity Star',
+    psych: 'Strong opportunity sensing and resource integration.',
+    strengths: 'Expansion, business instinct, negotiation.',
+    risks: 'Fast rhythm with weak risk control.',
+    empathy: 'You are good at catching opportunities, but may forget to pause.',
+  },
+  正官: {
+    title: 'Order Star',
+    psych: 'Strong rule-awareness and role responsibility.',
+    strengths: 'Management, reliable execution, trustworthiness.',
+    risks: 'High self-pressure and over-caution.',
+    empathy: 'You do not need perfection at all times to be valuable.',
+  },
+  七杀: {
+    title: 'Decisive Star',
+    psych: 'Strong crisis response and high-pressure decisiveness.',
+    strengths: 'Decisiveness, resilience, key-moment ownership.',
+    risks: 'Sustained tension and fatigue.',
+    empathy: 'You can always hold the line, and that itself is exhausting.',
+  },
+  日主: {
+    title: 'Day Master',
+    psych: 'Core personality driver and internal operating system.',
+    strengths: 'Self-identity and life-axis clarity.',
+    risks: 'When overloaded, external decisions may drift.',
+    empathy: 'Your current state deserves to be seen without forcing quick answers.',
+  },
+};
+
+const tenGodMetaTw: TenGodMetaMap = {
+  比肩: {
+    title: '比肩',
+    psych: '自我邊界清晰，重視獨立與平等關係。',
+    strengths: '執行力、獨立性、抗壓能力較好。',
+    risks: '容易過度自扛，不願求助。',
+    empathy: '你可能習慣自己扛著，其實你已經很努力了。',
+  },
+  劫财: {
+    title: '劫財',
+    psych: '競爭驅動力強，關係中易追求主導。',
+    strengths: '行動快、開拓性強、社交破冰能力好。',
+    risks: '衝動決策、資源分配失衡。',
+    empathy: '你內在衝勁很強，也可能因此長期緊繃。',
+  },
+  食神: {
+    title: '食神',
+    psych: '表達與創造傾向明顯，偏向溫和輸出。',
+    strengths: '內容生產、溝通表達、審美與創造力。',
+    risks: '舒適圈停留過久，行動節奏偏慢。',
+    empathy: '你在表達與創造上很有天賦。',
+  },
+  伤官: {
+    title: '傷官',
+    psych: '思辨與批判意識強，重視自我觀點。',
+    strengths: '洞察本質、創新、反常規能力。',
+    risks: '過於犀利時，容易產生溝通摩擦。',
+    empathy: '你看問題很深，也更容易感到不被理解。',
+  },
+  正印: {
+    title: '正印',
+    psych: '安全感來自知識、秩序與穩定關係。',
+    strengths: '學習力、系統性、同理與照顧能力。',
+    risks: '過度保守，策略切換較慢。',
+    empathy: '你尋找秩序感，不是脆弱，而是保護自己。',
+  },
+  偏印: {
+    title: '偏印',
+    psych: '內在敏感，偏向深度思考與獨處加工。',
+    strengths: '研究力、抽象思維、複雜問題處理。',
+    risks: '想得過多，行動啟動偏慢。',
+    empathy: '這不是拖延，你其實在處理多層資訊。',
+  },
+  正财: {
+    title: '正財',
+    psych: '務實穩健，重視長期可持續積累。',
+    strengths: '資源管理、穩定推進、責任感強。',
+    risks: '過度現實，忽略情緒需求。',
+    empathy: '你一直在為穩定負責，久了也會累。',
+  },
+  偏财: {
+    title: '偏財',
+    psych: '機會感強，善於外部連結與資源整合。',
+    strengths: '拓展能力、商業嗅覺、談判能力。',
+    risks: '節奏過快，風險控制不足。',
+    empathy: '你很會抓機會，也需要留出喘息空間。',
+  },
+  正官: {
+    title: '正官',
+    psych: '規則感與秩序感強，重視角色責任。',
+    strengths: '管理力、規範執行、可信賴。',
+    risks: '自我壓力偏大，容易過度謹慎。',
+    empathy: '你不需要一直完美，才值得被肯定。',
+  },
+  七杀: {
+    title: '七殺',
+    psych: '危機應對與決斷力突出，適合高壓場景。',
+    strengths: '果斷、抗壓、關鍵時刻扛事。',
+    risks: '緊繃與控制感過強，容易疲憊。',
+    empathy: '你總能扛住局面，但這本身也很辛苦。',
+  },
+  日主: {
+    title: '日主',
+    psych: '核心人格驅動力，代表你的內核系統。',
+    strengths: '自我認同與人生主軸。',
+    risks: '內核過載時，外部選擇易失衡。',
+    empathy: '你當下的狀態值得被認真看見。',
+  },
+};
+
+function resolveTenGodMeta(language: 'zh-CN' | 'en-US' | 'zh-TW'): TenGodMetaMap {
+  if (language === 'en-US') return tenGodMetaEn;
+  if (language === 'zh-TW') return tenGodMetaTw;
+  return tenGodMetaZh;
+}
 
 const normalizeBirthDate = (value: string): string | null => {
   const raw = value.trim();
@@ -200,6 +369,9 @@ export default function BaziScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ highlight?: string; fromPayment?: string }>();
+  const language = useI18nStore((state) => state.language);
+  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
+  const tenGodMeta = React.useMemo(() => resolveTenGodMeta(language), [language]);
   const { user, chart, hasChart, generateChart, isLoading } = useUserStore();
   const [godClicks, setGodClicks] = React.useState<Record<string, number>>({});
   const [activeGod, setActiveGod] = React.useState<string>('日主');
@@ -358,14 +530,14 @@ export default function BaziScreen() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       if (/请先在个人资料中完善出生日期和时间/.test(msg)) {
-        setGenError('请先补全出生日期与出生时间，再生成命盘。');
+        setGenError(tx('请先补全出生日期与出生时间，再生成命盘。', 'Please complete birth date and time before generating chart.', '請先補全出生日期與出生時間，再生成命盤。'));
         setShowInlineBirthForm(true);
         return;
       }
       setGenError(
         /请先登录|登录/.test(msg)
-          ? '登录状态无效或已过期，请重新登录后再生成命盘'
-          : msg || '生成命盘失败，请检查网络后重试',
+          ? tx('登录状态无效或已过期，请重新登录后再生成命盘', 'Session expired. Please log in again.', '登入狀態無效或已過期，請重新登入後再生成命盤')
+          : msg || tx('生成命盘失败，请检查网络后重试', 'Generate chart failed, please retry.', '生成命盤失敗，請檢查網路後重試'),
       );
     }
   };
@@ -375,7 +547,7 @@ export default function BaziScreen() {
     const bd = normalizeBirthDate(inlineBirthDate);
     const bt = normalizeBirthTime(inlineBirthTime);
     if (!bd || !bt) {
-      setGenError('请填写有效时间：日期支持 1999.7.22 / 1999-07-22，时间支持 20.45 / 20:45 / 2045');
+      setGenError(tx('请填写有效时间：日期支持 1999.7.22 / 1999-07-22，时间支持 20.45 / 20:45 / 2045', 'Please enter a valid date/time.', '請填寫有效時間：日期支持 1999.7.22 / 1999-07-22，時間支持 20.45 / 20:45 / 2045'));
       return;
     }
     setInlineSaving(true);
@@ -395,7 +567,7 @@ export default function BaziScreen() {
       await generateChart(inlineGender);
       setShowInlineBirthForm(false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '保存失败，请稍后重试';
+      const msg = err instanceof Error ? err.message : tx('保存失败，请稍后重试', 'Save failed, please retry later.', '保存失敗，請稍後重試');
       setGenError(msg);
     } finally {
       setInlineSaving(false);
@@ -406,7 +578,7 @@ export default function BaziScreen() {
     const bd = normalizeBirthDate(guestBirthDate);
     const bt = normalizeBirthTime(guestBirthTime);
     if (!bd || !bt) {
-      Alert.alert('提示', '请输入有效时间（如 1999.7.22 + 20.45 或 1999-07-22 + 20:45）');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入有效时间（如 1999.7.22 + 20.45 或 1999-07-22 + 20:45）', 'Please input a valid date/time.', '請輸入有效時間（如 1999.7.22 + 20.45 或 1999-07-22 + 20:45）'));
       return;
     }
     setGuestPreviewLoading(true);
@@ -422,7 +594,7 @@ export default function BaziScreen() {
       });
       setGuestChart(data);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '试算失败';
+      const msg = e instanceof Error ? e.message : tx('试算失败', 'Preview failed', '試算失敗');
       setGenError(msg);
     } finally {
       setGuestPreviewLoading(false);
@@ -453,12 +625,12 @@ export default function BaziScreen() {
     if (!user) {
       return (
         <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-          <Text style={styles.title}>📜 八字看盘</Text>
-          <Text style={styles.sub}>未登录可试算（结果仅本次会话展示，不保存）</Text>
-          <Text style={styles.fieldLabel}>出生日期</Text>
+          <Text style={styles.title}>{tx('📜 八字看盘', '📜 Bazi Chart', '📜 八字看盤')}</Text>
+          <Text style={styles.sub}>{tx('未登录可试算（结果仅本次会话展示，不保存）', 'Guest preview available (not saved)', '未登入可試算（結果僅本次會話展示，不保存）')}</Text>
+          <Text style={styles.fieldLabel}>{tx('出生日期', 'Birth Date', '出生日期')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="如 1999-07-22 / 1999.7.22"
+            placeholder={tx('如 1999-07-22 / 1999.7.22', 'e.g. 1999-07-22 / 1999.7.22', '如 1999-07-22 / 1999.7.22')}
             placeholderTextColor="#6F6287"
             value={guestBirthDate}
             onChangeText={setGuestBirthDate}
@@ -483,10 +655,10 @@ export default function BaziScreen() {
               })}
             </View>
           )}
-          <Text style={styles.fieldLabel}>出生时间</Text>
+          <Text style={styles.fieldLabel}>{tx('出生时间', 'Birth Time', '出生時間')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="如 20:45 / 20.45 / 2045"
+            placeholder={tx('如 20:45 / 20.45 / 2045', 'e.g. 20:45 / 20.45 / 2045', '如 20:45 / 20.45 / 2045')}
             placeholderTextColor="#6F6287"
             value={guestBirthTime}
             onChangeText={setGuestBirthTime}
@@ -511,42 +683,42 @@ export default function BaziScreen() {
               })}
             </View>
           )}
-          <Text style={styles.inputHint}>支持多种输入：`YYYY-MM-DD`、`YYYY/MM/DD`、`YYYY.MM.DD`、`YYYY年M月D日`</Text>
-          <Text style={styles.inputHint}>时间支持：`20:45`、`20.45`、`2045`、`20点45`</Text>
-          <Text style={styles.fieldLabel}>历法</Text>
+          <Text style={styles.inputHint}>{tx('支持多种输入：`YYYY-MM-DD`、`YYYY/MM/DD`、`YYYY.MM.DD`、`YYYY年M月D日`', 'Accepted: YYYY-MM-DD / YYYY.MM.DD / YYYY/MM/DD', '支持多種輸入：`YYYY-MM-DD`、`YYYY/MM/DD`、`YYYY.MM.DD`、`YYYY年M月D日`')}</Text>
+          <Text style={styles.inputHint}>{tx('时间支持：`20:45`、`20.45`、`2045`、`20点45`', 'Time: 20:45 / 20.45 / 2045', '時間支持：`20:45`、`20.45`、`2045`、`20點45`')}</Text>
+          <Text style={styles.fieldLabel}>{tx('历法', 'Calendar', '曆法')}</Text>
           <View style={styles.guestRow}>
             <TouchableOpacity
               style={[styles.guestChip, guestCalendarType === 'solar' && styles.guestChipActive]}
               onPress={() => setGuestCalendarType('solar')}
             >
-              <Text style={[styles.guestChipText, guestCalendarType === 'solar' && styles.guestChipTextActive]}>阳历</Text>
+              <Text style={[styles.guestChipText, guestCalendarType === 'solar' && styles.guestChipTextActive]}>{tx('阳历', 'Solar', '陽曆')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.guestChip, guestCalendarType === 'lunar' && styles.guestChipActive]}
               onPress={() => setGuestCalendarType('lunar')}
             >
-              <Text style={[styles.guestChipText, guestCalendarType === 'lunar' && styles.guestChipTextActive]}>农历</Text>
+              <Text style={[styles.guestChipText, guestCalendarType === 'lunar' && styles.guestChipTextActive]}>{tx('农历', 'Lunar', '農曆')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.guestChip, guestLeap && styles.guestChipActive]}
               onPress={() => setGuestLeap((v) => !v)}
             >
-              <Text style={[styles.guestChipText, guestLeap && styles.guestChipTextActive]}>闰月</Text>
+              <Text style={[styles.guestChipText, guestLeap && styles.guestChipTextActive]}>{tx('闰月', 'Leap Month', '閏月')}</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.fieldLabel}>性别</Text>
+          <Text style={styles.fieldLabel}>{tx('性别', 'Gender', '性別')}</Text>
           <View style={styles.guestRow}>
             <TouchableOpacity
               style={[styles.guestChip, guestGender === 'male' && styles.guestChipActive]}
               onPress={() => setGuestGender('male')}
             >
-              <Text style={[styles.guestChipText, guestGender === 'male' && styles.guestChipTextActive]}>男</Text>
+              <Text style={[styles.guestChipText, guestGender === 'male' && styles.guestChipTextActive]}>{tx('男', 'Male', '男')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.guestChip, guestGender === 'female' && styles.guestChipActive]}
               onPress={() => setGuestGender('female')}
             >
-              <Text style={[styles.guestChipText, guestGender === 'female' && styles.guestChipTextActive]}>女</Text>
+              <Text style={[styles.guestChipText, guestGender === 'female' && styles.guestChipTextActive]}>{tx('女', 'Female', '女')}</Text>
             </TouchableOpacity>
           </View>
           {genError ? <Text style={styles.errorText}>{genError}</Text> : null}
@@ -558,11 +730,11 @@ export default function BaziScreen() {
             {guestPreviewLoading ? (
               <ActivityIndicator color="#1A0A18" />
             ) : (
-              <Text style={styles.primaryBtnText}>试算八字</Text>
+              <Text style={styles.primaryBtnText}>{tx('试算八字', 'Preview Chart', '試算八字')}</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/login')} style={{ marginTop: 16 }}>
-            <Text style={styles.link}>登录后保存命盘</Text>
+            <Text style={styles.link}>{tx('登录后保存命盘', 'Log in to save chart', '登入後保存命盤')}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -570,22 +742,22 @@ export default function BaziScreen() {
 
     return (
       <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-        <Text style={styles.title}>📜 八字看盘</Text>
-        <Text style={styles.sub}>先生成命盘，再查看十神与五行结构</Text>
+        <Text style={styles.title}>{tx('📜 八字看盘', '📜 Bazi Chart', '📜 八字看盤')}</Text>
+        <Text style={styles.sub}>{tx('先生成命盘，再查看十神与五行结构', 'Generate chart first, then view structure', '先生成命盤，再查看十神與五行結構')}</Text>
         {genError && <Text style={styles.errorText}>{genError}</Text>}
         <TouchableOpacity style={styles.primaryBtn} onPress={handleGenerate} disabled={isLoading}>
-          <Text style={styles.primaryBtnText}>{isLoading ? '生成中...' : '生成我的命盘'}</Text>
+          <Text style={styles.primaryBtnText}>{isLoading ? tx('生成中...', 'Generating...', '生成中...') : tx('生成我的命盘', 'Generate My Chart', '生成我的命盤')}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setShowInlineBirthForm((v) => !v)}>
-          <Text style={styles.link}>{showInlineBirthForm ? '收起填写表单' : '在当前页填写出生信息'}</Text>
+          <Text style={styles.link}>{showInlineBirthForm ? tx('收起填写表单', 'Hide form', '收起填寫表單') : tx('在当前页填写出生信息', 'Fill birth info here', '在當前頁填寫出生資訊')}</Text>
         </TouchableOpacity>
         {showInlineBirthForm ? (
           <View style={styles.inlineFormCard}>
-            <Text style={styles.inlineFormHint}>填写后将自动保存到你的资料，并立即生成命盘</Text>
-            <Text style={styles.fieldLabel}>出生日期</Text>
+            <Text style={styles.inlineFormHint}>{tx('填写后将自动保存到你的资料，并立即生成命盘', 'Saved to profile and generate chart immediately', '填寫後將自動保存到你的資料，並立即生成命盤')}</Text>
+            <Text style={styles.fieldLabel}>{tx('出生日期', 'Birth Date', '出生日期')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="如 1999-07-22 / 1999.7.22"
+              placeholder={tx('如 1999-07-22 / 1999.7.22', 'e.g. 1999-07-22 / 1999.7.22', '如 1999-07-22 / 1999.7.22')}
               placeholderTextColor="#6F6287"
               value={inlineBirthDate}
               onChangeText={setInlineBirthDate}
@@ -610,10 +782,10 @@ export default function BaziScreen() {
                 })}
               </View>
             )}
-            <Text style={styles.fieldLabel}>出生时间</Text>
+            <Text style={styles.fieldLabel}>{tx('出生时间', 'Birth Time', '出生時間')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="如 20:45 / 20.45 / 2045"
+              placeholder={tx('如 20:45 / 20.45 / 2045', 'e.g. 20:45 / 20.45 / 2045', '如 20:45 / 20.45 / 2045')}
               placeholderTextColor="#6F6287"
               value={inlineBirthTime}
               onChangeText={setInlineBirthTime}
@@ -706,10 +878,12 @@ export default function BaziScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
     >
-      <Text style={styles.title}>📜 八字看盘</Text>
+      <Text style={styles.title}>{tx('📜 八字看盘', '📜 Bazi Chart', '📜 八字看盤')}</Text>
       {!user && guestChart ? (
         <View style={styles.guestBanner}>
-          <Text style={styles.guestBannerText}>试算模式：登录并完善资料后可保存命盘</Text>
+          <Text style={styles.guestBannerText}>
+            {tx('试算模式：登录并完善资料后可保存命盘', 'Trial mode: log in to save your chart', '試算模式：登入並完善資料後可保存命盤')}
+          </Text>
         </View>
       ) : null}
       <View style={styles.modeToggleRow}>
@@ -717,62 +891,69 @@ export default function BaziScreen() {
           style={[styles.modeToggleBtn, viewMode === 'compact' && styles.modeToggleBtnActive]}
           onPress={() => setViewMode('compact')}
         >
-          <Text style={[styles.modeToggleText, viewMode === 'compact' && styles.modeToggleTextActive]}>简洁模式</Text>
+          <Text style={[styles.modeToggleText, viewMode === 'compact' && styles.modeToggleTextActive]}>
+            {tx('简洁模式', 'Compact', '簡潔模式')}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.modeToggleBtn, viewMode === 'pro' && styles.modeToggleBtnActive]}
           onPress={() => setViewMode('pro')}
         >
-          <Text style={[styles.modeToggleText, viewMode === 'pro' && styles.modeToggleTextActive]}>专业模式</Text>
+          <Text style={[styles.modeToggleText, viewMode === 'pro' && styles.modeToggleTextActive]}>
+            {tx('专业模式', 'Pro', '專業模式')}
+          </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>一屏总论</Text>
-        <Text style={styles.personalizedLead}>近期关注主题：{tenGodMeta[storedGod]?.title || storedGod}</Text>
-        <Text style={styles.bodyMuted}>{tenGodMeta[storedGod]?.empathy || '我们先从你最在意的感受聊起。'}</Text>
-        <Text style={styles.body}>{c.conclusion?.overall || '你的命盘呈现稳中有进的结构。'}</Text>
-        <Text style={styles.bodyMuted}>{c.conclusion?.mindset || '建议先稳住内在节奏，再扩展外部机会。'}</Text>
+        <Text style={styles.cardTitle}>{tx('一屏总论', 'Overview', '一屏總論')}</Text>
+        <Text style={styles.personalizedLead}>
+          {tx('近期关注主题：', 'Current focus: ', '近期關注主題：')}
+          {tenGodMeta[storedGod]?.title || storedGod}
+        </Text>
+        <Text style={styles.bodyMuted}>{tenGodMeta[storedGod]?.empathy || tx('我们先从你最在意的感受聊起。', 'Let us start from what you care most.', '我們先從你最在意的感受聊起。')}</Text>
+        <Text style={styles.body}>{c.conclusion?.overall || tx('你的命盘呈现稳中有进的结构。', 'Your chart shows a steady-upward pattern.', '你的命盤呈現穩中有進的結構。')}</Text>
+        <Text style={styles.bodyMuted}>{c.conclusion?.mindset || tx('建议先稳住内在节奏，再扩展外部机会。', 'Stabilize inner rhythm first, then expand externally.', '建議先穩住內在節奏，再擴展外部機會。')}</Text>
         <TouchableOpacity style={styles.chatCtaBtn} onPress={goBaziDeepChat}>
-          <Text style={styles.chatCtaText}>去对话深入探讨这份八字</Text>
+          <Text style={styles.chatCtaText}>{tx('去对话深入探讨这份八字', 'Discuss this chart in chat', '去對話深入探討這份八字')}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>四柱八字</Text>
+        <Text style={styles.cardTitle}>{tx('四柱八字', 'Four Pillars', '四柱八字')}</Text>
         <View style={styles.pillarRow}>
-          <Text style={styles.pillar}>年柱 {c.yearGanZhi}</Text>
-          <Text style={styles.pillar}>月柱 {c.monthGanZhi}</Text>
-          <Text style={styles.pillar}>日柱 {c.dayGanZhi}</Text>
-          <Text style={styles.pillar}>时柱 {c.hourGanZhi}</Text>
+          <Text style={styles.pillar}>{tx('年柱', 'Year', '年柱')} {c.yearGanZhi}</Text>
+          <Text style={styles.pillar}>{tx('月柱', 'Month', '月柱')} {c.monthGanZhi}</Text>
+          <Text style={styles.pillar}>{tx('日柱', 'Day', '日柱')} {c.dayGanZhi}</Text>
+          <Text style={styles.pillar}>{tx('时柱', 'Hour', '時柱')} {c.hourGanZhi}</Text>
         </View>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>十神结构</Text>
+        <Text style={styles.cardTitle}>{tx('十神结构', 'Ten Gods Structure', '十神結構')}</Text>
         <View style={styles.tenGodRow}>
           <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(c.tenGods?.year || '日主')}>
-            <Text style={styles.tenGodLabel}>年柱</Text>
+            <Text style={styles.tenGodLabel}>{tx('年柱', 'Year', '年柱')}</Text>
             <Text style={styles.tenGodValue}>{c.tenGods?.year || '-'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(c.tenGods?.month || '日主')}>
-            <Text style={styles.tenGodLabel}>月柱</Text>
+            <Text style={styles.tenGodLabel}>{tx('月柱', 'Month', '月柱')}</Text>
             <Text style={styles.tenGodValue}>{c.tenGods?.month || '-'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(c.tenGods?.day || '日主')}>
-            <Text style={styles.tenGodLabel}>日柱</Text>
-            <Text style={styles.tenGodValue}>{c.tenGods?.day || '日主'}</Text>
+            <Text style={styles.tenGodLabel}>{tx('日柱', 'Day', '日柱')}</Text>
+            <Text style={styles.tenGodValue}>{c.tenGods?.day || tx('日主', 'Day Master', '日主')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.tenGodChip} onPress={() => trackGodClick(c.tenGods?.hour || '日主')}>
-            <Text style={styles.tenGodLabel}>时柱</Text>
+            <Text style={styles.tenGodLabel}>{tx('时柱', 'Hour', '時柱')}</Text>
             <Text style={styles.tenGodValue}>{c.tenGods?.hour || '-'}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.tenGodDetailCard}>
           <Text style={styles.tenGodDetailTitle}>{tenGodMeta[activeGod]?.title || activeGod}</Text>
-          <Text style={styles.bodyMuted}>心理学翻译：{tenGodMeta[activeGod]?.psych || '你的行为风格与外界互动方式。'}</Text>
-          <Text style={styles.bodyMuted}>优势：{tenGodMeta[activeGod]?.strengths || '在稳定场景有较好表现。'}</Text>
-          <Text style={styles.bodyMuted}>提醒：{tenGodMeta[activeGod]?.risks || '注意情绪负荷和节奏管理。'}</Text>
+          <Text style={styles.bodyMuted}>{tx('心理学翻译：', 'Psychology:', '心理學翻譯：')}{tenGodMeta[activeGod]?.psych || tx('你的行为风格与外界互动方式。', 'Your behavior style and interaction mode.', '你的行為風格與外界互動方式。')}</Text>
+          <Text style={styles.bodyMuted}>{tx('优势：', 'Strengths:', '優勢：')}{tenGodMeta[activeGod]?.strengths || tx('在稳定场景有较好表现。', 'You perform better in stable contexts.', '在穩定場景有較好表現。')}</Text>
+          <Text style={styles.bodyMuted}>{tx('提醒：', 'Watch-outs:', '提醒：')}{tenGodMeta[activeGod]?.risks || tx('注意情绪负荷和节奏管理。', 'Watch emotional load and pacing.', '注意情緒負荷和節奏管理。')}</Text>
         </View>
         {(c.tenGods?.summary || []).map((line, idx) => (
           <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
@@ -780,15 +961,15 @@ export default function BaziScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>运势速览</Text>
-        <Text style={styles.body}>事业：{c.fortuneSummary?.career}</Text>
-        <Text style={styles.body}>感情：{c.fortuneSummary?.love}</Text>
-        <Text style={styles.body}>财运：{c.fortuneSummary?.wealth}</Text>
-        <Text style={styles.body}>健康：{c.fortuneSummary?.health}</Text>
+        <Text style={styles.cardTitle}>{tx('运势速览', 'Trend Snapshot', '運勢速覽')}</Text>
+        <Text style={styles.body}>{tx('事业：', 'Career: ', '事業：')}{c.fortuneSummary?.career}</Text>
+        <Text style={styles.body}>{tx('感情：', 'Love: ', '感情：')}{c.fortuneSummary?.love}</Text>
+        <Text style={styles.body}>{tx('财运：', 'Wealth: ', '財運：')}{c.fortuneSummary?.wealth}</Text>
+        <Text style={styles.body}>{tx('健康：', 'Health: ', '健康：')}{c.fortuneSummary?.health}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>详细解读</Text>
+        <Text style={styles.cardTitle}>{tx('详细解读', 'Detailed Reading', '詳細解讀')}</Text>
         <View style={styles.tierRow}>
           <Text
             style={[
@@ -800,49 +981,52 @@ export default function BaziScreen() {
                 : styles.tierBadgeDeep,
             ]}
           >
-            当前解读档位：{readingTierMeta[readingTier].label}
+            {tx('当前解读档位：', 'Current Tier: ', '當前解讀檔位：')}{readingTierMeta[readingTier].label}
           </Text>
           <Text style={styles.tierDescription}>{readingTierMeta[readingTier].description}</Text>
-          <Text style={styles.tierLegend}>档位说明：简版 / 完整版 / 深度版</Text>
+          <Text style={styles.tierLegend}>{tx('档位说明：简版 / 完整版 / 深度版', 'Tier guide: Lite / Full / Deep', '檔位說明：簡版 / 完整版 / 深度版')}</Text>
         </View>
         <View style={[styles.moduleCard, styles.moduleCore]}>
-          <Text style={styles.sectionHead}>🧭 核心格局</Text>
-          <Text style={styles.body}>{c.detailedReading?.corePattern || '正在生成更细致的盘面解读...'}</Text>
+          <Text style={styles.sectionHead}>{tx('🧭 核心格局', '🧭 Core Pattern', '🧭 核心格局')}</Text>
+          <Text style={styles.body}>{c.detailedReading?.corePattern || tx('正在生成更细致的盘面解读...', 'Generating deeper chart interpretation...', '正在生成更細緻的盤面解讀...')}</Text>
         </View>
 
         {viewMode === 'pro' ? (
           <View style={[styles.moduleCard, styles.moduleRelation]}>
-            <Text style={styles.sectionHead}>💕 感情关系</Text>
+            <Text style={styles.sectionHead}>{tx('💕 感情关系', '💕 Relationship', '💕 感情關係')}</Text>
             <Text style={styles.body}>{c.detailedReading?.relationship || '-'}</Text>
           </View>
         ) : null}
 
         <View style={[styles.moduleCard, styles.moduleCareer]}>
-          <Text style={styles.sectionHead}>💼 事业发展</Text>
+          <Text style={styles.sectionHead}>{tx('💼 事业发展', '💼 Career Development', '💼 事業發展')}</Text>
           <Text style={styles.body}>{c.detailedReading?.career || '-'}</Text>
         </View>
 
         {viewMode === 'pro' ? (
           <>
             <View style={[styles.moduleCard, styles.moduleWealth]}>
-              <Text style={styles.sectionHead}>💰 财务节奏</Text>
+              <Text style={styles.sectionHead}>{tx('💰 财务节奏', '💰 Wealth Rhythm', '💰 財務節奏')}</Text>
               <Text style={styles.body}>{c.detailedReading?.wealth || '-'}</Text>
             </View>
             <View style={[styles.moduleCard, styles.moduleHealth]}>
-              <Text style={styles.sectionHead}>🫀 身心状态</Text>
+              <Text style={styles.sectionHead}>{tx('🫀 身心状态', '🫀 Body & Mind', '🫀 身心狀態')}</Text>
               <Text style={styles.body}>{c.detailedReading?.health || '-'}</Text>
             </View>
             <View style={[styles.moduleCard, styles.moduleRhythm]}>
-              <Text style={styles.sectionHead}>⏳ 阶段节奏参考</Text>
+              <Text style={styles.sectionHead}>{tx('⏳ 阶段节奏参考', '⏳ Stage Rhythm', '⏳ 階段節奏參考')}</Text>
               {(c.detailedReading?.decadeRhythm || []).map((line, idx) => (
                 <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
               ))}
             </View>
             <View style={[styles.moduleCard, styles.moduleRhythm]}>
-              <Text style={styles.sectionHead}>🪐 大运节奏（按起运推算）</Text>
+              <Text style={styles.sectionHead}>{tx('🪐 大运节奏（按起运推算）', '🪐 Luck Cycle Rhythm', '🪐 大運節奏（按起運推算）')}</Text>
               <Text style={styles.bodyMuted}>
-                起运约在 {c.detailedReading?.luckCycles?.startAge ?? '-'} 岁，
-                方向：{c.detailedReading?.luckCycles?.direction === 'forward' ? '顺行' : '逆行'}
+                {tx('起运约在', 'Starts around age', '起運約在')} {c.detailedReading?.luckCycles?.startAge ?? '-'} {tx('岁，', 'years old, ', '歲，')}
+                {tx('方向：', 'Direction: ', '方向：')}
+                {c.detailedReading?.luckCycles?.direction === 'forward'
+                  ? tx('顺行', 'Forward', '順行')
+                  : tx('逆行', 'Reverse', '逆行')}
               </Text>
               {(c.detailedReading?.luckCycles?.cycles || []).map((cycle, idx) => (
                 <Text key={`cycle_${idx}`} style={styles.bodyMuted}>
@@ -857,7 +1041,7 @@ export default function BaziScreen() {
           onLayout={(event) => setAnnualSectionY(event.nativeEvent.layout.y)}
           style={[styles.moduleCard, styles.moduleAnnual, highlightMaster ? styles.highlightPanel : undefined]}
         >
-          <Text style={styles.sectionHead}>📅 近五年流年</Text>
+          <Text style={styles.sectionHead}>{tx('📅 近五年流年', '📅 Next 5 Years', '📅 近五年流年')}</Text>
           {showUnlockTip ? <Text style={styles.unlockTip}>✨ 已解锁老师傅批注，以下为高级流年细化</Text> : null}
           {(c.detailedReading?.annualForecast || [])
             .slice(0, viewMode === 'compact' ? 2 : 5)
@@ -866,11 +1050,11 @@ export default function BaziScreen() {
               <Text style={styles.bodyMuted}>
                 - {yearItem.year}（{yearItem.ganZhi} / {yearItem.tenGod}）：{yearItem.hint}
               </Text>
-              <Text style={styles.bodyMuted}>  宜：{yearItem.favorable || '稳步推进主线事项'}</Text>
-              <Text style={styles.bodyMuted}>  忌：{yearItem.caution || '避免多线分散与情绪化决策'}</Text>
+              <Text style={styles.bodyMuted}>  {tx('宜：', 'Do: ', '宜：')}{yearItem.favorable || tx('稳步推进主线事项', 'Advance the main line steadily', '穩步推進主線事項')}</Text>
+              <Text style={styles.bodyMuted}>  {tx('忌：', "Don't: ", '忌：')}{yearItem.caution || tx('避免多线分散与情绪化决策', 'Avoid fragmented focus and emotional decisions', '避免多線分散與情緒化決策')}</Text>
               <Text style={styles.bodyMuted}>
                 {' '}
-                关键窗口月：{(yearItem.windowMonths || []).join('、') || '3-4月、9-10月'}
+                {tx('关键窗口月：', 'Key window months: ', '關鍵窗口月：')}{(yearItem.windowMonths || []).join('、') || tx('3-4月、9-10月', 'Mar-Apr, Sep-Oct', '3-4月、9-10月')}
               </Text>
               {yearItem.masterCommentary ? (
                 <Text style={[styles.body, highlightMaster ? styles.masterCommentaryHighlight : undefined]}>

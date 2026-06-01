@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { PersonaProfile } from '../src/types/persona';
 import theme from '../constants/Colors';
+import { useI18nStore } from '../src/store/i18n';
+import { localizePersona } from '../src/utils/personaI18n';
 
 interface PersonaPickerProps {
   personas: PersonaProfile[];
@@ -24,6 +26,13 @@ export default function PersonaPicker({
   onSelect,
   onClose,
 }: PersonaPickerProps) {
+  const language = useI18nStore((state) => state.language);
+  const localizedPersonas = React.useMemo(
+    () => personas.map((persona) => localizePersona(persona, language)),
+    [language, personas],
+  );
+  const localizedActive = React.useMemo(() => localizePersona(active, language), [active, language]);
+
   return (
     <Modal
       visible={true}
@@ -37,16 +46,18 @@ export default function PersonaPicker({
         onPress={onClose}
       >
         <View style={styles.container}>
-          <Text style={styles.title}>🎭 选择你的灵伴</Text>
-          <Text style={styles.subtitle}>不同角色会带来不同的解读风格</Text>
+          <Text style={styles.title}>🎭 {language === 'en-US' ? 'Choose Companion' : language === 'zh-TW' ? '選擇你的靈伴' : '选择你的灵伴'}</Text>
+          <Text style={styles.subtitle}>
+            {language === 'en-US' ? 'Different companions provide different reading styles' : language === 'zh-TW' ? '不同角色會帶來不同的解讀風格' : '不同角色会带来不同的解读风格'}
+          </Text>
           
           <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-            {personas.map((persona) => (
+            {localizedPersonas.map((persona) => (
               <TouchableOpacity
                 key={persona.id}
                 style={[
                   styles.personaItem,
-                  active.id === persona.id && styles.personaItemActive,
+                  localizedActive.id === persona.id && styles.personaItemActive,
                 ]}
                 onPress={() => onSelect(persona)}
                 activeOpacity={0.8}
@@ -66,7 +77,7 @@ export default function PersonaPicker({
                     ))}
                   </View>
                 </View>
-                {active.id === persona.id && (
+                {localizedActive.id === persona.id && (
                   <View style={styles.selectedBadge}>
                     <Text style={styles.selectedText}>✓</Text>
                   </View>
@@ -76,7 +87,7 @@ export default function PersonaPicker({
           </ScrollView>
           
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>关闭</Text>
+            <Text style={styles.closeButtonText}>{language === 'en-US' ? 'Close' : language === 'zh-TW' ? '關閉' : '关闭'}</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>

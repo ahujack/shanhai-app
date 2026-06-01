@@ -25,6 +25,7 @@ import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
 import { isMembershipActive } from '../../src/utils/membership';
 import HandwritingCanvas from '../../components/HandwritingCanvas';
+import { useI18nStore } from '../../src/store/i18n';
 
 /** Web 上 RN Image 对 raw.githubusercontent.com 等外链偶发不显示，用原生 img + no-referrer 更稳 */
 function OracleGlyphImage({ uri, ziChar, style }: { uri: string; ziChar: string; style: { width: number; height: number } }) {
@@ -95,6 +96,9 @@ export default function ZiScreen() {
   const { messages, sendMessage } = useChatStore();
   const { active: persona } = usePersonaStore();
   const { user } = useUserStore();
+  const language = useI18nStore((state) => state.language);
+  const t = useI18nStore((state) => state.t);
+  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
   const wuxingTheme = getWuxingTheme(result?.zi?.wuxing);
   const shouldShowOracleUnlock = !!(
     result?.zi.oracleBone?.previewLocked &&
@@ -151,21 +155,21 @@ export default function ZiScreen() {
   const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
   const displayZiCost = isVip ? 0 : ziPointsCost;
-  const membershipExpiredHint = hasMembershipTier && !isVip ? '会员权益已过期，当前按积分扣费。' : '';
+  const membershipExpiredHint = hasMembershipTier && !isVip ? t('reading.form.membershipExpired', '会员权益已过期，当前按积分扣费。') : '';
   const ziTierLabel = !result
     ? isVip
-      ? '深度版（会员）'
-      : '简版（免费）'
+      ? tx('深度版（会员）', 'Deep (Member)', '深度版（會員）')
+      : tx('简版（免费）', 'Lite (Free)', '簡版（免費）')
     : result.interpretation?.premiumHint
-    ? '简版（可升级）'
+    ? tx('简版（可升级）', 'Lite (Upgradeable)', '簡版（可升級）')
     : isVip
-    ? '深度版（会员）'
-    : '完整版（积分解锁）';
+    ? tx('深度版（会员）', 'Deep (Member)', '深度版（會員）')
+    : tx('完整版（积分解锁）', 'Full (Points Unlock)', '完整版（積分解鎖）');
   const ziTierDesc = result?.interpretation?.premiumHint
-    ? '你当前看到的是可用精华版，升级后可直接解锁老师傅深批与行动建议。'
+    ? tx('你当前看到的是可用精华版，升级后可直接解锁老师傅深批与行动建议。', 'You are viewing a lite preview. Upgrade to unlock full expert guidance.', '你目前看到的是精華版，升級後可解鎖完整深度建議。')
     : isVip
-    ? '已解锁：部件拆解 + 方向深挖 + 老师傅批注 + 避坑提醒。'
-    : '当前已是完整版，升级会员可继续解锁更深层的年度批注与持续追问。';
+    ? tx('已解锁：部件拆解 + 方向深挖 + 老师傅批注 + 避坑提醒。', 'Unlocked: component analysis + deep focus guidance + expert notes.', '已解鎖：部件拆解 + 方向深挖 + 老師傅批注 + 避坑提醒。')
+    : tx('当前已是完整版，升级会员可继续解锁更深层的年度批注与持续追问。', 'Current version is full. Upgrade membership for deeper annual notes and follow-up guidance.', '目前已是完整版，升級會員可解鎖更深層批注與持續追問。');
 
   useEffect(() => {
     let alive = true;
@@ -285,7 +289,7 @@ export default function ZiScreen() {
     const zi = rawZi.trim().charAt(0);
     const normalizedQuestion = (questionText ?? userQuestion).trim();
     if (!/[\u4e00-\u9fa5]/.test(zi)) {
-      Alert.alert('提示', '请输入一个有效的汉字');
+      Alert.alert(t('common.notice', '提示'), tx('请输入一个有效的汉字', 'Please input a valid Chinese character', '請輸入一個有效的漢字'));
       return false;
     }
     if (user && !isVip) {
@@ -295,7 +299,10 @@ export default function ZiScreen() {
         if (checkRes.hasEnough === false) {
           setShowSmartCta(true);
           await refreshPointsBalance();
-          Alert.alert('积分不足', `测字需要 ${ziPointsCost} 积分，请使用下方快捷入口补充权益`);
+          Alert.alert(
+            tx('积分不足', 'Insufficient points', '積分不足'),
+            tx(`测字需要 ${ziPointsCost} 积分，请使用下方快捷入口补充权益`, `This reading needs ${ziPointsCost} points. Please use the quick actions below.`, `測字需要 ${ziPointsCost} 積分，請使用下方快捷入口補充權益`),
+          );
           return false;
         }
       } catch {
@@ -322,16 +329,16 @@ export default function ZiScreen() {
       if (msg.includes('积分不足')) {
         setShowSmartCta(true);
         await refreshPointsBalance();
-        Alert.alert('积分不足', msg || '请使用下方快捷入口补充权益');
+        Alert.alert(tx('积分不足', 'Insufficient points', '積分不足'), msg || tx('请使用下方快捷入口补充权益', 'Please use quick actions below to top up', '請使用下方快捷入口補充權益'));
       } else if (msg.includes('请输入一个有效的汉字')) {
-        Alert.alert('输入无效', msg);
+        Alert.alert(tx('输入无效', 'Invalid input', '輸入無效'), msg);
       } else {
         Alert.alert(
-          '测字失败',
-          msg || '连接出现问题，请检查网络后重试',
+          tx('测字失败', 'Character reading failed', '測字失敗'),
+          msg || tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
           [
-            { text: '知道了', style: 'cancel' },
-            { text: '重试', onPress: () => analyzeZiInput(rawZi, focusAspect, normalizedQuestion) },
+            { text: tx('知道了', 'OK', '知道了'), style: 'cancel' },
+            { text: t('common.retry', '重试'), onPress: () => analyzeZiInput(rawZi, focusAspect, normalizedQuestion) },
           ]
         );
       }
@@ -436,7 +443,7 @@ export default function ZiScreen() {
   // 打字模式测字
   const handleAnalyze = async () => {
     if (!inputZi.trim()) {
-      Alert.alert('提示', '请输入一个汉字');
+      Alert.alert(t('common.notice', '提示'), tx('请输入一个汉字', 'Please input one Chinese character', '請輸入一個漢字'));
       return;
     }
     await analyzeZiInput(inputZi.trim(), getFocusAspect(), userQuestion);
@@ -457,7 +464,7 @@ export default function ZiScreen() {
       if (!recognizedZi || !/[\u4e00-\u9fa5]/.test(recognizedZi)) {
         setResult(null);
         setHandwritingPreview(null);
-        Alert.alert('😔 识别失败', '未能识别出汉字，请重新书写');
+        Alert.alert(tx('😔 识别失败', '😔 Recognition Failed', '😔 識別失敗'), tx('未能识别出汉字，请重新书写', 'Could not recognize a valid Chinese character, please retry.', '未能識別出漢字，請重新書寫'));
         return;
       }
       const conf = typeof recognized.confidence === 'number' ? recognized.confidence : 0.9;
@@ -465,12 +472,16 @@ export default function ZiScreen() {
       setInputZi(recognizedZi);
       setHandwritingStage('analyzing');
       const ok = await analyzeZiInput(recognizedZi, getFocusAspect(), userQuestion);
-      if (ok) Alert.alert('🎉 识别成功', `识别到汉字：${recognizedZi}\n\n当前已完成首轮解读，你可以继续做方向深挖。`);
+      if (ok)
+        Alert.alert(
+          tx('🎉 识别成功', '🎉 Recognized', '🎉 識別成功'),
+          tx(`识别到汉字：${recognizedZi}\n\n当前已完成首轮解读，你可以继续做方向深挖。`, `Recognized: ${recognizedZi}\n\nFirst-pass reading is ready. You can continue with deeper focus.`, `識別到漢字：${recognizedZi}\n\n目前已完成首輪解讀，你可以繼續做方向深挖。`),
+        );
     } catch (error: any) {
       console.error('手写识别失败:', error);
       setResult(null);
       setHandwritingPreview(null);
-      Alert.alert('错误', error?.message || '手写识别失败，请稍后重试');
+      Alert.alert(t('common.error', '错误'), error?.message || tx('手写识别失败，请稍后重试', 'Handwriting recognition failed, please retry later.', '手寫識別失敗，請稍後重試'));
     } finally {
       setHandwritingStage('idle');
       setIsLoading(false);
@@ -507,9 +518,9 @@ export default function ZiScreen() {
     const normalized = (text || '').replace(/\s+/g, ' ').trim();
     if (!normalized) {
       return {
-        core: '卦义主线：当前卦象偏中性，先稳态观察。',
-        reminder: '当下提醒：先把关键变量看清，再决定推进节奏。',
-        action: '可执行动作：先做一件最小可执行动作，24小时内验证反馈。',
+        core: tx('卦义主线：当前卦象偏中性，先稳态观察。', 'Core pattern: current hexagram is neutral; stabilize first.', '卦義主線：當前卦象偏中性，先穩態觀察。'),
+        reminder: tx('当下提醒：先把关键变量看清，再决定推进节奏。', 'Reminder: clarify key variables before deciding pace.', '當下提醒：先把關鍵變量看清，再決定推進節奏。'),
+        action: tx('可执行动作：先做一件最小可执行动作，24小时内验证反馈。', 'Action: do one smallest executable step and validate within 24h.', '可執行動作：先做一件最小可執行動作，24小時內驗證反饋。'),
       };
     }
     const parts = normalized
@@ -520,27 +531,27 @@ export default function ZiScreen() {
     const reminder =
       parts.find((item) => /当前|宜|忌|建议|窗口|风险|收敛|推进/.test(item)) ||
       parts[1] ||
-      '先稳住节奏，再看外部反馈。';
+      tx('先稳住节奏，再看外部反馈。', 'Stabilize pace first, then observe external feedback.', '先穩住節奏，再看外部反饋。');
     const action =
       parts.find((item) => /先|再|可以|适合|行动|执行|步骤|复盘/.test(item)) ||
       parts[2] ||
-      '先做一件最小可执行动作，并在48小时内复盘。';
+      tx('先做一件最小可执行动作，并在48小时内复盘。', 'Do one smallest executable action and review within 48h.', '先做一件最小可執行動作，並在48小時內復盤。');
     return {
-      core: `卦义主线：${core}`,
-      reminder: `当下提醒：${reminder}`,
-      action: `可执行动作：${action}`,
+      core: `${tx('卦义主线：', 'Core pattern: ', '卦義主線：')}${core}`,
+      reminder: `${tx('当下提醒：', 'Reminder: ', '當下提醒：')}${reminder}`,
+      action: `${tx('可执行动作：', 'Action: ', '可執行動作：')}${action}`,
     };
   };
 
   const handleFocusedReanalyze = async () => {
     const zi = (result?.zi?.zi || inputZi || '').trim().charAt(0);
     if (!/[\u4e00-\u9fa5]/.test(zi)) {
-      Alert.alert('提示', '请先识别或输入一个字');
+      Alert.alert(t('common.notice', '提示'), tx('请先识别或输入一个字', 'Please recognize or input one character first', '請先識別或輸入一個字'));
       return;
     }
     const focus = getFocusAspect();
     if (!focus) {
-      Alert.alert('提示', '请先选择一个解读方向');
+      Alert.alert(t('common.notice', '提示'), tx('请先选择一个解读方向', 'Please select a reading direction first', '請先選擇一個解讀方向'));
       return;
     }
     await analyzeZiInput(zi, focus, userQuestion);
@@ -556,12 +567,12 @@ export default function ZiScreen() {
 
   const goProbingChat = () => {
     if (!result) return;
-    const focus = getFocusAspect() || result.interpretation.focusReading?.focus || '综合';
-    const probing = result.zi.probingQuestion || `围绕「${focus}」，你最想先解决哪一步？`;
+    const focus = getFocusAspect() || result.interpretation.focusReading?.focus || tx('综合', 'General', '綜合');
+    const probing = result.zi.probingQuestion || tx(`围绕「${focus}」，你最想先解决哪一步？`, `For "${focus}", which step do you want to solve first?`, `圍繞「${focus}」，你最想先解決哪一步？`);
     const aiMessage: ChatMessage = {
       id: `ai_probe_${Date.now()}`,
       role: 'assistant',
-      content: `我们围绕「${focus}」继续深聊。\n${probing}`,
+      content: tx(`我们围绕「${focus}」继续深聊。\n${probing}`, `Let's continue around "${focus}".\n${probing}`, `我們圍繞「${focus}」繼續深聊。\n${probing}`),
       timestamp: new Date(),
     };
     goChatWithZiCooldown();
@@ -574,11 +585,15 @@ export default function ZiScreen() {
   const goActionPlanChat = () => {
     if (!result?.interpretation.focusReading) return;
     const focus = result.interpretation.focusReading.focus;
-    const action = result.interpretation.focusReading.actionPlan[0] || '先从一件最小动作开始。';
+    const action = result.interpretation.focusReading.actionPlan[0] || tx('先从一件最小动作开始。', 'Start with one smallest action.', '先從一件最小動作開始。');
     const aiMessage: ChatMessage = {
       id: `ai_action_${Date.now()}`,
       role: 'assistant',
-      content: `我们围绕「${focus}」把行动计划落地。\n第一步建议：${action}\n你做完这一步后告诉我，我继续给你下一步。`,
+      content: tx(
+        `我们围绕「${focus}」把行动计划落地。\n第一步建议：${action}\n你做完这一步后告诉我，我继续给你下一步。`,
+        `Let's execute the plan for "${focus}".\nStep 1: ${action}\nTell me after you finish it and I will give the next step.`,
+        `我們圍繞「${focus}」把行動計畫落地。\n第一步建議：${action}\n你做完這一步後告訴我，我繼續給你下一步。`,
+      ),
       timestamp: new Date(),
     };
     goChatWithZiCooldown();
@@ -593,16 +608,16 @@ export default function ZiScreen() {
   const handwritingProgress = handwritingStage === 'recognizing' ? 42 : handwritingStage === 'analyzing' ? 86 : 0;
   const handwritingProgressText =
     handwritingStage === 'recognizing'
-      ? '识别中（1/2）'
+      ? tx('识别中（1/2）', 'Recognizing (1/2)', '識別中（1/2）')
       : handwritingStage === 'analyzing'
-      ? '解读中（2/2）'
+      ? tx('解读中（2/2）', 'Reading (2/2)', '解讀中（2/2）')
       : '';
   const ritualBreathHint =
     ritualCountdown <= 0
-      ? '准备好了就落笔。'
+      ? tx('准备好了就落笔。', 'Write when you are ready.', '準備好了就落筆。')
       : ritualCountdown >= 2
-      ? `吸气... ${ritualCountdown}`
-      : '呼气... 1';
+      ? tx(`吸气... ${ritualCountdown}`, `Inhale... ${ritualCountdown}`, `吸氣... ${ritualCountdown}`)
+      : tx('呼气... 1', 'Exhale... 1', '呼氣... 1');
   
   // 点击继续聊聊，AI自动发送一个问题，等待用户回答
   const handleFollowUpQuestion = async (_question: string) => {
@@ -670,8 +685,8 @@ export default function ZiScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: wuxingTheme.bg }]}>
       <View pointerEvents="none" style={[styles.wuxingAura, { backgroundColor: wuxingTheme.glow }]} />
       <View style={styles.header}>
-        <Text style={styles.title}>🔮 测字问心</Text>
-        <Text style={styles.subtitle}>字是心画，写一字可窥心</Text>
+        <Text style={styles.title}>{tx('🔮 测字问心', '🔮 Character Insight', '🔮 測字問心')}</Text>
+        <Text style={styles.subtitle}>{tx('字是心画，写一字可窥心', 'A single character mirrors your inner state', '字是心畫，寫一字可窺心')}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -688,7 +703,7 @@ export default function ZiScreen() {
               styles.modeButtonText,
               !isHandwritingMode && styles.modeButtonTextActive,
             ]}>
-              ⌨️ 打字输入
+              {tx('⌨️ 打字输入', '⌨️ Type Input', '⌨️ 打字輸入')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -702,7 +717,7 @@ export default function ZiScreen() {
               styles.modeButtonText,
               isHandwritingMode && styles.modeButtonTextActive,
             ]}>
-              ✍️ 手写输入
+              {tx('✍️ 手写输入', '✍️ Handwriting', '✍️ 手寫輸入')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -710,31 +725,34 @@ export default function ZiScreen() {
         {/* 输入区域 - 书写框优先展示 */}
         <View style={styles.inputSection}>
           <Text style={styles.sectionTitle}>
-            {isHandwritingMode ? '请在手写板写字' : '请写一字'}
+            {isHandwritingMode ? tx('请在手写板写字', 'Write a character on board', '請在手寫板寫字') : tx('请写一字', 'Write one character', '請寫一字')}
           </Text>
           <Text style={styles.hint}>
             {isHandwritingMode 
-              ? '在下方手写板上写下你想测的汉字'
-              : '根据《测字有术》，字如其人。心有所想，字有所现。'}
+              ? tx('在下方手写板上写下你想测的汉字', 'Write the character you want to read below', '在下方手寫板寫下你想測的漢字')
+              : tx('根据《测字有术》，字如其人。心有所想，字有所现。', 'A character reveals your present focus and rhythm.', '根據《測字有術》，字如其人。心有所想，字有所現。')}
           </Text>
           <View style={styles.billingPreviewBar}>
             <Text style={styles.billingPreviewText}>
-              {`本次将扣：${displayZiCost} 积分${isVip ? '（会员免扣）' : ''} · 当前余额：${availablePoints ?? '--'}`}
+              {t('reading.form.billingPreview', '本次将扣：{cost} 积分{memberFree} · 当前余额：{balance}')
+                .replace('{cost}', String(displayZiCost))
+                .replace('{memberFree}', isVip ? t('reading.form.memberFreeSuffix', '（会员免扣）') : '')
+                .replace('{balance}', String(availablePoints ?? '--'))}
             </Text>
           </View>
           {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
           {showSmartCta && !isVip && (
             <View style={styles.smartCtaWrap}>
-              <Text style={styles.smartCtaTitle}>余额不足，建议优先补充权益</Text>
+              <Text style={styles.smartCtaTitle}>{tx('余额不足，建议优先补充权益', 'Low balance, top up first', '餘額不足，建議優先補充權益')}</Text>
               <Text style={styles.smartCtaHint}>
                 {`按每周约 5 次测算，测字本月约需 ${projectedMonthlyPoints} 积分（约 ${projectedCheckinDays} 天签到）。`}
               </Text>
               <View style={styles.smartCtaActions}>
                 <TouchableOpacity style={styles.smartCtaPrimary} onPress={goPointsMall}>
-                  <Text style={styles.smartCtaPrimaryText}>去充值积分</Text>
+                  <Text style={styles.smartCtaPrimaryText}>{tx('去充值积分', 'Top up points', '去儲值積分')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.smartCtaSecondary} onPress={goVipPlan}>
-                  <Text style={styles.smartCtaSecondaryText}>开会员更划算</Text>
+                  <Text style={styles.smartCtaSecondaryText}>{tx('开会员更划算', 'Upgrade membership', '開會員更划算')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -755,9 +773,13 @@ export default function ZiScreen() {
               {/* 静心提示 - 放在书写框下方 */}
               {!ritualReady && (
                 <View style={styles.ritualCountdownCard}>
-                  <Text style={styles.ritualCountdownTitle}>🫧 写字前先静心</Text>
+                  <Text style={styles.ritualCountdownTitle}>{tx('🫧 写字前先静心', '🫧 Center yourself first', '🫧 寫字前先靜心')}</Text>
                   <Text style={styles.ritualCountdownText}>
-                    把注意力放在你此刻最想问的一件事上，再落笔，解读会更聚焦。你也可以直接写，不受限制。
+                    {tx(
+                      '把注意力放在你此刻最想问的一件事上，再落笔，解读会更聚焦。你也可以直接写，不受限制。',
+                      'Focus on one question first, then write. This makes the reading more accurate.',
+                      '把注意力放在你此刻最想問的一件事上，再落筆，解讀會更聚焦。你也可以直接寫，不受限制。',
+                    )}
                   </Text>
                   {ritualCountdown > 0 && (
                     <Text style={styles.ritualBreathHint}>{ritualBreathHint}</Text>
@@ -772,11 +794,11 @@ export default function ZiScreen() {
                       disabled={ritualCountdown > 0}
                     >
                       <Text style={styles.ritualCountdownPrimaryText}>
-                        {ritualCountdown > 0 ? `静心中 ${ritualCountdown}s` : '开始3秒静心'}
+                        {ritualCountdown > 0 ? tx(`静心中 ${ritualCountdown}s`, `Centering ${ritualCountdown}s`, `靜心中 ${ritualCountdown}s`) : tx('开始3秒静心', 'Start 3s centering', '開始3秒靜心')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.ritualCountdownSecondary} onPress={skipRitual}>
-                      <Text style={styles.ritualCountdownSecondaryText}>跳过，直接写字</Text>
+                      <Text style={styles.ritualCountdownSecondaryText}>{tx('跳过，直接写字', 'Skip and write now', '跳過，直接寫字')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -791,10 +813,10 @@ export default function ZiScreen() {
               )}
               {handwritingPreview && !result && (
                 <View style={styles.handwritingPreviewCard}>
-                  <Text style={styles.handwritingPreviewLabel}>识别结果</Text>
+                  <Text style={styles.handwritingPreviewLabel}>{tx('识别结果', 'Recognition', '識別結果')}</Text>
                   <Text style={styles.handwritingPreviewZi}>「{handwritingPreview.zi}」</Text>
                   <Text style={styles.handwritingPreviewMeta}>
-                    置信度约 {Math.round(Math.min(1, Math.max(0, handwritingPreview.confidence)) * 100)}%
+                    {tx('置信度约', 'Confidence', '置信度約')} {Math.round(Math.min(1, Math.max(0, handwritingPreview.confidence)) * 100)}%
                   </Text>
                   <Text style={styles.handwritingPreviewHint}>
                     {`下方「深度解读」需消耗积分（当前 ${ziPointsCost} 积分/次）。若刚才提示积分不足，请先签到或前往「灵石」获取积分，再点按钮重试。`}
@@ -805,7 +827,7 @@ export default function ZiScreen() {
                     disabled={isLoading}
                   >
                     <Text style={styles.handwritingPreviewBtnText}>
-                      {isLoading ? '解读中…' : '生成深度解读'}
+                      {isLoading ? tx('解读中…', 'Reading...', '解讀中…') : tx('生成深度解读', 'Generate Deep Reading', '生成深度解讀')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -818,7 +840,7 @@ export default function ZiScreen() {
                 style={styles.input}
                 value={inputZi}
                 onChangeText={setInputZi}
-                placeholder="输入一个汉字"
+                placeholder={tx('输入一个汉字', 'Type one Chinese character', '輸入一個漢字')}
                 placeholderTextColor="#999"
                 maxLength={1}
                 autoFocus
@@ -831,14 +853,18 @@ export default function ZiScreen() {
                 {isLoading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>开始测字</Text>
+                  <Text style={styles.buttonText}>{tx('开始测字', 'Start Reading', '開始測字')}</Text>
                 )}
               </TouchableOpacity>
             </View>
           )}
           {isLoading ? (
             <Text style={styles.loadingHint}>
-              AI 深度解读约需 30 秒～2 分钟，请保持网络畅通、勿关闭页面
+              {tx(
+                'AI 深度解读约需 30 秒～2 分钟，请保持网络畅通、勿关闭页面',
+                'Deep reading usually takes 30s-2min. Keep network stable and stay on this page.',
+                'AI 深度解讀約需 30 秒～2 分鐘，請保持網路暢通、勿關閉頁面',
+              )}
             </Text>
           ) : null}
         </View>
@@ -952,14 +978,14 @@ export default function ZiScreen() {
                 style={styles.customAspectInput}
                 value={customAspect}
                 onChangeText={setCustomAspect}
-                placeholder="或输入其他方面..."
+                placeholder={tx('或输入其他方面...', 'Or enter another focus...', '或輸入其他方面...')}
                 placeholderTextColor="#666"
               />
               <TextInput
                 style={styles.customAspectInput}
                 value={userQuestion}
                 onChangeText={setUserQuestion}
-                placeholder="可选：你现在最想问的具体问题（如：我要不要离职）"
+                placeholder={tx('可选：你现在最想问的具体问题（如：我要不要离职）', 'Optional: your most specific question now', '可選：你現在最想問的具體問題')}
                 placeholderTextColor="#666"
                 maxLength={120}
               />
@@ -977,8 +1003,8 @@ export default function ZiScreen() {
                 >
                   <Text style={styles.refineInlineBtnText}>
                     {isLoading
-                      ? (result?.interpretation.focusReading ? '重解读中...' : '解读中...')
-                      : '按方向重解读'}
+                      ? (result?.interpretation.focusReading ? tx('重解读中...', 'Re-reading...', '重解讀中...') : tx('解读中...', 'Reading...', '解讀中...'))
+                      : tx('按方向重解读', 'Re-read by focus', '按方向重解讀')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1185,8 +1211,11 @@ export default function ZiScreen() {
                   <View style={styles.handwritingItem}>
                     <Text style={styles.handwritingLabel}>力度</Text>
                     <Text style={styles.handwritingValue}>
-                      {result.handwriting.pressure === 'heavy' ? '较重' : 
-                       result.handwriting.pressure === 'light' ? '较轻' : '适中'}
+                      {result.handwriting.pressure === 'heavy'
+                        ? tx('较重', 'Heavy', '較重')
+                        : result.handwriting.pressure === 'light'
+                        ? tx('较轻', 'Light', '較輕')
+                        : tx('适中', 'Balanced', '適中')}
                     </Text>
                   </View>
                   <Text style={styles.handwritingInterpretation}>
@@ -1196,8 +1225,11 @@ export default function ZiScreen() {
                   <View style={styles.handwritingItem}>
                     <Text style={styles.handwritingLabel}>稳定性</Text>
                     <Text style={styles.handwritingValue}>
-                      {result.handwriting.stability === 'stable' ? '稳定' : 
-                       result.handwriting.stability === 'shaky' ? '波动' : '一般'}
+                      {result.handwriting.stability === 'stable'
+                        ? tx('稳定', 'Stable', '穩定')
+                        : result.handwriting.stability === 'shaky'
+                        ? tx('波动', 'Shaky', '波動')
+                        : tx('一般', 'Average', '一般')}
                     </Text>
                   </View>
                   <Text style={styles.handwritingInterpretation}>
@@ -1207,8 +1239,11 @@ export default function ZiScreen() {
                   <View style={styles.handwritingItem}>
                     <Text style={styles.handwritingLabel}>结构</Text>
                     <Text style={styles.handwritingValue}>
-                      {result.handwriting.structure === 'compact' ? '紧凑' : 
-                       result.handwriting.structure === 'loose' ? '松散' : '均衡'}
+                      {result.handwriting.structure === 'compact'
+                        ? tx('紧凑', 'Compact', '緊湊')
+                        : result.handwriting.structure === 'loose'
+                        ? tx('松散', 'Loose', '鬆散')
+                        : tx('均衡', 'Balanced', '均衡')}
                     </Text>
                   </View>
                   <Text style={styles.handwritingInterpretation}>

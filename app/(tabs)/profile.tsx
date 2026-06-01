@@ -7,6 +7,7 @@ import { useUserStore } from '../../src/store/user';
 import { usePersonaStore } from '../../src/store/persona';
 import { pointsApi, PointsSummary, achievementApi, UserAchievement, AchievementProgress } from '../../src/services/api';
 import { getMembershipLabel, isMembershipActive } from '../../src/utils/membership';
+import { localizePersona } from '../../src/utils/personaI18n';
 import * as Clipboard from 'expo-clipboard';
 import { useI18nStore } from '../../src/store/i18n';
 import type { AppLanguage } from '../../src/i18n/translations';
@@ -34,11 +35,16 @@ export default function ProfileScreen() {
   const language = useI18nStore((state) => state.language);
   const setLanguage = useI18nStore((state) => state.setLanguage);
   const t = useI18nStore((state) => state.t);
+  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
+  const localizedPersonas = React.useMemo(
+    () => personas.map((persona) => localizePersona(persona, language)),
+    [personas, language],
+  );
 
   // 分享功能
   const handleShare = async () => {
     if (!user) {
-      Alert.alert('提示', '请先登录');
+      Alert.alert(t('common.notice', '提示'), t('common.loginFirst', '请先登录'));
       router.push('/login');
       return;
     }
@@ -48,12 +54,23 @@ export default function ProfileScreen() {
       // 使用 referralCode 生成邀请链接
       const referralCode = user.referralCode || user.id;
       const shareUrl = `https://www.shanhai.app/register?ref=${referralCode}`;
-      const shareMessage = `🔮 山海灵境 - 探索你的命运之旅\n\n邀请码: ${referralCode}\n使用我的邀请链接注册，你得50积分，我也得50积分！\n\n立即注册: ${shareUrl}`;
+      const shareMessage = tx(
+        `🔮 山海灵境 - 探索你的命运之旅\n\n邀请码: ${referralCode}\n使用我的邀请链接注册，你得50积分，我也得50积分！\n\n立即注册: ${shareUrl}`,
+        `🔮 Shanhai Realm - Explore your destiny\n\nInvite Code: ${referralCode}\nUse my invite link to register. We both get +50 points!\n\nRegister now: ${shareUrl}`,
+        `🔮 山海靈境 - 探索你的命運之旅\n\n邀請碼: ${referralCode}\n使用我的邀請連結註冊，你我都可獲得 +50 積分！\n\n立即註冊: ${shareUrl}`,
+      );
       
       // 优先使用剪贴板复制
       await Clipboard.setStringAsync(shareMessage);
       setCopied(true);
-      Alert.alert('✅ 复制成功', `邀请链接已复制！\n\n${shareUrl}\n\n分享给朋友，你们各得50积分！`);
+      Alert.alert(
+        tx('✅ 复制成功', '✅ Copied', '✅ 複製成功'),
+        tx(
+          `邀请链接已复制！\n\n${shareUrl}\n\n分享给朋友，你们各得50积分！`,
+          `Invite link copied!\n\n${shareUrl}\n\nShare with friends. Both sides get +50 points!`,
+          `邀請連結已複製！\n\n${shareUrl}\n\n分享給朋友，你我都可獲得 +50 積分！`,
+        ),
+      );
       
       // 2秒后重置复制状态
       setTimeout(() => setCopied(false), 2000);
@@ -64,9 +81,12 @@ export default function ProfileScreen() {
         const referralCode = user.referralCode || user.id;
         const shareUrl = `https://www.shanhai.app/register?ref=${referralCode}`;
         await Clipboard.setStringAsync(shareUrl);
-        Alert.alert('✅ 复制成功', '链接已复制到剪贴板\n\n邀请成功各得50积分！');
+        Alert.alert(
+          tx('✅ 复制成功', '✅ Copied', '✅ 複製成功'),
+          tx('链接已复制到剪贴板\n\n邀请成功各得50积分！', 'Link copied to clipboard.\n\nBoth sides get +50 points after successful invite.', '連結已複製到剪貼簿\n\n邀請成功後雙方各得 +50 積分！'),
+        );
       } catch (e) {
-        Alert.alert('分享失败', '请稍后重试');
+        Alert.alert(tx('分享失败', 'Share Failed', '分享失敗'), tx('请稍后重试', 'Please try again later', '請稍後重試'));
       }
     } finally {
       setIsSharing(false);
@@ -202,7 +222,7 @@ export default function ProfileScreen() {
   // 签到处理函数
   const handleCheckIn = async () => {
     if (!user) {
-      Alert.alert('提示', '请先登录');
+      Alert.alert(t('common.notice', '提示'), t('common.loginFirst', '请先登录'));
       router.push('/login');
       return;
     }
@@ -218,17 +238,23 @@ export default function ProfileScreen() {
         if (result.achievement) {
           setAchievementUnlock(result.achievement);
         } else {
-          Alert.alert('签到成功', result.message || `获得 ${result.points || 0} 积分`);
+          Alert.alert(
+            tx('签到成功', 'Check-in successful', '簽到成功'),
+            result.message || tx(`获得 ${result.points || 0} 积分`, `+${result.points || 0} points`, `獲得 ${result.points || 0} 積分`),
+          );
         }
         // 刷新积分显示
         const pointsData = await pointsApi.getSummary().catch(() => null);
         setPointsSummary(pointsData);
       } else {
-        Alert.alert('签到失败', result?.message || '请稍后重试');
+        Alert.alert(
+          tx('签到失败', 'Check-in failed', '簽到失敗'),
+          result?.message || tx('请稍后重试', 'Please try again later', '請稍後重試'),
+        );
       }
     } catch (e) {
       console.error('签到错误:', e);
-      Alert.alert('签到失败', '请稍后重试');
+      Alert.alert(tx('签到失败', 'Check-in failed', '簽到失敗'), tx('请稍后重试', 'Please try again later', '請稍後重試'));
     } finally {
       setIsCheckingIn(false);
     }
@@ -267,32 +293,32 @@ export default function ProfileScreen() {
       setStep('input');
     };
     if (Platform.OS === 'web') {
-      if (window.confirm('确定要退出登录吗？')) {
+      if (window.confirm(tx('确定要退出登录吗？', 'Log out now?', '確定要登出嗎？'))) {
         await doLogout();
       }
     } else {
-      Alert.alert('确认退出', '确定要退出登录吗？', [
-        { text: '取消', style: 'cancel' },
-        { text: '退出', style: 'destructive', onPress: doLogout },
+      Alert.alert(tx('确认退出', 'Confirm Logout', '確認登出'), tx('确定要退出登录吗？', 'Log out now?', '確定要登出嗎？'), [
+        { text: t('common.cancel', '取消'), style: 'cancel' },
+        { text: tx('退出', 'Log Out', '登出'), style: 'destructive', onPress: doLogout },
       ]);
     }
   };
 
   const handleSave = async () => {
     if (!name.trim() || !birthDate.trim() || !birthTime.trim()) {
-      Alert.alert('提示', '请填写完整信息');
+      Alert.alert(t('common.notice', '提示'), tx('请填写完整信息', 'Please complete all required fields', '請填寫完整資訊'));
       return;
     }
 
     const emailTrim = profileEmail.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
-      Alert.alert('提示', '请填写有效邮箱（与注册邮箱一致）');
+      Alert.alert(t('common.notice', '提示'), tx('请填写有效邮箱（与注册邮箱一致）', 'Please enter a valid email', '請填寫有效郵箱（與註冊郵箱一致）'));
       return;
     }
 
     const parsedLongitude = birthLongitude.trim() ? Number(birthLongitude) : undefined;
     if (birthLongitude.trim() && Number.isNaN(parsedLongitude!)) {
-      Alert.alert('提示', '经度格式不正确，请输入数字');
+      Alert.alert(t('common.notice', '提示'), tx('经度格式不正确，请输入数字', 'Invalid longitude format', '經度格式不正確，請輸入數字'));
       return;
     }
 
@@ -322,7 +348,7 @@ export default function ProfileScreen() {
           gender,
         });
       }
-      Alert.alert('成功', '信息已保存，正在生成命盘...');
+      Alert.alert(t('common.success', '成功'), tx('信息已保存，正在生成命盘...', 'Saved. Generating chart...', '資訊已保存，正在生成命盤...'));
       // 自动生成命盘（会从服务端拉取最新用户信息，含经度，用于真太阳时校准）
       const chartGender = gender === 'other' ? 'male' : gender;
       await generateChart(chartGender);
@@ -330,8 +356,8 @@ export default function ProfileScreen() {
       await loadUser();
       setStep('chart');
     } catch (error) {
-      const msg = error instanceof Error ? error.message : '保存失败，请重试';
-      Alert.alert('错误', msg);
+      const msg = error instanceof Error ? error.message : tx('保存失败，请重试', 'Save failed, please retry', '保存失敗，請重試');
+      Alert.alert(t('common.error', '错误'), msg);
     }
   };
 
@@ -339,10 +365,10 @@ export default function ProfileScreen() {
     try {
       const chartGender = gender === 'other' ? 'male' : gender;
       await generateChart(chartGender);
-      Alert.alert('成功', '命盘已生成');
+      Alert.alert(t('common.success', '成功'), tx('命盘已生成', 'Chart generated', '命盤已生成'));
     } catch (error) {
-      const msg = error instanceof Error ? error.message : '生成命盘失败';
-      Alert.alert('错误', msg);
+      const msg = error instanceof Error ? error.message : tx('生成命盘失败', 'Generate chart failed', '生成命盤失敗');
+      Alert.alert(t('common.error', '错误'), msg);
     }
   };
 
@@ -395,21 +421,21 @@ export default function ProfileScreen() {
             <View style={styles.userDetails}>
               {user.birthDate && (
                 <View style={styles.userDetailItem}>
-                  <Text style={styles.userDetailLabel}>📅 出生日期</Text>
+                  <Text style={styles.userDetailLabel}>{tx('📅 出生日期', '📅 Birth Date', '📅 出生日期')}</Text>
                   <Text style={styles.userDetailValue}>{user.birthDate}</Text>
                 </View>
               )}
               {user.birthTime && (
                 <View style={styles.userDetailItem}>
-                  <Text style={styles.userDetailLabel}>⏰ 出生时间</Text>
+                  <Text style={styles.userDetailLabel}>{tx('⏰ 出生时间', '⏰ Birth Time', '⏰ 出生時間')}</Text>
                   <Text style={styles.userDetailValue}>{user.birthTime}</Text>
                 </View>
               )}
               {user.gender && (
                 <View style={styles.userDetailItem}>
-                  <Text style={styles.userDetailLabel}>⚧ 性别</Text>
+                  <Text style={styles.userDetailLabel}>{tx('⚧ 性别', '⚧ Gender', '⚧ 性別')}</Text>
                   <Text style={styles.userDetailValue}>
-                    {user.gender === 'male' ? '男' : user.gender === 'female' ? '女' : '其他'}
+                    {user.gender === 'male' ? tx('男', 'Male', '男') : user.gender === 'female' ? tx('女', 'Female', '女') : tx('其他', 'Other', '其他')}
                   </Text>
                 </View>
               )}
@@ -430,15 +456,15 @@ export default function ProfileScreen() {
               <Text style={styles.membershipIcon}>{isVip ? '👑' : '✨'}</Text>
               <View style={styles.membershipInfo}>
                 <Text style={styles.membershipCardTitle}>
-                  {isVip ? `${membershipLabel} · 已开通` : '开通会员解锁完整能力'}
+                  {isVip ? `${membershipLabel} · ${tx('已开通', 'Active', '已開通')}` : tx('开通会员解锁完整能力', 'Unlock full features with membership', '開通會員解鎖完整能力')}
                 </Text>
                 <Text style={styles.membershipCardDesc}>
-                  {isVip ? '查看会员权益与状态管理' : '无限次AI解读、专属内容、更多高级能力'}
+                  {isVip ? tx('查看会员权益与状态管理', 'Manage membership benefits', '查看會員權益與狀態管理') : tx('无限次AI解读、专属内容、更多高级能力', 'Unlimited AI readings and premium content', '無限次 AI 解讀、專屬內容、更多高級能力')}
                 </Text>
               </View>
             </View>
             <View style={styles.membershipActionPill}>
-              <Text style={styles.membershipActionText}>{isVip ? '管理会员' : '立即订阅'}</Text>
+              <Text style={styles.membershipActionText}>{isVip ? tx('管理会员', 'Manage', '管理會員') : tx('立即订阅', 'Subscribe', '立即訂閱')}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -447,17 +473,17 @@ export default function ProfileScreen() {
           <>
             <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
               <View>
-                <Text style={styles.mallEntryTitle}>🎁 积分商城</Text>
-                <Text style={styles.mallEntryDesc}>兑换权益、查看任务、管理积分资产</Text>
+                <Text style={styles.mallEntryTitle}>{tx('🎁 积分商城', '🎁 Points Mall', '🎁 積分商城')}</Text>
+                <Text style={styles.mallEntryDesc}>{tx('兑换权益、查看任务、管理积分资产', 'Redeem benefits and manage points', '兌換權益、查看任務、管理積分資產')}</Text>
               </View>
-              <Text style={styles.mallEntryAction}>去看看 ›</Text>
+              <Text style={styles.mallEntryAction}>{tx('去看看 ›', 'Open ›', '去看看 ›')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.mallEntryCard} onPress={() => router.push('/(tabs)/meditation')} activeOpacity={0.9}>
               <View>
-                <Text style={styles.mallEntryTitle}>🧘 静心冥想</Text>
-                <Text style={styles.mallEntryDesc}>静心、助眠、缓解焦虑</Text>
+                <Text style={styles.mallEntryTitle}>{tx('🧘 静心冥想', '🧘 Meditation', '🧘 靜心冥想')}</Text>
+                <Text style={styles.mallEntryDesc}>{tx('静心、助眠、缓解焦虑', 'Calm mind, sleep better, reduce anxiety', '靜心、助眠、緩解焦慮')}</Text>
               </View>
-              <Text style={styles.mallEntryAction}>去冥想 ›</Text>
+              <Text style={styles.mallEntryAction}>{tx('去冥想 ›', 'Start ›', '去冥想 ›')}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -466,7 +492,7 @@ export default function ProfileScreen() {
         {/* 今日任务 */}
         {isLoggedIn && (
           <View style={[styles.dailyTasksCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
-            <Text style={styles.dailyTasksTitle}>📋 今日任务</Text>
+            <Text style={styles.dailyTasksTitle}>{tx('📋 今日任务', '📋 Today Tasks', '📋 今日任務')}</Text>
             <View style={styles.dailyTasksRow}>
               <TouchableOpacity
                 style={styles.dailyTaskItem}
@@ -475,23 +501,23 @@ export default function ProfileScreen() {
               >
                 <Text style={styles.dailyTaskIcon}>{checkInStatus?.todayCheckedIn ? '✅' : '📝'}</Text>
                 <Text style={[styles.dailyTaskLabel, checkInStatus?.todayCheckedIn && styles.dailyTaskDone]}>
-                  {checkInStatus?.todayCheckedIn ? '已签到' : '签到'}
+                  {checkInStatus?.todayCheckedIn ? tx('已签到', 'Checked In', '已簽到') : tx('签到', 'Check In', '簽到')}
                 </Text>
                 <Text style={styles.dailyTaskPoints}>+10</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)')}>
                 <Text style={styles.dailyTaskIcon}>🎯</Text>
-                <Text style={styles.dailyTaskLabel}>抽签</Text>
+                <Text style={styles.dailyTaskLabel}>{tx('抽签', 'Fortune', '抽籤')}</Text>
                 <Text style={styles.dailyTaskPoints}>+5</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)/zi')}>
                 <Text style={styles.dailyTaskIcon}>✍️</Text>
-                <Text style={styles.dailyTaskLabel}>测字</Text>
+                <Text style={styles.dailyTaskLabel}>{tx('测字', 'Character', '測字')}</Text>
                 <Text style={styles.dailyTaskPoints}>+5</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)')}>
                 <Text style={styles.dailyTaskIcon}>💬</Text>
-                <Text style={styles.dailyTaskLabel}>对话</Text>
+                <Text style={styles.dailyTaskLabel}>{tx('对话', 'Chat', '對話')}</Text>
                 <Text style={styles.dailyTaskPoints}>+5</Text>
               </TouchableOpacity>
             </View>
@@ -502,16 +528,16 @@ export default function ProfileScreen() {
         {isLoggedIn && (
           <View style={[styles.statsCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
             <TouchableOpacity style={styles.pointsHero} onPress={handleOpenPointsMall} activeOpacity={0.88}>
-              <Text style={styles.pointsHeroLabel}>可用积分</Text>
+              <Text style={styles.pointsHeroLabel}>{tx('可用积分', 'Available Points', '可用積分')}</Text>
               <Text style={styles.pointsHeroValue}>
                 {isLoadingData ? '…' : pointsSummary?.availablePoints ?? pointsSummary?.totalPoints ?? 0}
               </Text>
-              <Text style={styles.pointsHeroHint}>充值 / 明细 ›</Text>
+              <Text style={styles.pointsHeroHint}>{tx('充值 / 明细 ›', 'Top up / Ledger ›', '儲值 / 明細 ›')}</Text>
             </TouchableOpacity>
             <View style={[styles.statsRowSecond, { borderTopColor: '#322243' }]}>
               <TouchableOpacity style={styles.statItemHalf} onPress={() => setAchievementsPanelOpen(true)} activeOpacity={0.88}>
                 <Text style={styles.statValue}>{achievements.filter((a) => a.unlockedAt).length}</Text>
-                <Text style={styles.statLabel}>成就</Text>
+                <Text style={styles.statLabel}>{tx('成就', 'Achievements', '成就')}</Text>
               </TouchableOpacity>
               <View style={[styles.statDivider, { backgroundColor: '#322243' }]} />
               <TouchableOpacity
@@ -522,7 +548,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.statValue, checkInStatus?.todayCheckedIn && { color: '#4CAF50' }]}>
                   {checkInStatus?.todayCheckedIn ? '✓' : '+10'}
                 </Text>
-                <Text style={styles.statLabel}>{checkInStatus?.todayCheckedIn ? '已签到' : '签到'}</Text>
+                <Text style={styles.statLabel}>{checkInStatus?.todayCheckedIn ? tx('已签到', 'Checked In', '已簽到') : tx('签到', 'Check In', '簽到')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -543,10 +569,14 @@ export default function ProfileScreen() {
                 </Text>
                 <View style={styles.checkinStatusInfo}>
                   <Text style={styles.checkinStatusValue}>
-                    {checkInStatus?.todayCheckedIn ? '今日已签到' : isCheckingIn ? '签到中...' : '签到领积分'}
+                    {checkInStatus?.todayCheckedIn
+                      ? tx('今日已签到', 'Checked in today', '今日已簽到')
+                      : isCheckingIn
+                      ? tx('签到中...', 'Checking in...', '簽到中...')
+                      : tx('签到领积分', 'Check in for points', '簽到領積分')}
                   </Text>
                   <Text style={styles.checkinStatusLabel}>
-                    连续 {checkInStatus?.currentStreak || 0} 天
+                    {tx('连续', 'Streak', '連續')} {checkInStatus?.currentStreak || 0} {tx('天', 'days', '天')}
                   </Text>
                 </View>
                 <View style={styles.checkinPointsBadge}>
@@ -560,14 +590,16 @@ export default function ProfileScreen() {
               <View style={styles.shareCardContent}>
                 <Text style={styles.shareIcon}>🎁</Text>
                 <View style={styles.shareInfo}>
-                  <Text style={styles.shareTitle}>邀请好友得积分</Text>
-                  <Text style={styles.shareDesc}>好友注册你得50积分，他/她也得50积分！</Text>
+                  <Text style={styles.shareTitle}>{tx('邀请好友得积分', 'Invite friends for points', '邀請好友得積分')}</Text>
+                  <Text style={styles.shareDesc}>{tx('好友注册你得50积分，他/她也得50积分！', 'Both sides get +50 points after successful registration!', '好友註冊後雙方各得 +50 積分！')}</Text>
                   {user?.referralCode && (
-                    <Text style={styles.referralCode}>我的推荐码: {user.referralCode}</Text>
+                    <Text style={styles.referralCode}>{tx('我的推荐码', 'My Invite Code', '我的推薦碼')}: {user.referralCode}</Text>
                   )}
                 </View>
                 <View style={[styles.shareButton, { backgroundColor: copied ? '#4CAF50' : '#F8D05F' }]}>
-                  <Text style={styles.shareButtonText}>{isSharing ? '...' : (copied ? '✅ 已复制' : '📋 复制链接')}</Text>
+                  <Text style={styles.shareButtonText}>
+                    {isSharing ? '...' : copied ? tx('✅ 已复制', '✅ Copied', '✅ 已複製') : tx('📋 复制链接', '📋 Copy Link', '📋 複製連結')}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -874,7 +906,7 @@ export default function ProfileScreen() {
               <View style={styles.userDetailItem}>
                 <Text style={styles.userDetailLabel}>⚧ 性别</Text>
                 <Text style={styles.userDetailValue}>
-                  {user.gender === 'male' ? '男' : user.gender === 'female' ? '女' : '其他'}
+                  {user.gender === 'male' ? tx('男', 'Male', '男') : user.gender === 'female' ? tx('女', 'Female', '女') : tx('其他', 'Other', '其他')}
                 </Text>
               </View>
             )}
@@ -888,7 +920,7 @@ export default function ProfileScreen() {
                 <Text style={styles.pointsIcon}>💎</Text>
                 <View>
                   <Text style={styles.pointsValue}>{pointsSummary?.availablePoints || 0}</Text>
-                  <Text style={styles.pointsLabel}>可用积分</Text>
+                  <Text style={styles.pointsLabel}>{tx('可用积分', 'Available Points', '可用積分')}</Text>
                 </View>
               </View>
               <View style={styles.pointsDivider} />
@@ -896,7 +928,7 @@ export default function ProfileScreen() {
                 <Text style={styles.pointsIcon}>📈</Text>
                 <View>
                   <Text style={styles.pointsValue}>{pointsSummary?.totalPoints || 0}</Text>
-                  <Text style={styles.pointsLabel}>总积分</Text>
+                  <Text style={styles.pointsLabel}>{tx('总积分', 'Total Points', '總積分')}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -913,10 +945,14 @@ export default function ProfileScreen() {
                 </Text>
                 <View style={styles.checkinStatusInfo}>
                   <Text style={styles.checkinStatusValue}>
-                    {checkInStatus?.todayCheckedIn ? '今日已签到' : isCheckingIn ? '签到中...' : '签到领积分'}
+                    {checkInStatus?.todayCheckedIn
+                      ? tx('今日已签到', 'Checked in today', '今日已簽到')
+                      : isCheckingIn
+                      ? tx('签到中...', 'Checking in...', '簽到中...')
+                      : tx('签到领积分', 'Check in for points', '簽到領積分')}
                   </Text>
                   <Text style={styles.checkinStatusLabel}>
-                    连续 {checkInStatus?.currentStreak || 0} 天
+                    {tx('连续', 'Streak', '連續')} {checkInStatus?.currentStreak || 0} {tx('天', 'days', '天')}
                   </Text>
                 </View>
                 <View style={styles.checkinPointsBadge}>
@@ -947,15 +983,15 @@ export default function ProfileScreen() {
               <View style={styles.shareCardContent}>
                 <Text style={styles.shareIcon}>🎁</Text>
                 <View style={styles.shareInfo}>
-                  <Text style={styles.shareTitle}>邀请好友得积分</Text>
-                  <Text style={styles.shareDesc}>好友注册你得50积分，他/她也得50积分！</Text>
+                  <Text style={styles.shareTitle}>{tx('邀请好友得积分', 'Invite friends for points', '邀請好友得積分')}</Text>
+                  <Text style={styles.shareDesc}>{tx('好友注册你得50积分，他/她也得50积分！', 'Both sides get +50 points after successful registration!', '好友註冊後雙方各得 +50 積分！')}</Text>
                   {/* 显示用户推荐码 */}
                   {user?.referralCode && (
-                    <Text style={styles.referralCode}>我的推荐码: {user.referralCode}</Text>
+                    <Text style={styles.referralCode}>{tx('我的推荐码', 'My Invite Code', '我的推薦碼')}: {user.referralCode}</Text>
                   )}
                 </View>
                 <View style={[styles.shareButton, { backgroundColor: copied ? '#4CAF50' : '#F8D05F' }]}>
-                  <Text style={styles.shareButtonText}>{isSharing ? '...' : (copied ? '✅ 已复制' : '📋 复制链接')}</Text>
+                  <Text style={styles.shareButtonText}>{isSharing ? '...' : (copied ? tx('✅ 已复制', '✅ Copied', '✅ 已複製') : tx('📋 复制链接', '📋 Copy Link', '📋 複製連結'))}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -976,15 +1012,15 @@ export default function ProfileScreen() {
             <Text style={styles.membershipIcon}>{isVip ? '👑' : '✨'}</Text>
             <View style={styles.membershipInfo}>
               <Text style={styles.membershipCardTitle}>
-                {isVip ? `${membershipLabel} · 已开通` : '开通会员解锁完整能力'}
+                {isVip ? `${membershipLabel} · ${tx('已开通', 'Active', '已開通')}` : tx('开通会员解锁完整能力', 'Unlock full features with membership', '開通會員解鎖完整能力')}
               </Text>
               <Text style={styles.membershipCardDesc}>
-                {isVip ? '查看会员权益与状态管理' : '无限次AI解读、专属内容、更多高级能力'}
+                {isVip ? tx('查看会员权益与状态管理', 'Manage membership benefits', '查看會員權益與狀態管理') : tx('无限次AI解读、专属内容、更多高级能力', 'Unlimited AI readings and premium content', '無限次 AI 解讀、專屬內容、更多高級能力')}
               </Text>
             </View>
           </View>
           <View style={styles.membershipActionPill}>
-            <Text style={styles.membershipActionText}>{isVip ? '管理会员' : '立即订阅'}</Text>
+            <Text style={styles.membershipActionText}>{isVip ? tx('管理会员', 'Manage', '管理會員') : tx('立即订阅', 'Subscribe', '立即訂閱')}</Text>
           </View>
         </TouchableOpacity>
       )}
@@ -993,17 +1029,17 @@ export default function ProfileScreen() {
         <>
           <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
             <View>
-              <Text style={styles.mallEntryTitle}>🎁 积分商城</Text>
-              <Text style={styles.mallEntryDesc}>兑换权益、查看任务、管理积分资产</Text>
+              <Text style={styles.mallEntryTitle}>{tx('🎁 积分商城', '🎁 Points Mall', '🎁 積分商城')}</Text>
+              <Text style={styles.mallEntryDesc}>{tx('兑换权益、查看任务、管理积分资产', 'Redeem benefits and manage points', '兌換權益、查看任務、管理積分資產')}</Text>
             </View>
-            <Text style={styles.mallEntryAction}>去看看 ›</Text>
+            <Text style={styles.mallEntryAction}>{tx('去看看 ›', 'Open ›', '去看看 ›')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.mallEntryCard} onPress={() => router.push('/(tabs)/meditation')} activeOpacity={0.9}>
             <View>
-              <Text style={styles.mallEntryTitle}>🧘 静心冥想</Text>
-              <Text style={styles.mallEntryDesc}>静心、助眠、缓解焦虑，在山海世界中寻找宁静</Text>
+              <Text style={styles.mallEntryTitle}>{tx('🧘 静心冥想', '🧘 Meditation', '🧘 靜心冥想')}</Text>
+              <Text style={styles.mallEntryDesc}>{tx('静心、助眠、缓解焦虑，在山海世界中寻找宁静', 'Calm mind, sleep better, and reduce anxiety', '靜心、助眠、緩解焦慮，在山海世界中尋找寧靜')}</Text>
             </View>
-            <Text style={styles.mallEntryAction}>去冥想 ›</Text>
+            <Text style={styles.mallEntryAction}>{tx('去冥想 ›', 'Start ›', '去冥想 ›')}</Text>
           </TouchableOpacity>
         </>
       )}
@@ -1012,26 +1048,28 @@ export default function ProfileScreen() {
       {/* 今日任务 - 输入表单视图 */}
       {isLoggedIn && (
         <View style={[styles.dailyTasksCard, { backgroundColor: colors.surface, marginBottom: 16 }]}>
-          <Text style={styles.dailyTasksTitle}>📋 今日任务</Text>
+          <Text style={styles.dailyTasksTitle}>{tx('📋 今日任务', '📋 Today Tasks', '📋 今日任務')}</Text>
           <View style={styles.dailyTasksRow}>
             <TouchableOpacity style={styles.dailyTaskItem} onPress={handleCheckIn} disabled={isCheckingIn || checkInStatus?.todayCheckedIn}>
               <Text style={styles.dailyTaskIcon}>{checkInStatus?.todayCheckedIn ? '✅' : '📝'}</Text>
-              <Text style={[styles.dailyTaskLabel, checkInStatus?.todayCheckedIn && styles.dailyTaskDone]}>{checkInStatus?.todayCheckedIn ? '已签到' : '签到'}</Text>
+              <Text style={[styles.dailyTaskLabel, checkInStatus?.todayCheckedIn && styles.dailyTaskDone]}>
+                {checkInStatus?.todayCheckedIn ? tx('已签到', 'Checked In', '已簽到') : tx('签到', 'Check In', '簽到')}
+              </Text>
               <Text style={styles.dailyTaskPoints}>+10</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)')}>
               <Text style={styles.dailyTaskIcon}>🎯</Text>
-              <Text style={styles.dailyTaskLabel}>抽签</Text>
+              <Text style={styles.dailyTaskLabel}>{tx('抽签', 'Fortune', '抽籤')}</Text>
               <Text style={styles.dailyTaskPoints}>+5</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)/zi')}>
               <Text style={styles.dailyTaskIcon}>✍️</Text>
-              <Text style={styles.dailyTaskLabel}>测字</Text>
+              <Text style={styles.dailyTaskLabel}>{tx('测字', 'Character', '測字')}</Text>
               <Text style={styles.dailyTaskPoints}>+5</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.dailyTaskItem} onPress={() => router.push('/(tabs)')}>
               <Text style={styles.dailyTaskIcon}>💬</Text>
-              <Text style={styles.dailyTaskLabel}>对话</Text>
+              <Text style={styles.dailyTaskLabel}>{tx('对话', 'Chat', '對話')}</Text>
               <Text style={styles.dailyTaskPoints}>+5</Text>
             </TouchableOpacity>
           </View>
@@ -1041,35 +1079,35 @@ export default function ProfileScreen() {
       {/* 未登录提示 */}
       {!isLoggedIn && (
         <View style={[styles.loginPrompt, { backgroundColor: colors.surface }]}>
-          <Text style={styles.loginTitle}>🔮 开启你的命运之旅</Text>
-          <Text style={styles.loginDesc}>登录后可保存命盘、查看历史记录、享受个性化服务</Text>
+          <Text style={styles.loginTitle}>{tx('🔮 开启你的命运之旅', '🔮 Begin your journey', '🔮 開啟你的命運之旅')}</Text>
+          <Text style={styles.loginDesc}>{tx('登录后可保存命盘、查看历史记录、享受个性化服务', 'Log in to save charts and unlock personalized service', '登入後可保存命盤、查看歷史記錄、享受個性化服務')}</Text>
           <TouchableOpacity 
             style={styles.loginButton}
             onPress={() => router.push('/login')}
           >
-            <Text style={styles.loginButtonText}>立即登录 / 注册</Text>
+            <Text style={styles.loginButtonText}>{tx('立即登录 / 注册', 'Log In / Sign Up', '立即登入 / 註冊')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.guestLink} onPress={() => {}}>
-            <Text style={styles.guestLinkText}>暂不登录，先逛逛</Text>
+            <Text style={styles.guestLinkText}>{tx('暂不登录，先逛逛', 'Continue as guest', '暫不登入，先逛逛')}</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      <Text style={styles.sectionTitle}>👤 个人资料</Text>
+      <Text style={styles.sectionTitle}>{tx('👤 个人资料', '👤 Profile', '👤 個人資料')}</Text>
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
-        <Text style={styles.inputLabel}>名字</Text>
+        <Text style={styles.inputLabel}>{tx('名字', 'Name', '名字')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="请输入你的名字"
+          placeholder={tx('请输入你的名字', 'Enter your name', '請輸入你的名字')}
           placeholderTextColor="#6F6287"
           value={name}
           onChangeText={setName}
         />
 
-        <Text style={styles.inputLabel}>邮箱</Text>
+        <Text style={styles.inputLabel}>{tx('邮箱', 'Email', '郵箱')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="注册或登录时使用的邮箱"
+          placeholder={tx('注册或登录时使用的邮箱', 'Email used for registration/login', '註冊或登入時使用的郵箱')}
           placeholderTextColor="#6F6287"
           value={profileEmail}
           onChangeText={setProfileEmail}
@@ -1078,16 +1116,20 @@ export default function ProfileScreen() {
           autoCorrect={false}
         />
 
-        <Text style={styles.inputLabel}>出生日期</Text>
+        <Text style={styles.inputLabel}>{tx('出生日期', 'Birth Date', '出生日期')}</Text>
         <TextInput
           style={styles.input}
-          placeholder={calendarType === 'lunar' ? '农历格式：1990-05-15' : '阳历格式：1990-05-15'}
+          placeholder={
+            calendarType === 'lunar'
+              ? tx('农历格式：1990-05-15', 'Lunar format: 1990-05-15', '農曆格式：1990-05-15')
+              : tx('阳历格式：1990-05-15', 'Solar format: 1990-05-15', '陽曆格式：1990-05-15')
+          }
           placeholderTextColor="#6F6287"
           value={birthDate}
           onChangeText={setBirthDate}
         />
 
-        <Text style={styles.inputLabel}>历法类型</Text>
+        <Text style={styles.inputLabel}>{tx('历法类型', 'Calendar Type', '曆法類型')}</Text>
         <View style={styles.genderContainer}>
           <TouchableOpacity
             style={[styles.genderButton, calendarType === 'solar' && styles.genderButtonActive]}
@@ -1096,13 +1138,13 @@ export default function ProfileScreen() {
               setIsLeapMonth(false);
             }}
           >
-            <Text style={[styles.genderText, calendarType === 'solar' && styles.genderTextActive]}>阳历</Text>
+            <Text style={[styles.genderText, calendarType === 'solar' && styles.genderTextActive]}>{tx('阳历', 'Solar', '陽曆')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.genderButton, calendarType === 'lunar' && styles.genderButtonActive]}
             onPress={() => setCalendarType('lunar')}
           >
-            <Text style={[styles.genderText, calendarType === 'lunar' && styles.genderTextActive]}>农历</Text>
+            <Text style={[styles.genderText, calendarType === 'lunar' && styles.genderTextActive]}>{tx('农历', 'Lunar', '農曆')}</Text>
           </TouchableOpacity>
         </View>
         {calendarType === 'lunar' && (
@@ -1111,59 +1153,59 @@ export default function ProfileScreen() {
             onPress={() => setIsLeapMonth((v) => !v)}
           >
             <Text style={[styles.genderText, isLeapMonth && styles.genderTextActive]}>
-              {isLeapMonth ? '闰月：是' : '闰月：否'}
+              {isLeapMonth ? tx('闰月：是', 'Leap Month: Yes', '閏月：是') : tx('闰月：否', 'Leap Month: No', '閏月：否')}
             </Text>
           </TouchableOpacity>
         )}
 
-        <Text style={styles.inputLabel}>出生时间</Text>
+        <Text style={styles.inputLabel}>{tx('出生时间', 'Birth Time', '出生時間')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="格式：14:30"
+          placeholder={tx('格式：14:30', 'Format: 14:30', '格式：14:30')}
           placeholderTextColor="#6F6287"
           value={birthTime}
           onChangeText={setBirthTime}
         />
 
-        <Text style={styles.inputLabel}>出生地（城市）</Text>
+        <Text style={styles.inputLabel}>{tx('出生地（城市）', 'Birthplace (City)', '出生地（城市）')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="例：广东广州"
+          placeholder={tx('例：广东广州', 'e.g. Guangzhou', '例：台北')}
           placeholderTextColor="#6F6287"
           value={birthLocation}
           onChangeText={setBirthLocation}
         />
 
-        <Text style={styles.inputLabel}>出生地经度（真太阳时校准，影响时辰）</Text>
+        <Text style={styles.inputLabel}>{tx('出生地经度（真太阳时校准，影响时辰）', 'Birth Longitude (for solar-time calibration)', '出生地經度（真太陽時校準，影響時辰）')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="例：113.8（萍乡）、114.3（南昌）"
+          placeholder={tx('例：113.8（萍乡）、114.3（南昌）', 'e.g. 113.8', '例：121.5')}
           placeholderTextColor="#6F6287"
           value={birthLongitude}
           onChangeText={setBirthLongitude}
           keyboardType="decimal-pad"
         />
-        <Text style={styles.inputHint}>如 7:06 出生在萍乡(113.8°E)，经校准后为卯时；不填则按北京时区</Text>
+        <Text style={styles.inputHint}>{tx('如 7:06 出生在萍乡(113.8°E)，经校准后为卯时；不填则按北京时区', 'Used for more accurate hour-pillar calibration.', '用於更精準的時辰校準。')}</Text>
 
-        <Text style={styles.inputLabel}>性别</Text>
+        <Text style={styles.inputLabel}>{tx('性别', 'Gender', '性別')}</Text>
         <View style={styles.genderContainer}>
           <TouchableOpacity 
             style={[styles.genderButton, gender === 'male' && styles.genderButtonActive]}
             onPress={() => setGender('male')}
           >
-            <Text style={[styles.genderText, gender === 'male' && styles.genderTextActive]}>男</Text>
+            <Text style={[styles.genderText, gender === 'male' && styles.genderTextActive]}>{tx('男', 'Male', '男')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.genderButton, gender === 'female' && styles.genderButtonActive]}
             onPress={() => setGender('female')}
           >
-            <Text style={[styles.genderText, gender === 'female' && styles.genderTextActive]}>女</Text>
+            <Text style={[styles.genderText, gender === 'female' && styles.genderTextActive]}>{tx('女', 'Female', '女')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.genderButton, gender === 'other' && styles.genderButtonActive]}
             onPress={() => setGender('other')}
           >
-            <Text style={[styles.genderText, gender === 'other' && styles.genderTextActive]}>其他</Text>
+            <Text style={[styles.genderText, gender === 'other' && styles.genderTextActive]}>{tx('其他', 'Other', '其他')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -1172,7 +1214,7 @@ export default function ProfileScreen() {
           onPress={handleSave}
           disabled={isLoading}
         >
-          <Text style={styles.saveButtonText}>{isLoading ? '保存中...' : '保存并生成命盘'}</Text>
+          <Text style={styles.saveButtonText}>{isLoading ? tx('保存中...', 'Saving...', '保存中...') : tx('保存并生成命盘', 'Save and Generate Chart', '保存並生成命盤')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -1227,7 +1269,7 @@ export default function ProfileScreen() {
 
       <Text style={styles.sectionTitle}>🧙 选择你的灵伴</Text>
       <View style={styles.personaContainer}>
-        {personas.map((persona) => (
+        {localizedPersonas.map((persona) => (
           <TouchableOpacity
             key={persona.id}
             style={[
@@ -1260,22 +1302,24 @@ export default function ProfileScreen() {
       {/* 法律与合规（Creem 等支付审核需站内可访问链接 + 明码标价 + 客服邮箱） */}
       <View style={styles.legalLinks}>
         <TouchableOpacity onPress={() => router.push('/privacy')}>
-          <Text style={styles.legalLinkText}>隐私政策</Text>
+          <Text style={styles.legalLinkText}>{t('common.privacy', '隐私政策')}</Text>
         </TouchableOpacity>
         <Text style={styles.legalSeparator}>|</Text>
         <TouchableOpacity onPress={() => router.push('/terms')}>
-          <Text style={styles.legalLinkText}>服务条款</Text>
+          <Text style={styles.legalLinkText}>{t('common.terms', '服务条款')}</Text>
         </TouchableOpacity>
         <Text style={styles.legalSeparator}>|</Text>
         <TouchableOpacity onPress={() => router.push('/pricing')}>
-          <Text style={styles.legalLinkText}>价格说明</Text>
+          <Text style={styles.legalLinkText}>{t('pricing.title', '价格说明')}</Text>
         </TouchableOpacity>
         <Text style={styles.legalSeparator}>|</Text>
         <TouchableOpacity onPress={() => router.push('/faq')}>
-          <Text style={styles.legalLinkText}>常见问题</Text>
+          <Text style={styles.legalLinkText}>{t('common.faq', '常见问题')}</Text>
         </TouchableOpacity>
       </View>
-      <Text style={styles.supportEmailLine}>客服邮箱：support@shanhai.app</Text>
+      <Text style={styles.supportEmailLine}>
+        {t('common.supportEmail', '客服邮箱：{email}').replace('{email}', 'support@shanhai.app')}
+      </Text>
 
       {/* 成就解锁弹窗 */}
       <Modal visible={!!achievementUnlock} animationType="fade" transparent onRequestClose={() => setAchievementUnlock(null)}>

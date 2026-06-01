@@ -109,8 +109,16 @@ export default function ReadingScreen() {
     ? '包含逐句回应 + 动爻拆解 + 行动计划 + 可继续追问'
     : '已包含核心解读，升级会员可解锁「无限次深度解读 + 追问模式」';
   const displayPointsCost = isVip ? 0 : readingPointsCost;
-  const billingPreviewText = `本次将扣：${displayPointsCost} 积分${isVip ? '（会员免扣）' : ''} · 当前余额：${availablePoints ?? '--'}`;
-  const membershipExpiredHint = hasMembershipTier && !isVip ? '会员权益已过期，当前按积分扣费。' : '';
+  const memberFreeSuffix = isVip ? t('reading.form.memberFreeSuffix', '（会员免扣）') : '';
+  const billingPreviewText = t(
+    'reading.form.billingPreview',
+    '本次将扣：{cost} 积分{memberFree} · 当前余额：{balance}',
+  )
+    .replace('{cost}', String(displayPointsCost))
+    .replace('{memberFree}', memberFreeSuffix)
+    .replace('{balance}', String(availablePoints ?? '--'));
+  const membershipExpiredHint =
+    hasMembershipTier && !isVip ? t('reading.form.membershipExpired', '会员权益已过期，当前按积分扣费。') : '';
 
   useEffect(() => {
     let alive = true;

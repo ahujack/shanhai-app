@@ -52,6 +52,8 @@ function resolveApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
+type ClientLanguage = 'zh-CN' | 'en-US' | 'zh-TW';
+let globalAppLanguage: ClientLanguage = 'zh-CN';
 
 // 全局 token 变量
 let globalAuthToken: string | null = null;
@@ -77,6 +79,14 @@ if (typeof window !== 'undefined') {
 export function setGlobalAuthToken(token: string | null) {
   globalAuthToken = token;
   apiDebugLog('[API] 设置 globalAuthToken:', token ? 'exists' : 'null');
+}
+
+export function setGlobalAppLanguage(language: ClientLanguage) {
+  if (language === 'zh-CN' || language === 'en-US' || language === 'zh-TW') {
+    globalAppLanguage = language;
+  } else {
+    globalAppLanguage = 'zh-CN';
+  }
 }
 
 /** 401 且判定为登录态失效时清 token 并通知 UI（含 Native） */
@@ -151,6 +161,7 @@ async function request<T>(
       ...(timeoutMs != null && timeoutMs > 0 && !options.signal ? { signal: controller.signal } : {}),
       headers: {
         'Content-Type': 'application/json',
+        'X-App-Language': globalAppLanguage,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
@@ -533,11 +544,15 @@ export interface DivinationResult {
 export interface CreateReadingDto {
   question: string;
   category?: 'career' | 'love' | 'wealth' | 'health' | 'growth' | 'general';
+  language?: ClientLanguage;
 }
 
 export const readingApi = {
   create: (dto: CreateReadingDto) =>
-    request<DivinationResult>('/readings', { method: 'POST', body: JSON.stringify(dto) }),
+    request<DivinationResult>('/readings', {
+      method: 'POST',
+      body: JSON.stringify({ ...dto, language: dto.language || globalAppLanguage }),
+    }),
 };
 
 // ========== Meditation API ==========
@@ -673,6 +688,7 @@ export interface AgentChatDto {
   context?: string[];
   mood?: 'calm' | 'anxious' | 'sad' | 'excited';
   clientLocalHour?: number;
+  language?: ClientLanguage;
 }
 
 export interface AgentResponse {
@@ -716,7 +732,7 @@ export const agentApi = {
   chat: (dto: AgentChatDto) =>
     request<AgentResponse>('/agent/chat', {
       method: 'POST',
-      body: JSON.stringify(dto),
+      body: JSON.stringify({ ...dto, language: dto.language || globalAppLanguage }),
     }),
   /** 流式聊天，onChunk 收到每个文本片段，返回完整 AgentResponse */
   chatStream: async (
@@ -729,9 +745,10 @@ export const agentApi = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-App-Language': globalAppLanguage,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(dto),
+      body: JSON.stringify({ ...dto, language: dto.language || globalAppLanguage }),
     });
     if (!res.ok) {
       let errText = '';

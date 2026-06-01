@@ -12,6 +12,7 @@ export default function TabLayout() {
   const pathname = usePathname();
   const lastPath = useRef<string>('');
   const t = useI18nStore((state) => state.t);
+  const language = useI18nStore((state) => state.language);
 
   useEffect(() => {
     if (!pathname || pathname === lastPath.current) return;
@@ -21,6 +22,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      key={language}
       screenOptions={{
         tabBarStyle: {
           backgroundColor: '#130B1F',

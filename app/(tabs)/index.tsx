@@ -17,6 +17,7 @@ import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 import { useI18nStore } from '../../src/store/i18n';
 import type { AppLanguage } from '../../src/i18n/translations';
 import { isMembershipActive } from '../../src/utils/membership';
+import { localizePersona } from '../../src/utils/personaI18n';
 
 // 主题颜色
 const colors = theme.dark;
@@ -94,7 +95,7 @@ export default function HomeScreen() {
         prompt: t('home.quick.zi.prompt', '我想测一个字，先帮我快速看看最近的整体状态。'),
       },
     ],
-    [t],
+    [t, language],
   );
   const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
@@ -109,6 +110,7 @@ export default function HomeScreen() {
     'zh-TW': t('lang.traditional', '繁體中文'),
   };
   const languageOptions: AppLanguage[] = ['zh-CN', 'en-US', 'zh-TW'];
+  const localizedPersona = React.useMemo(() => localizePersona(persona, language), [persona, language]);
   const languageButtonRef = useRef<TouchableOpacity | null>(null);
   const switchLanguage = async (next: AppLanguage) => {
     if (next === language) {
@@ -143,19 +145,6 @@ export default function HomeScreen() {
     }
     setShowLanguageMenu((v) => !v);
   };
-  const localizedPersonaGreeting = React.useMemo(() => {
-    const raw = (persona.greeting || '').trim();
-    if (!raw) {
-      return t('home.welcome.greetingDefault', '欢迎来到山海灵境，今天你想聊什么？');
-    }
-    if (language === 'zh-CN' || language === 'zh-TW') {
-      return raw;
-    }
-    if (/[\u4e00-\u9fff]/.test(raw)) {
-      return t('home.welcome.greetingDefault', 'Welcome to Shanhai Realm. What would you like to explore today?');
-    }
-    return raw;
-  }, [language, persona.greeting, t]);
   
   // 神秘特效动画
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -604,13 +593,13 @@ export default function HomeScreen() {
   const loadingStageText = React.useMemo(() => {
     if (!isLoading) return '';
     if (lastSendSource === 'quick_template') {
-      return t('home.loading.quick', '{name} 正在把你的情境转成可执行建议...').replace('{name}', persona.name);
+      return t('home.loading.quick', '{name} 正在把你的情境转成可执行建议...').replace('{name}', localizedPersona.name);
     }
     if (lastSendSource === 'voice') {
-      return t('home.loading.voice', '{name} 正在整理你刚才的语音重点...').replace('{name}', persona.name);
+      return t('home.loading.voice', '{name} 正在整理你刚才的语音重点...').replace('{name}', localizedPersona.name);
     }
-    return t('home.loading.default', '{name} 正在拆解问题并生成第一版结论...').replace('{name}', persona.name);
-  }, [isLoading, lastSendSource, persona.name, t]);
+    return t('home.loading.default', '{name} 正在拆解问题并生成第一版结论...').replace('{name}', localizedPersona.name);
+  }, [isLoading, lastSendSource, localizedPersona.name, t]);
 
   const handleInputKeyPress = (e: any) => {
     if (Platform.OS !== 'web') return;
@@ -907,7 +896,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.personaChip}
                 onPress={() => setShowPersonaPicker(true)}
-                accessibilityLabel={t('home.persona.switchA11y', '切换灵伴，当前为 {name}').replace('{name}', persona.name)}
+                accessibilityLabel={t('home.persona.switchA11y', '切换灵伴，当前为 {name}').replace('{name}', localizedPersona.name)}
                 accessibilityRole="button"
                 activeOpacity={0.75}
               >
@@ -917,7 +906,7 @@ export default function HomeScreen() {
                 <View style={styles.personaChipTextCol}>
                   <Text style={styles.personaChipLabel}>{t('home.persona', '灵伴')}</Text>
                   <Text style={styles.personaChipName} numberOfLines={1}>
-                    {persona.name}
+                    {localizedPersona.name}
                   </Text>
                 </View>
                 <Text style={styles.personaChipChevron} accessibilityElementsHidden>
@@ -971,7 +960,8 @@ export default function HomeScreen() {
             active={persona}
             onSelect={(p) => {
               setActive(p.id);
-              showToast(t('home.persona.changed', '已切换灵伴：{name}').replace('{name}', p.name), 'info', 1200);
+              const localizedSelected = localizePersona(p, language);
+              showToast(t('home.persona.changed', '已切换灵伴：{name}').replace('{name}', localizedSelected.name), 'info', 1200);
               setShowPersonaPicker(false);
             }}
             onClose={() => setShowPersonaPicker(false)}
@@ -1000,11 +990,11 @@ export default function HomeScreen() {
                   <View style={styles.welcomePersonaAvatarWrap}>
                     <Image source={personaAvatarSource} style={styles.welcomePersonaAvatar} resizeMode="cover" />
                   </View>
-                  <Text style={styles.welcomePersonaName}>{persona.name}</Text>
+                  <Text style={styles.welcomePersonaName}>{localizedPersona.name}</Text>
                 </View>
                 <Text style={styles.welcomeTag}>{t('home.welcome.tag', '今日灵感')}</Text>
                 <Text style={styles.welcomeText}>
-                  {localizedPersonaGreeting}
+                  {localizedPersona.greeting || t('home.welcome.greetingDefault', '欢迎来到山海灵境，今天你想聊什么？')}
                 </Text>
                 <Text style={styles.welcomeHint}>
                   {t('home.welcome.hint', '你可以问我关于占卜、命盘的问题，或者只是想聊聊。')}
@@ -1057,7 +1047,7 @@ export default function HomeScreen() {
             <View style={[styles.typingIndicator, { backgroundColor: colors.surface }]}>
               <ActivityIndicator size="small" color={colors.accent} />
               <Text style={styles.typingText}>
-                {loadingStageText || t('home.loading.thinking', '{name} 正在思考...').replace('{name}', persona.name)}
+                {loadingStageText || t('home.loading.thinking', '{name} 正在思考...').replace('{name}', localizedPersona.name)}
               </Text>
             </View>
           )}
