@@ -2155,7 +2155,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#2A3448',
-    alignItems: 'center',
     justifyContent: 'center',
   },
   languageButtonActive: {

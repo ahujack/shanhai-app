@@ -129,7 +129,7 @@ export default function PointsMallScreen() {
   const [pointsProducts, setPointsProducts] = useState<PaymentProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-  const [creemConfigured, setCreemConfigured] = useState(false);
+  const [creemConfigured, setCreemConfigured] = useState<boolean | null>(null);
   const [pointsSummary, setPointsSummary] = useState<PointsSummary | null>(null);
   const [vipSectionY, setVipSectionY] = useState(0);
   const [highlightVip, setHighlightVip] = useState(false);
@@ -297,8 +297,8 @@ export default function PointsMallScreen() {
       setSubscriptionProducts(productsData.filter((p: PaymentProduct) => p.type === 'subscription'));
       setPointsProducts(productsData.filter((p: PaymentProduct) => p.type === 'points'));
       const paymentStatus = statusData as { creemConfigured?: boolean; stripeConfigured?: boolean };
-      const paymentConfigured = paymentStatus.creemConfigured ?? paymentStatus.stripeConfigured ?? false;
-      setCreemConfigured(paymentConfigured);
+      const paymentConfigured = paymentStatus.creemConfigured ?? paymentStatus.stripeConfigured;
+      setCreemConfigured(typeof paymentConfigured === 'boolean' ? paymentConfigured : null);
       setPointsSummary(pointsData);
       setBillingRules(rulesData);
       if (user?.id) {
@@ -309,6 +309,7 @@ export default function PointsMallScreen() {
       }
     } catch (error) {
       console.error('Failed to load products:', error);
+      setCreemConfigured(null);
       setLoadError(t('points.error.load', '加载支付商品失败，请检查网络后重试'));
     } finally {
       setLoading(false);
@@ -868,7 +869,7 @@ export default function PointsMallScreen() {
           </>
         )}
 
-        {!creemConfigured && (
+        {!loading && creemConfigured === false && (
           <View style={styles.warningBanner}>
             <Text style={styles.warningText}>{t('points.warning', '⚠️ Creem 未配置，当前为测试模式')}</Text>
           </View>
