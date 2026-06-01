@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Image, Pressable } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Image, Pressable, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -59,6 +59,7 @@ export default function HomeScreen() {
   const [ziNudgeShownDate, setZiNudgeShownDate] = useState('');
   const [showChartModal, setShowChartModal] = useState(false);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [languageMenuAnchor, setLanguageMenuAnchor] = useState({ top: 56, left: 0, width: 166 });
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceDraftText, setVoiceDraftText] = useState('');
@@ -108,6 +109,7 @@ export default function HomeScreen() {
     'zh-TW': t('lang.traditional', '繁體中文'),
   };
   const languageOptions: AppLanguage[] = ['zh-CN', 'en-US', 'zh-TW'];
+  const languageButtonRef = useRef<TouchableOpacity | null>(null);
   const switchLanguage = async (next: AppLanguage) => {
     if (next === language) {
       setShowLanguageMenu(false);
@@ -121,6 +123,39 @@ export default function HomeScreen() {
       1200,
     );
   };
+  const openLanguageMenu = () => {
+    const buttonNode = languageButtonRef.current as unknown as {
+      measureInWindow?: (cb: (x: number, y: number, width: number, height: number) => void) => void;
+    };
+    if (buttonNode?.measureInWindow) {
+      buttonNode.measureInWindow((x, y, width, height) => {
+        const screenWidth = Dimensions.get('window').width || 390;
+        const panelWidth = Math.max(166, width + 34);
+        const left = Math.min(Math.max(8, x + width - panelWidth), screenWidth - panelWidth - 8);
+        setLanguageMenuAnchor({
+          top: y + height + 6,
+          left,
+          width: panelWidth,
+        });
+        setShowLanguageMenu(true);
+      });
+      return;
+    }
+    setShowLanguageMenu((v) => !v);
+  };
+  const localizedPersonaGreeting = React.useMemo(() => {
+    const raw = (persona.greeting || '').trim();
+    if (!raw) {
+      return t('home.welcome.greetingDefault', '欢迎来到山海灵境，今天你想聊什么？');
+    }
+    if (language === 'zh-CN' || language === 'zh-TW') {
+      return raw;
+    }
+    if (/[\u4e00-\u9fff]/.test(raw)) {
+      return t('home.welcome.greetingDefault', 'Welcome to Shanhai Realm. What would you like to explore today?');
+    }
+    return raw;
+  }, [language, persona.greeting, t]);
   
   // 神秘特效动画
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -872,7 +907,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.personaChip}
                 onPress={() => setShowPersonaPicker(true)}
-                accessibilityLabel={`切换灵伴，当前为${persona.name}`}
+                accessibilityLabel={t('home.persona.switchA11y', '切换灵伴，当前为 {name}').replace('{name}', persona.name)}
                 accessibilityRole="button"
                 activeOpacity={0.75}
               >
@@ -894,8 +929,9 @@ export default function HomeScreen() {
               </View>
               <View style={styles.headerRight}>
                 <TouchableOpacity
+                  ref={languageButtonRef}
                   style={[styles.languageButton, showLanguageMenu && styles.languageButtonActive]}
-                  onPress={() => setShowLanguageMenu((v) => !v)}
+                  onPress={openLanguageMenu}
                   activeOpacity={0.8}
                   accessibilityLabel={t('home.lang.switch', '选择语言')}
                 >
@@ -968,7 +1004,7 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.welcomeTag}>{t('home.welcome.tag', '今日灵感')}</Text>
                 <Text style={styles.welcomeText}>
-                  {persona.greeting}
+                  {localizedPersonaGreeting}
                 </Text>
                 <Text style={styles.welcomeHint}>
                   {t('home.welcome.hint', '你可以问我关于占卜、命盘的问题，或者只是想聊聊。')}
@@ -1208,7 +1244,16 @@ export default function HomeScreen() {
       <Modal visible={showLanguageMenu} transparent animationType="fade" onRequestClose={() => setShowLanguageMenu(false)}>
         <View style={styles.languageMenuOverlay}>
           <Pressable style={styles.languageMenuMask} onPress={() => setShowLanguageMenu(false)} />
-          <View style={styles.languageMenuPanel}>
+          <View
+            style={[
+              styles.languageMenuPanel,
+              {
+                top: languageMenuAnchor.top,
+                left: languageMenuAnchor.left,
+                width: languageMenuAnchor.width,
+              },
+            ]}
+          >
             {languageOptions.map((option) => (
               <TouchableOpacity
                 key={option}
@@ -2129,17 +2174,13 @@ const styles = StyleSheet.create({
   },
   languageMenuOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 56,
-    paddingRight: 18,
+    backgroundColor: 'rgba(0,0,0,0.16)',
   },
   languageMenuMask: {
     ...StyleSheet.absoluteFillObject,
   },
   languageMenuPanel: {
-    width: 166,
+    position: 'absolute',
     backgroundColor: '#121827',
     borderRadius: 12,
     borderWidth: 1,
