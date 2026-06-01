@@ -18,6 +18,7 @@ import { useI18nStore } from '../../src/store/i18n';
 import type { AppLanguage } from '../../src/i18n/translations';
 import { isMembershipActive } from '../../src/utils/membership';
 import { localizePersona } from '../../src/utils/personaI18n';
+import { localizeAuthMessage } from '../../src/utils/authMessage';
 
 // 主题颜色
 const colors = theme.dark;
@@ -804,7 +805,16 @@ export default function HomeScreen() {
         );
         }
       } else {
-        showToast(result?.message || t('home.toast.checkinFailed', '签到失败'), 'error');
+        const localizedCheckInError = localizeAuthMessage({
+          rawMessage: result?.message,
+          language,
+          fallback: {
+            zhCN: t('home.toast.checkinFailed', '签到失败'),
+            enUS: t('home.toast.checkinFailed', 'Check-in failed.'),
+            zhTW: t('home.toast.checkinFailed', '簽到失敗'),
+          },
+        });
+        showToast(localizedCheckInError, 'error');
       }
     } catch (error) {
       console.error('[签到] 错误:', error);

@@ -11,6 +11,7 @@ import { useDivinationStore } from '../../src/store/divination';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { useI18nStore } from '../../src/store/i18n';
 import { isMembershipActive } from '../../src/utils/membership';
+import { localizeAuthMessage } from '../../src/utils/authMessage';
 
 const colors = theme.dark;
 
@@ -34,6 +35,7 @@ export default function ReadingScreen() {
     suggestedCategory?: string | string[];
   }>();
   const { user } = useUserStore();
+  const language = useI18nStore((state) => state.language);
   const t = useI18nStore((state) => state.t);
   const loadingHints = [
     t('reading.loading.1', '正在起卦...'),
@@ -73,8 +75,13 @@ export default function ReadingScreen() {
 
   const buildDeepReadingQuestionFromFortune = () => {
     if (!lastFortune) return question.trim();
-    const missionPart = lastFortune.mission ? ` 今日任务是「${lastFortune.mission}」。` : '';
-    return `我刚完成一次抽签，请基于这次签文做深度解签，重点给我可执行行动建议与风险提醒，不要重新起卦。${missionPart}`;
+    const missionPart = lastFortune.mission
+      ? t('reading.prompt.missionPart', '今日任务是「{mission}」。').replace('{mission}', lastFortune.mission)
+      : '';
+    return t(
+      'reading.prompt.fromFortune',
+      '我刚完成一次抽签，请基于这次签文做深度解签，重点给我可执行行动建议与风险提醒，不要重新起卦。{missionPart}',
+    ).replace('{missionPart}', missionPart);
   };
 
   useEffect(() => {
@@ -104,10 +111,12 @@ export default function ReadingScreen() {
 
   const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
-  const readingTierLabel = isVip ? '深度版（会员）' : '完整版（单次解锁）';
+  const readingTierLabel = isVip
+    ? t('reading.form.tier.memberLabel', '深度版（会员）')
+    : t('reading.form.tier.singleLabel', '完整版（单次解锁）');
   const readingTierDesc = isVip
-    ? '包含逐句回应 + 动爻拆解 + 行动计划 + 可继续追问'
-    : '已包含核心解读，升级会员可解锁「无限次深度解读 + 追问模式」';
+    ? t('reading.form.tier.memberDesc', '包含逐句回应 + 动爻拆解 + 行动计划 + 可继续追问')
+    : t('reading.form.tier.singleDesc', '已包含核心解读，升级会员可解锁「无限次深度解读 + 追问模式」');
   const displayPointsCost = isVip ? 0 : readingPointsCost;
   const memberFreeSuffix = isVip ? t('reading.form.memberFreeSuffix', '（会员免扣）') : '';
   const billingPreviewText = t(
@@ -180,7 +189,12 @@ export default function ReadingScreen() {
       try {
         const checkRes = await pointsApi.check(readingPointsCost);
         if (checkRes.hasEnough === false) {
-          setError(`积分不足：解锁深度解签需要 ${readingPointsCost} 积分`);
+          setError(
+            t('reading.error.notEnoughUnlock', '积分不足：解锁深度解签需要 {cost} 积分').replace(
+              '{cost}',
+              String(readingPointsCost),
+            ),
+          );
           setShowSmartCta(true);
           trackNamedEvent('paywall_show', { source: 'reading_fortune_unlock' });
           await refreshPointsBalance();
@@ -203,8 +217,17 @@ export default function ReadingScreen() {
       setShowSmartCta(false);
       await refreshPointsBalance();
     } catch (err: any) {
-      const msg = err?.message || t('reading.unlock.failed', '解锁失败，请稍后重试');
-      if (msg.includes('积分不足')) {
+      const rawMsg = String(err?.message || '');
+      const msg = localizeAuthMessage({
+        rawMessage: rawMsg,
+        language,
+        fallback: {
+          zhCN: t('reading.unlock.failed', '解锁失败，请稍后重试'),
+          enUS: 'Unlock failed. Please try again shortly.',
+          zhTW: '解鎖失敗，請稍後重試',
+        },
+      });
+      if (/(积分不足|積分不足|insufficient points)/i.test(rawMsg || msg)) {
         setShowSmartCta(true);
         trackNamedEvent('paywall_show', { source: 'reading_fortune_error' });
         await refreshPointsBalance();
@@ -222,7 +245,12 @@ export default function ReadingScreen() {
       try {
         const checkRes = await pointsApi.check(readingPointsCost);
         if (checkRes.hasEnough === false) {
-          setError(`积分不足：本次占卜需要 ${readingPointsCost} 积分`);
+          setError(
+            t('reading.error.notEnoughSubmit', '积分不足：本次占卜需要 {cost} 积分').replace(
+              '{cost}',
+              String(readingPointsCost),
+            ),
+          );
           setShowSmartCta(true);
           trackNamedEvent('paywall_show', { source: 'reading_submit_precheck' });
           await refreshPointsBalance();
@@ -249,8 +277,17 @@ export default function ReadingScreen() {
       await refreshPointsBalance();
     } catch (err: any) {
       console.error('占卜失败:', err);
-      const msg = err?.message || '';
-      if (msg.includes('积分不足')) {
+      const rawMsg = String(err?.message || '');
+      const msg = localizeAuthMessage({
+        rawMessage: rawMsg,
+        language,
+        fallback: {
+          zhCN: t('reading.submit.failed', '占卜失败，请稍后重试'),
+          enUS: 'Reading failed. Please try again shortly.',
+          zhTW: '占卜失敗，請稍後重試',
+        },
+      });
+      if (/(积分不足|積分不足|insufficient points)/i.test(rawMsg || msg)) {
         setShowSmartCta(true);
         trackNamedEvent('paywall_show', { source: 'reading_submit_error' });
         await refreshPointsBalance();
@@ -278,22 +315,24 @@ export default function ReadingScreen() {
       cautionRisky ? 'soothe' : movingLines >= 3 ? 'clarify' : 'listen';
 
     const bridgeByMode: Record<typeof bridgeMode, string> = {
-      soothe:
-        `谢谢你把这些感受带来。我们先不着急定结论，先把心慢慢放稳。\n\n` +
-        `如果你愿意，可以先说说：此刻最压着你的情绪是什么？`,
-      listen:
-        `这次我更想先听你，而不是催你马上行动。\n\n` +
-        `你最近最反复想到、最放不下的是哪一件事？`,
-      clarify:
-        `你已经很认真了，也许现在只是信息太多、心有点累。\n\n` +
-        `我们先轻轻理一理：你最担心什么？你最想守住什么？`,
+      soothe: t(
+        'reading.result.bridge.soothe',
+        '谢谢你把这些感受带来。我们先不着急定结论，先把心慢慢放稳。\n\n如果你愿意，可以先说说：此刻最压着你的情绪是什么？',
+      ),
+      listen: t(
+        'reading.result.bridge.listen',
+        '这次我更想先听你，而不是催你马上行动。\n\n你最近最反复想到、最放不下的是哪一件事？',
+      ),
+      clarify: t(
+        'reading.result.bridge.clarify',
+        '你已经很认真了，也许现在只是信息太多、心有点累。\n\n我们先轻轻理一理：你最担心什么？你最想守住什么？',
+      ),
     };
 
-    const supportChoiceLine =
-      `\n\n你也可以直接告诉我，你此刻更需要哪种陪伴：` +
-      `\n1）先安慰我` +
-      `\n2）先听我讲` +
-      `\n3）帮我理清楚`;
+    const supportChoiceLine = t(
+      'reading.result.bridge.choices',
+      '\n\n你也可以直接告诉我，你此刻更需要哪种陪伴：\n1）先安慰我\n2）先听我讲\n3）帮我理清楚',
+    );
 
     const supportiveMessage: ChatMessage = {
       id: `bridge_${Date.now()}`,
@@ -382,10 +421,14 @@ export default function ReadingScreen() {
           {fromFortune ? t('reading.result.fortuneTitle', '🔮 深度解签结果') : t('reading.result.title', '🔮 占卜结果')}
         </Text>
         <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
-          <Text style={styles.tierTitle}>当前解读档位：{readingTierLabel}</Text>
+          <Text style={styles.tierTitle}>
+            {t('reading.result.tierLabel', '当前解读档位：{label}').replace('{label}', readingTierLabel)}
+          </Text>
           <Text style={styles.tierDesc}>{readingTierDesc}</Text>
           <Text style={styles.tierHintInline}>
-            {t('reading.result.costHint', `提示：本次深度解签消耗 ${displayPointsCost} 积分${isVip ? '（会员免扣）' : ''}。`)}
+            {t('reading.result.costHint', '提示：本次深度解签消耗 {cost} 积分{memberFree}。')
+              .replace('{cost}', String(displayPointsCost))
+              .replace('{memberFree}', isVip ? t('reading.form.memberFreeSuffix', '（会员免扣）') : '')}
           </Text>
           {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
         </View>
@@ -410,12 +453,21 @@ export default function ReadingScreen() {
             </View>
             {showFortuneSource && (
               <>
-                <Text style={styles.fromFortuneMeta}>签名：{lastFortune.poem.title}</Text>
+                <Text style={styles.fromFortuneMeta}>
+                  {t('reading.result.fortuneSign', '签名：{title}').replace('{title}', lastFortune.poem.title)}
+                </Text>
                 {!!lastFortune.mission && (
-                  <Text style={styles.fromFortuneHint}>🧩 今日任务：{lastFortune.mission}</Text>
+                  <Text style={styles.fromFortuneHint}>
+                    {t('reading.result.fortuneMission', '🧩 今日任务：{mission}').replace(
+                      '{mission}',
+                      lastFortune.mission,
+                    )}
+                  </Text>
                 )}
                 {!!lastFortune.funTip && (
-                  <Text style={styles.fromFortuneHint}>🎲 趣味提示：{lastFortune.funTip}</Text>
+                  <Text style={styles.fromFortuneHint}>
+                    {t('reading.result.fortuneFunTip', '🎲 趣味提示：{tip}').replace('{tip}', lastFortune.funTip)}
+                  </Text>
                 )}
               </>
             )}
@@ -558,9 +610,9 @@ export default function ReadingScreen() {
       <Text style={styles.sectionTitle}>{t('reading.form.title', '🔮 深度解读')}</Text>
       <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
         <Text style={styles.tierTitle}>{t('reading.form.tierTitle', '解读档位对比')}</Text>
-        <Text style={styles.tierLine}>简版：一句结论 + 基础建议（适合快速判断）</Text>
-        <Text style={styles.tierLine}>完整版：本卦/变卦/动爻拆解 + 三条行动建议</Text>
-        <Text style={styles.tierLine}>深度版：逐句回应你的问题 + 风险拆解 + 追问模式</Text>
+        <Text style={styles.tierLine}>{t('reading.form.tierLine.basic', '简版：一句结论 + 基础建议（适合快速判断）')}</Text>
+        <Text style={styles.tierLine}>{t('reading.form.tierLine.standard', '完整版：本卦/变卦/动爻拆解 + 三条行动建议')}</Text>
+        <Text style={styles.tierLine}>{t('reading.form.tierLine.deep', '深度版：逐句回应你的问题 + 风险拆解 + 追问模式')}</Text>
         {!isVip && (
           <TouchableOpacity
             style={styles.tierUpgradeBtn}
@@ -577,13 +629,21 @@ export default function ReadingScreen() {
       {fromFortune && lastFortune && (
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={styles.cardTitle}>{t('reading.form.fortuneSummary', '🧿 抽签免费摘要')}</Text>
-          <Text style={styles.featureText}>签名：{lastFortune.poem.title}</Text>
-          <Text style={styles.featureText}>今日：{lastFortune.day}</Text>
-          <Text style={styles.hint}>{lastFortune.interpretation?.overall || '已为你带入本次抽签结果。'}</Text>
+          <Text style={styles.featureText}>
+            {t('reading.result.fortuneSign', '签名：{title}').replace('{title}', lastFortune.poem.title)}
+          </Text>
+          <Text style={styles.featureText}>
+            {t('reading.form.fortuneDay', '今日：{day}').replace('{day}', lastFortune.day)}
+          </Text>
+          <Text style={styles.hint}>
+            {lastFortune.interpretation?.overall || t('reading.form.fortuneFallback', '已为你带入本次抽签结果。')}
+          </Text>
           <Text style={styles.hint}>
             {isVip
               ? t('reading.form.cost.free', '当前会员有效期内免扣积分（本次扣 0 积分）。')
-              : t('reading.form.cost.need', `解锁深度解签需 ${readingPointsCost} 积分，当前余额 ${availablePoints ?? '--'}。`)}
+              : t('reading.form.cost.need', '解锁深度解签需 {cost} 积分，当前余额 {balance}。')
+                  .replace('{cost}', String(readingPointsCost))
+                  .replace('{balance}', String(availablePoints ?? '--'))}
           </Text>
           {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
           <TouchableOpacity
@@ -598,7 +658,12 @@ export default function ReadingScreen() {
               </View>
             ) : (
               <Text style={styles.submitButtonText}>
-                {isVip ? t('reading.form.unlockVip', '解锁深度解签（会员免扣）') : t('reading.form.unlockByPoints', `解锁深度解签（${readingPointsCost} 积分）`)}
+                {isVip
+                  ? t('reading.form.unlockVip', '解锁深度解签（会员免扣）')
+                  : t('reading.form.unlockByPoints', '解锁深度解签（{cost} 积分）').replace(
+                      '{cost}',
+                      String(readingPointsCost),
+                    )}
               </Text>
             )}
           </TouchableOpacity>
@@ -607,8 +672,13 @@ export default function ReadingScreen() {
       
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
         <Text style={styles.hint}>
-          {`将心中困惑如实道来，字数不限，可附加时间、人物或地点，以便匹配更精准的卦象。${
-            isVip ? '当前会员有效期内免扣积分（本次扣 0 积分）。' : `免费用户本次 ${readingPointsCost} 积分。`
+          {`${t('reading.form.inputHint', '将心中困惑如实道来，字数不限，可附加时间、人物或地点，以便匹配更精准的卦象。')}${
+            isVip
+              ? t('reading.form.cost.free', '当前会员有效期内免扣积分（本次扣 0 积分）。')
+              : t('reading.form.cost.guestInline', '免费用户本次 {cost} 积分。').replace(
+                  '{cost}',
+                  String(readingPointsCost),
+                )
           }`}
         </Text>
         
@@ -654,7 +724,12 @@ export default function ReadingScreen() {
           <View style={styles.smartCtaWrap}>
             <Text style={styles.smartCtaTitle}>{t('reading.paywall.title', '余额不足，建议优先补充权益')}</Text>
             <Text style={styles.smartCtaHint}>
-              {`按每周约 5 次测算，深度解签本月约需 ${projectedMonthlyPoints} 积分（约 ${projectedCheckinDays} 天签到）。`}
+              {t(
+                'reading.paywall.hint',
+                '按每周约 5 次测算，深度解签本月约需 {points} 积分（约 {days} 天签到）。',
+              )
+                .replace('{points}', String(projectedMonthlyPoints))
+                .replace('{days}', String(projectedCheckinDays))}
             </Text>
             <View style={styles.smartCtaActions}>
               <TouchableOpacity style={styles.smartCtaPrimary} onPress={openPointsMallWithTrack}>
@@ -706,16 +781,16 @@ export default function ReadingScreen() {
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
         <Text style={styles.cardTitle}>{t('reading.form.includes', '📋 解读包含内容')}</Text>
         <View style={styles.featureItem}>
-          <Text style={styles.featureText}>• 卦象摘要：六爻起卦 + 变爻提示</Text>
+          <Text style={styles.featureText}>{t('reading.form.includes.item1', '• 卦象摘要：六爻起卦 + 变爻提示')}</Text>
         </View>
         <View style={styles.featureItem}>
-          <Text style={styles.featureText}>• 多维解读：事业 / 情感 / 心理</Text>
+          <Text style={styles.featureText}>{t('reading.form.includes.item2', '• 多维解读：事业 / 情感 / 心理')}</Text>
         </View>
         <View style={styles.featureItem}>
-          <Text style={styles.featureText}>• 行动建议：下一步可执行的三条建议</Text>
+          <Text style={styles.featureText}>{t('reading.form.includes.item3', '• 行动建议：下一步可执行的三条建议')}</Text>
         </View>
         <View style={styles.featureItem}>
-          <Text style={styles.featureText}>• 文化溯源：相关典籍出处与启发</Text>
+          <Text style={styles.featureText}>{t('reading.form.includes.item4', '• 文化溯源：相关典籍出处与启发')}</Text>
         </View>
       </View>
     </ScrollView>

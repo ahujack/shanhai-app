@@ -24,6 +24,7 @@ import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
 import { isMembershipActive } from '../../src/utils/membership';
+import { localizeAuthMessage } from '../../src/utils/authMessage';
 import HandwritingCanvas from '../../components/HandwritingCanvas';
 import { useI18nStore } from '../../src/store/i18n';
 
@@ -325,12 +326,21 @@ export default function ZiScreen() {
       return true;
     } catch (err: any) {
       console.error('测字失败:', err);
-      const msg = err?.message || '';
-      if (msg.includes('积分不足')) {
+      const rawMsg = String(err?.message || '');
+      const msg = localizeAuthMessage({
+        rawMessage: rawMsg,
+        language,
+        fallback: {
+          zhCN: tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
+          enUS: tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
+          zhTW: tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
+        },
+      });
+      if (/(积分不足|積分不足|insufficient points)/i.test(rawMsg || msg)) {
         setShowSmartCta(true);
         await refreshPointsBalance();
         Alert.alert(tx('积分不足', 'Insufficient points', '積分不足'), msg || tx('请使用下方快捷入口补充权益', 'Please use quick actions below to top up', '請使用下方快捷入口補充權益'));
-      } else if (msg.includes('请输入一个有效的汉字')) {
+      } else if (rawMsg.includes('请输入一个有效的汉字') || rawMsg.toLowerCase().includes('valid chinese character')) {
         Alert.alert(tx('输入无效', 'Invalid input', '輸入無效'), msg);
       } else {
         Alert.alert(

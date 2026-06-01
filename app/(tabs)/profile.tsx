@@ -8,6 +8,7 @@ import { usePersonaStore } from '../../src/store/persona';
 import { pointsApi, PointsSummary, achievementApi, UserAchievement, AchievementProgress } from '../../src/services/api';
 import { getMembershipLabel, isMembershipActive } from '../../src/utils/membership';
 import { localizePersona } from '../../src/utils/personaI18n';
+import { localizeAuthMessage } from '../../src/utils/authMessage';
 import * as Clipboard from 'expo-clipboard';
 import { useI18nStore } from '../../src/store/i18n';
 import type { AppLanguage } from '../../src/i18n/translations';
@@ -238,18 +239,36 @@ export default function ProfileScreen() {
         if (result.achievement) {
           setAchievementUnlock(result.achievement);
         } else {
+          const localizedCheckInMessage = localizeAuthMessage({
+            rawMessage: result.message,
+            language,
+            fallback: {
+              zhCN: `获得 ${result.points || 0} 积分`,
+              enUS: `+${result.points || 0} points`,
+              zhTW: `獲得 ${result.points || 0} 積分`,
+            },
+          });
           Alert.alert(
             tx('签到成功', 'Check-in successful', '簽到成功'),
-            result.message || tx(`获得 ${result.points || 0} 积分`, `+${result.points || 0} points`, `獲得 ${result.points || 0} 積分`),
+            localizedCheckInMessage,
           );
         }
         // 刷新积分显示
         const pointsData = await pointsApi.getSummary().catch(() => null);
         setPointsSummary(pointsData);
       } else {
+        const localizedCheckInError = localizeAuthMessage({
+          rawMessage: result?.message,
+          language,
+          fallback: {
+            zhCN: '请稍后重试',
+            enUS: 'Please try again later',
+            zhTW: '請稍後重試',
+          },
+        });
         Alert.alert(
           tx('签到失败', 'Check-in failed', '簽到失敗'),
-          result?.message || tx('请稍后重试', 'Please try again later', '請稍後重試'),
+          localizedCheckInError,
         );
       }
     } catch (e) {
@@ -356,7 +375,15 @@ export default function ProfileScreen() {
       await loadUser();
       setStep('chart');
     } catch (error) {
-      const msg = error instanceof Error ? error.message : tx('保存失败，请重试', 'Save failed, please retry', '保存失敗，請重試');
+      const msg = localizeAuthMessage({
+        rawMessage: error instanceof Error ? error.message : '',
+        language,
+        fallback: {
+          zhCN: '保存失败，请重试',
+          enUS: 'Save failed, please retry',
+          zhTW: '保存失敗，請重試',
+        },
+      });
       Alert.alert(t('common.error', '错误'), msg);
     }
   };
@@ -367,7 +394,15 @@ export default function ProfileScreen() {
       await generateChart(chartGender);
       Alert.alert(t('common.success', '成功'), tx('命盘已生成', 'Chart generated', '命盤已生成'));
     } catch (error) {
-      const msg = error instanceof Error ? error.message : tx('生成命盘失败', 'Generate chart failed', '生成命盤失敗');
+      const msg = localizeAuthMessage({
+        rawMessage: error instanceof Error ? error.message : '',
+        language,
+        fallback: {
+          zhCN: '生成命盘失败',
+          enUS: 'Generate chart failed',
+          zhTW: '生成命盤失敗',
+        },
+      });
       Alert.alert(t('common.error', '错误'), msg);
     }
   };

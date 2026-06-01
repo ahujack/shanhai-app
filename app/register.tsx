@@ -16,12 +16,16 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useUserStore } from '../src/store/user';
+import { useI18nStore } from '../src/store/i18n';
+import { localizeAuthMessage } from '../src/utils/authMessage';
 import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { register, sendCode, isLoading } = useUserStore();
+  const language = useI18nStore((state) => state.language);
+  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
   
   // 从 URL 获取推荐码
   const referralCode = params.ref as string | undefined;
@@ -60,45 +64,69 @@ export default function RegisterScreen() {
       setTermsError('');
       return true;
     }
-    const msg = `请先勾选同意《用户协议》和《隐私政策》，再${actionLabel}`;
+    const msg = tx(
+      `请先勾选同意《用户协议》和《隐私政策》，再${actionLabel}`,
+      `Please agree to Terms and Privacy Policy before ${actionLabel}.`,
+      `請先勾選同意《用戶協議》和《隱私政策》，再${actionLabel}`,
+    );
     setTermsError(msg);
-    Alert.alert('请先同意协议', msg);
+    Alert.alert(tx('请先同意协议', 'Please agree first', '請先同意協議'), msg);
     return false;
   };
 
   const getFriendlySendCodeError = (rawMessage?: string) => {
     const msg = (rawMessage || '').toLowerCase();
     if (/已注册/.test(rawMessage || '')) {
-      return '该邮箱已注册，可直接去登录；如忘记密码可使用找回密码。';
+      return tx(
+        '该邮箱已注册，可直接去登录；如忘记密码可使用找回密码。',
+        'This email is already registered. You can log in directly or reset your password.',
+        '該郵箱已註冊，可直接登入；若忘記密碼可使用找回密碼。',
+      );
     }
     if (/频繁|too many|limit|稍后/.test(msg)) {
-      return '请求过于频繁，请稍等 1 分钟后再试。';
+      return tx(
+        '请求过于频繁，请稍等 1 分钟后再试。',
+        'Too many requests. Please wait 1 minute and try again.',
+        '請求過於頻繁，請稍等 1 分鐘後再試。',
+      );
     }
     if (/network|timeout|连接|网络|failed to fetch|load failed/.test(msg)) {
-      return '网络连接不稳定，建议切换网络后重试。';
+      return tx(
+        '网络连接不稳定，建议切换网络后重试。',
+        'Network seems unstable. Please switch network and retry.',
+        '網路連線不穩定，建議切換網路後重試。',
+      );
     }
     if (/resend_api_key|邮件服务|mail service|smtp|from|domain|发件/.test(msg)) {
-      return '邮件服务暂时异常，请稍后重试；若持续失败请联系管理员。';
+      return tx(
+        '邮件服务暂时异常，请稍后重试；若持续失败请联系管理员。',
+        'Mail service is temporarily unavailable. Please try again later, or contact support if it persists.',
+        '郵件服務暫時異常，請稍後重試；若持續失敗請聯繫管理員。',
+      );
     }
-    return '验证码发送失败，请重试；也可检查垃圾邮箱/广告邮件。';
+    return tx(
+      '验证码发送失败，请重试；也可检查垃圾邮箱/广告邮件。',
+      'Failed to send verification code. Please retry and check spam/promotions inbox.',
+      '驗證碼發送失敗，請重試；也可檢查垃圾郵件/廣告郵件。',
+    );
   };
 
   const handleSendCode = async () => {
-    if (!ensureTermsAgreed('获取验证码')) {
+    if (!ensureTermsAgreed(tx('获取验证码', 'requesting code', '獲取驗證碼'))) {
       return;
     }
     
     if (!email.trim()) {
-      Alert.alert('提示', '请输入邮箱地址');
-      setCodeSendFeedback({ type: 'error', text: '请先输入邮箱地址。' });
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入邮箱地址', 'Please enter your email address.', '請輸入郵箱地址'));
+      setCodeSendFeedback({ type: 'error', text: tx('请先输入邮箱地址。', 'Please enter your email first.', '請先輸入郵箱地址。') });
       return;
     }
 
     // 验证邮箱格式
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('提示', '请输入有效的邮箱地址');
-      setCodeSendFeedback({ type: 'error', text: '邮箱格式不正确，请检查后重试。' });
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入有效的邮箱地址', 'Please enter a valid email address.', '請輸入有效的郵箱地址'));
+      setCodeSendFeedback({ type: 'error', text: tx('邮箱格式不正确，请检查后重试。', 'Invalid email format. Please check and retry.', '郵箱格式不正確，請檢查後重試。') });
       return;
     }
 
@@ -106,44 +134,59 @@ export default function RegisterScreen() {
     const result = await sendCode(email, 'register');
 
     if (result?.success) {
-      Alert.alert('验证码已发送到您的邮箱', '请查收邮件');
+      Alert.alert(
+        tx('验证码已发送到您的邮箱', 'Verification code sent to your inbox', '驗證碼已發送到您的郵箱'),
+        tx('请查收邮件', 'Please check your email.', '請查收郵件'),
+      );
       setCodeSendFeedback({
         type: 'success',
-        text: '验证码已发送，若 1-2 分钟未收到，请检查垃圾邮箱/广告邮件。',
+        text: tx(
+          '验证码已发送，若 1-2 分钟未收到，请检查垃圾邮箱/广告邮件。',
+          'Code sent. If not received in 1-2 minutes, check spam/promotions.',
+          '驗證碼已發送，若 1-2 分鐘未收到，請檢查垃圾郵件/廣告郵件。',
+        ),
       });
       setIsCodeSent(true);
       setCountdown(60);
     } else {
-      const friendly = getFriendlySendCodeError(result?.message);
+      const friendly = localizeAuthMessage({
+        rawMessage: result?.message,
+        language,
+        fallback: {
+          zhCN: getFriendlySendCodeError(result?.message),
+          enUS: 'Failed to send verification code. Please retry and check spam/promotions inbox.',
+          zhTW: '驗證碼發送失敗，請重試；也可檢查垃圾郵件/廣告郵件。',
+        },
+      });
       setCodeSendFeedback({ type: 'error', text: friendly });
-      Alert.alert('发送失败', friendly);
+      Alert.alert(tx('发送失败', 'Send failed', '發送失敗'), friendly);
     }
   };
 
   const handleRegister = async () => {
-    if (!ensureTermsAgreed('注册')) {
+    if (!ensureTermsAgreed(tx('注册', 'registering', '註冊'))) {
       return;
     }
     
     // 验证输入
     if (!email.trim()) {
-      Alert.alert('提示', '请输入邮箱地址');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入邮箱地址', 'Please enter your email address.', '請輸入郵箱地址'));
       return;
     }
     if (!password.trim()) {
-      Alert.alert('提示', '请输入密码');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入密码', 'Please enter your password.', '請輸入密碼'));
       return;
     }
     if (password.length < 6) {
-      Alert.alert('提示', '密码至少需要6位');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('密码至少需要6位', 'Password must be at least 6 characters.', '密碼至少需要 6 位'));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('提示', '两次输入的密码不一致');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('两次输入的密码不一致', 'Passwords do not match.', '兩次輸入的密碼不一致'));
       return;
     }
     if (!code.trim()) {
-      Alert.alert('提示', '请输入验证码');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入验证码', 'Please enter verification code.', '請輸入驗證碼'));
       return;
     }
 
@@ -152,10 +195,25 @@ export default function RegisterScreen() {
     if (result?.success) {
       // 记住协议勾选状态
       await AsyncStorage.setItem('agreedToTerms', 'true');
-      Alert.alert('注册成功', '欢迎加入山海灵境！');
+      Alert.alert(
+        tx('注册成功', 'Registration successful', '註冊成功'),
+        tx('欢迎加入山海灵境！', 'Welcome to Shanhai Realm!', '歡迎加入山海靈境！'),
+      );
       router.replace('/(tabs)');
     } else {
-      Alert.alert('注册失败', result?.message || '请检查验证码是否正确');
+      const msg = localizeAuthMessage({
+        rawMessage: result?.message,
+        language,
+        fallback: {
+          zhCN: '请检查验证码是否正确',
+          enUS: 'Please check whether your verification code is correct.',
+          zhTW: '請檢查驗證碼是否正確',
+        },
+      });
+      Alert.alert(
+        tx('注册失败', 'Registration failed', '註冊失敗'),
+        msg,
+      );
     }
   };
 
@@ -172,9 +230,13 @@ export default function RegisterScreen() {
         {/* Logo 和标题 */}
         <View style={styles.header}>
           <Text style={styles.logo}>🏔️</Text>
-          <Text style={styles.title}>山海灵境</Text>
-          <Text style={styles.subtitle}>创建您的账号</Text>
-          {referralCode ? <Text style={styles.referralHint}>邀请码已识别：{referralCode}</Text> : null}
+          <Text style={styles.title}>{tx('山海灵境', 'Shanhai Realm', '山海靈境')}</Text>
+          <Text style={styles.subtitle}>{tx('创建您的账号', 'Create your account', '建立您的帳號')}</Text>
+          {referralCode ? (
+            <Text style={styles.referralHint}>
+              {tx('邀请码已识别：{code}', 'Referral code detected: {code}', '已識別邀請碼：{code}').replace('{code}', referralCode)}
+            </Text>
+          ) : null}
         </View>
 
         {/* 输入框 */}
@@ -182,7 +244,7 @@ export default function RegisterScreen() {
           {/* 用户名 */}
           <TextInput
             style={styles.input}
-            placeholder="请输入昵称（可选）"
+            placeholder={tx('请输入昵称（可选）', 'Enter nickname (optional)', '請輸入暱稱（可選）')}
             placeholderTextColor="#6F6287"
             value={name}
             onChangeText={setName}
@@ -193,7 +255,7 @@ export default function RegisterScreen() {
           {/* 邮箱 */}
           <TextInput
             style={styles.input}
-            placeholder="请输入邮箱"
+            placeholder={tx('请输入邮箱', 'Enter email address', '請輸入郵箱')}
             placeholderTextColor="#6F6287"
             value={email}
             onChangeText={(text) => {
@@ -209,7 +271,7 @@ export default function RegisterScreen() {
           <View style={styles.codeRow}>
             <TextInput
               style={[styles.input, styles.codeInput]}
-              placeholder="请输入验证码"
+              placeholder={tx('请输入验证码', 'Enter verification code', '請輸入驗證碼')}
               placeholderTextColor="#6F6287"
               value={code}
               onChangeText={setCode}
@@ -223,7 +285,7 @@ export default function RegisterScreen() {
               disabled={countdown > 0 || isLoading}
             >
               <Text style={styles.codeButtonText}>
-                {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                {countdown > 0 ? `${countdown}s` : tx('获取验证码', 'Get Code', '獲取驗證碼')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -241,7 +303,7 @@ export default function RegisterScreen() {
           {/* 密码 */}
           <TextInput
             style={styles.input}
-            placeholder="请输入密码（至少6位）"
+            placeholder={tx('请输入密码（至少6位）', 'Enter password (at least 6 chars)', '請輸入密碼（至少 6 位）')}
             placeholderTextColor="#6F6287"
             value={password}
             onChangeText={setPassword}
@@ -252,7 +314,7 @@ export default function RegisterScreen() {
           {/* 确认密码 */}
           <TextInput
             style={styles.input}
-            placeholder="请再次输入密码"
+            placeholder={tx('请再次输入密码', 'Re-enter password', '請再次輸入密碼')}
             placeholderTextColor="#6F6287"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -273,10 +335,14 @@ export default function RegisterScreen() {
             {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
           </View>
           <Text style={styles.termsText}>
-            我已阅读并同意 
-            <Text style={styles.termsLink} onPress={() => openTerms('terms')}>《用户协议》</Text>
-            和 
-            <Text style={styles.termsLink} onPress={() => openTerms('privacy')}>《隐私政策》</Text>
+            {tx('我已阅读并同意 ', 'I have read and agree to ', '我已閱讀並同意 ')}
+            <Text style={styles.termsLink} onPress={() => openTerms('terms')}>
+              {tx('《用户协议》', 'Terms of Service', '《用戶協議》')}
+            </Text>
+            {tx(' 和 ', ' and ', ' 和 ')}
+            <Text style={styles.termsLink} onPress={() => openTerms('privacy')}>
+              {tx('《隐私政策》', 'Privacy Policy', '《隱私政策》')}
+            </Text>
           </Text>
         </TouchableOpacity>
         {!!termsError && <Text style={styles.termsErrorText}>{termsError}</Text>}
@@ -290,24 +356,24 @@ export default function RegisterScreen() {
           {isLoading ? (
             <ActivityIndicator color="#1A0A18" />
           ) : (
-            <Text style={styles.registerButtonText}>注册</Text>
+            <Text style={styles.registerButtonText}>{tx('注册', 'Register', '註冊')}</Text>
           )}
         </TouchableOpacity>
 
         {/* 登录链接 */}
         <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>已有账号？</Text>
+          <Text style={styles.loginText}>{tx('已有账号？', 'Already have an account?', '已有帳號？')}</Text>
           <TouchableOpacity onPress={handleLogin}>
-            <Text style={styles.loginLink}>立即登录</Text>
+            <Text style={styles.loginLink}>{tx('立即登录', 'Log In', '立即登入')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* 服务条款 */}
         <Text style={styles.terms}>
-          注册即表示同意{' '}
-          <Text style={styles.termsLink}>《用户协议》</Text>
-          {' '}和{' '}
-          <Text style={styles.termsLink}>《隐私政策》</Text>
+          {tx('注册即表示同意 ', 'By registering you agree to ', '註冊即表示同意 ')}
+          <Text style={styles.termsLink}>{tx('《用户协议》', 'Terms of Service', '《用戶協議》')}</Text>
+          {tx(' 和 ', ' and ', ' 和 ')}
+          <Text style={styles.termsLink}>{tx('《隐私政策》', 'Privacy Policy', '《隱私政策》')}</Text>
         </Text>
 
         <SiteComplianceFooter variant="full" />

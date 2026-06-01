@@ -13,9 +13,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { authApi } from '../src/services/api';
+import { useI18nStore } from '../src/store/i18n';
+import { localizeAuthMessage } from '../src/utils/authMessage';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const language = useI18nStore((state) => state.language);
+  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
 
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -37,14 +41,14 @@ export default function ForgotPasswordScreen() {
   // 发送验证码
   const handleSendCode = async () => {
     if (!email.trim()) {
-      Alert.alert('提示', '请输入邮箱地址');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入邮箱地址', 'Please enter your email address.', '請輸入郵箱地址'));
       return;
     }
 
     // 验证邮箱格式
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('提示', '请输入有效的邮箱地址');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入有效的邮箱地址', 'Please enter a valid email address.', '請輸入有效的郵箱地址'));
       return;
     }
 
@@ -54,15 +58,30 @@ export default function ForgotPasswordScreen() {
       const result = await authApi.sendCode({ email, purpose: 'reset' });
 
       if (result.success) {
-        Alert.alert('验证码已发送到您的邮箱', '请查收邮件');
+        Alert.alert(
+          tx('验证码已发送到您的邮箱', 'Verification code sent to your inbox', '驗證碼已發送到您的郵箱'),
+          tx('请查收邮件', 'Please check your email.', '請查收郵件'),
+        );
         setIsCodeSent(true);
         setCountdown(60);
         setStep('reset');
       } else {
-        Alert.alert('发送失败', result.message || '请重试');
+        const msg = localizeAuthMessage({
+          rawMessage: result.message,
+          language,
+          fallback: {
+            zhCN: '请重试',
+            enUS: 'Please try again.',
+            zhTW: '請重試',
+          },
+        });
+        Alert.alert(tx('发送失败', 'Send failed', '發送失敗'), msg);
       }
     } catch (error) {
-      Alert.alert('发送失败', '网络错误，请重试');
+      Alert.alert(
+        tx('发送失败', 'Send failed', '發送失敗'),
+        tx('网络错误，请重试', 'Network error. Please try again.', '網路錯誤，請重試'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -71,22 +90,22 @@ export default function ForgotPasswordScreen() {
   // 重置密码
   const handleResetPassword = async () => {
     if (!code.trim()) {
-      Alert.alert('提示', '请输入验证码');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入验证码', 'Please enter verification code.', '請輸入驗證碼'));
       return;
     }
 
     if (!newPassword.trim()) {
-      Alert.alert('提示', '请输入新密码');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('请输入新密码', 'Please enter a new password.', '請輸入新密碼'));
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('提示', '密码至少需要6位');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('密码至少需要6位', 'Password must be at least 6 characters.', '密碼至少需要 6 位'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('提示', '两次输入的密码不一致');
+      Alert.alert(tx('提示', 'Notice', '提示'), tx('两次输入的密码不一致', 'Passwords do not match.', '兩次輸入的密碼不一致'));
       return;
     }
 
@@ -99,17 +118,35 @@ export default function ForgotPasswordScreen() {
       });
 
       if (result.success) {
-        Alert.alert('密码重置成功', '请使用新密码登录', [
+        Alert.alert(
+          tx('密码重置成功', 'Password reset successful', '密碼重置成功'),
+          tx('请使用新密码登录', 'Please log in with your new password.', '請使用新密碼登入'),
+          [
           {
-            text: '去登录',
+            text: tx('去登录', 'Go to login', '去登入'),
             onPress: () => router.replace('/login'),
           },
         ]);
       } else {
-        Alert.alert('重置失败', result.message || '验证码错误或已过期');
+        const msg = localizeAuthMessage({
+          rawMessage: result.message,
+          language,
+          fallback: {
+            zhCN: '验证码错误或已过期',
+            enUS: 'Verification code is invalid or expired.',
+            zhTW: '驗證碼錯誤或已過期',
+          },
+        });
+        Alert.alert(
+          tx('重置失败', 'Reset failed', '重置失敗'),
+          msg,
+        );
       }
     } catch (error) {
-      Alert.alert('重置失败', '网络错误，请重试');
+      Alert.alert(
+        tx('重置失败', 'Reset failed', '重置失敗'),
+        tx('网络错误，请重试', 'Network error. Please try again.', '網路錯誤，請重試'),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -123,23 +160,23 @@ export default function ForgotPasswordScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* 返回按钮 */}
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← 返回</Text>
+          <Text style={styles.backButtonText}>{tx('← 返回', '← Back', '← 返回')}</Text>
         </TouchableOpacity>
 
         {/* 标题 */}
         <View style={styles.header}>
           <Text style={styles.logo}>🏔️</Text>
-          <Text style={styles.title}>找回密码</Text>
-          <Text style={styles.subtitle}>通过邮箱验证码重置密码</Text>
+          <Text style={styles.title}>{tx('找回密码', 'Reset Password', '找回密碼')}</Text>
+          <Text style={styles.subtitle}>{tx('通过邮箱验证码重置密码', 'Reset password via email verification code', '透過郵箱驗證碼重置密碼')}</Text>
         </View>
 
         {/* 步骤1：输入邮箱 */}
         {step === 'email' && (
           <View style={styles.formContainer}>
-            <Text style={styles.inputLabel}>邮箱地址</Text>
+            <Text style={styles.inputLabel}>{tx('邮箱地址', 'Email Address', '郵箱地址')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="请输入注册邮箱"
+              placeholder={tx('请输入注册邮箱', 'Enter your registered email', '請輸入註冊郵箱')}
               placeholderTextColor="#6F6287"
               value={email}
               onChangeText={setEmail}
@@ -157,7 +194,7 @@ export default function ForgotPasswordScreen() {
                 <ActivityIndicator color="#1A0A18" />
               ) : (
                 <Text style={styles.sendCodeButtonText}>
-                  {countdown > 0 ? `${countdown}s` : (isCodeSent ? '重新发送' : '发送验证码')}
+                  {countdown > 0 ? `${countdown}s` : (isCodeSent ? tx('重新发送', 'Resend', '重新發送') : tx('发送验证码', 'Send Code', '發送驗證碼'))}
                 </Text>
               )}
             </TouchableOpacity>
@@ -167,10 +204,10 @@ export default function ForgotPasswordScreen() {
         {/* 步骤2：输入新密码 */}
         {step === 'reset' && (
           <View style={styles.formContainer}>
-            <Text style={styles.inputLabel}>验证码</Text>
+            <Text style={styles.inputLabel}>{tx('验证码', 'Verification Code', '驗證碼')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="请输入邮箱收到的验证码"
+              placeholder={tx('请输入邮箱收到的验证码', 'Enter the code sent to your email', '請輸入郵箱收到的驗證碼')}
               placeholderTextColor="#6F6287"
               value={code}
               onChangeText={setCode}
@@ -178,20 +215,20 @@ export default function ForgotPasswordScreen() {
               maxLength={6}
             />
 
-            <Text style={styles.inputLabel}>新密码</Text>
+            <Text style={styles.inputLabel}>{tx('新密码', 'New Password', '新密碼')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="请输入新密码（至少6位）"
+              placeholder={tx('请输入新密码（至少6位）', 'Enter new password (at least 6 chars)', '請輸入新密碼（至少 6 位）')}
               placeholderTextColor="#6F6287"
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
             />
 
-            <Text style={styles.inputLabel}>确认密码</Text>
+            <Text style={styles.inputLabel}>{tx('确认密码', 'Confirm Password', '確認密碼')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="请再次输入新密码"
+              placeholder={tx('请再次输入新密码', 'Re-enter new password', '請再次輸入新密碼')}
               placeholderTextColor="#6F6287"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -206,7 +243,7 @@ export default function ForgotPasswordScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#1A0A18" />
               ) : (
-                <Text style={styles.resetButtonText}>重置密码</Text>
+                <Text style={styles.resetButtonText}>{tx('重置密码', 'Reset Password', '重置密碼')}</Text>
               )}
             </TouchableOpacity>
 
@@ -216,7 +253,12 @@ export default function ForgotPasswordScreen() {
               disabled={countdown > 0}
             >
               <Text style={styles.resendButtonText}>
-                {countdown > 0 ? `重新发送验证码 (${countdown}s)` : '重新发送验证码'}
+                {countdown > 0
+                  ? tx('重新发送验证码 ({countdown}s)', 'Resend code ({countdown}s)', '重新發送驗證碼（{countdown}s）').replace(
+                      '{countdown}',
+                      String(countdown),
+                    )
+                  : tx('重新发送验证码', 'Resend verification code', '重新發送驗證碼')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -224,9 +266,9 @@ export default function ForgotPasswordScreen() {
 
         {/* 登录链接 */}
         <View style={styles.loginLink}>
-          <Text style={styles.loginLinkText}>想起密码了？</Text>
+          <Text style={styles.loginLinkText}>{tx('想起密码了？', 'Remembered your password?', '想起密碼了？')}</Text>
           <TouchableOpacity onPress={() => router.push('/login')}>
-            <Text style={styles.loginLinkButton}>立即登录</Text>
+            <Text style={styles.loginLinkButton}>{tx('立即登录', 'Log In', '立即登入')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

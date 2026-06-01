@@ -221,8 +221,11 @@ async function request<T>(
     }
     const msg = String(err?.message || error);
     if (/Failed to fetch|NetworkError|network error|load failed|ERR_CONNECTION|timed out|TIMEOUT/i.test(msg)) {
+      const isZiRelated = /^\/zi\//.test(endpoint);
       throw new Error(
-        '网络异常或服务器响应超时。手写识别需调用云端 AI，请稍后重试；若持续失败请检查网络或稍后再试。',
+        isZiRelated
+          ? '网络异常或服务器响应超时。手写识别需调用云端 AI，请稍后重试；若持续失败请检查网络或稍后再试。'
+          : '网络异常或服务器响应超时，请稍后重试。',
       );
     }
     throw error;

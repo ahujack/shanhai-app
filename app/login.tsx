@@ -17,12 +17,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useUserStore } from '../src/store/user';
 import { signInWithGoogle } from '../src/services/auth';
 import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
+import { useI18nStore } from '../src/store/i18n';
+import { localizeAuthMessage } from '../src/utils/authMessage';
 
 export default function LoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { sendCode, loginWithPassword, loginWithCode, loginWithSocial, isLoading } = useUserStore();
+  const language = useI18nStore((state) => state.language);
+  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
 
   // 从 URL 获取推荐码
   const referralCode = params.ref as string | undefined;
@@ -84,11 +88,11 @@ export default function LoginScreen() {
   const validateEmail = (value: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!value.trim()) {
-      setEmailError('请输入邮箱地址');
+      setEmailError(tx('请输入邮箱地址', 'Please enter your email', '請輸入郵箱地址'));
       return false;
     }
     if (!emailRegex.test(value)) {
-      setEmailError('请输入有效的邮箱地址');
+      setEmailError(tx('请输入有效的邮箱地址', 'Please enter a valid email', '請輸入有效的郵箱地址'));
       return false;
     }
     setEmailError('');
@@ -98,11 +102,11 @@ export default function LoginScreen() {
   // 密码验证
   const validatePassword = (value: string): boolean => {
     if (!value.trim()) {
-      setPasswordError('请输入密码');
+      setPasswordError(tx('请输入密码', 'Please enter password', '請輸入密碼'));
       return false;
     }
     if (value.length < 6) {
-      setPasswordError('密码至少需要6位');
+      setPasswordError(tx('密码至少需要6位', 'Password must be at least 6 characters', '密碼至少需要6位'));
       return false;
     }
     setPasswordError('');
@@ -112,11 +116,11 @@ export default function LoginScreen() {
   // 验证码验证
   const validateCode = (value: string): boolean => {
     if (!value.trim()) {
-      setCodeError('请输入验证码');
+      setCodeError(tx('请输入验证码', 'Please enter verification code', '請輸入驗證碼'));
       return false;
     }
     if (value.length !== 6) {
-      setCodeError('验证码为6位数字');
+      setCodeError(tx('验证码为6位数字', 'Code must be 6 digits', '驗證碼為6位數字'));
       return false;
     }
     setCodeError('');
@@ -133,13 +137,21 @@ export default function LoginScreen() {
     setIsSendingCode(false);
 
     if (result?.success) {
-      showToast('验证码已发送，请查收邮件（含垃圾邮件箱）', 'success');
+      showToast(tx('验证码已发送，请查收邮件（含垃圾邮件箱）', 'Code sent. Please check your inbox/spam.', '驗證碼已發送，請查收郵件（含垃圾郵件箱）'), 'success');
       setIsCodeSent(true);
       setCountdown(60);
     } else {
-      const msg = result?.message || '发送失败，请确认邮箱已注册或稍后重试';
+      const msg = localizeAuthMessage({
+        rawMessage: result?.message,
+        language,
+        fallback: {
+          zhCN: '发送失败，请确认邮箱已注册或稍后重试',
+          enUS: 'Send failed. Please verify your email or retry later.',
+          zhTW: '發送失敗，請確認郵箱已註冊或稍後重試',
+        },
+      });
       showToast(msg, 'error');
-      setCodeError(msg.includes('邮箱') ? '请确认该邮箱已注册' : '');
+      setCodeError(/邮箱|郵箱|email/i.test(msg) ? tx('请确认该邮箱已注册', 'Please confirm this email is registered', '請確認該郵箱已註冊') : '');
     }
   };
 
@@ -151,23 +163,39 @@ export default function LoginScreen() {
       if (!validatePassword(password)) return;
       const result = await loginWithPassword(email, password);
       if (result.success) {
-        showToast('登录成功，欢迎回来！', 'success');
+        showToast(tx('登录成功，欢迎回来！', 'Login successful, welcome back!', '登入成功，歡迎回來！'), 'success');
         setTimeout(() => router.replace('/(tabs)'), 500);
       } else {
-        const msg = result.message || '邮箱或密码错误，请检查后重试';
+        const msg = localizeAuthMessage({
+          rawMessage: result.message,
+          language,
+          fallback: {
+            zhCN: '邮箱或密码错误，请检查后重试',
+            enUS: 'Email or password is incorrect, please retry.',
+            zhTW: '郵箱或密碼錯誤，請檢查後重試',
+          },
+        });
         showToast(msg, 'error');
-        setPasswordError(msg.includes('密码') ? msg : '');
+        setPasswordError(/密码|密碼|password|credential/i.test(msg) ? msg : '');
       }
     } else {
       if (!validateCode(code)) return;
       const result = await loginWithCode(email, code);
       if (result.success) {
-        showToast('登录成功，欢迎回来！', 'success');
+        showToast(tx('登录成功，欢迎回来！', 'Login successful, welcome back!', '登入成功，歡迎回來！'), 'success');
         setTimeout(() => router.replace('/(tabs)'), 500);
       } else {
-        const msg = result.message || '验证码错误或已过期，请重新获取';
+        const msg = localizeAuthMessage({
+          rawMessage: result.message,
+          language,
+          fallback: {
+            zhCN: '验证码错误或已过期，请重新获取',
+            enUS: 'Code invalid or expired. Please request a new one.',
+            zhTW: '驗證碼錯誤或已過期，請重新獲取',
+          },
+        });
         showToast(msg, 'error');
-        setCodeError(msg.includes('验证码') ? msg : '');
+        setCodeError(/验证码|驗證碼|code|otp/i.test(msg) ? msg : '');
       }
     }
   };
@@ -197,16 +225,25 @@ export default function LoginScreen() {
       if (userInfo && userInfo.idToken) {
         const result = await loginWithSocial('google', userInfo.idToken, referralCode);
         if (result.success) {
-          showToast('登录成功，欢迎回来！', 'success');
+          showToast(tx('登录成功，欢迎回来！', 'Login successful, welcome back!', '登入成功，歡迎回來！'), 'success');
           setTimeout(() => router.replace('/(tabs)'), 500);
         } else {
-          showToast(result.message || 'Google 登录失败，请重试', 'error');
+          const msg = localizeAuthMessage({
+            rawMessage: result.message,
+            language,
+            fallback: {
+              zhCN: 'Google 登录失败，请重试',
+              enUS: 'Google login failed, please retry.',
+              zhTW: 'Google 登入失敗，請重試',
+            },
+          });
+          showToast(msg, 'error');
         }
       }
       // Web 环境下会跳转，不返回；原生环境可能取消授权
     } catch (error) {
       console.error('Google login error:', error);
-      showToast('Google 登录失败，请检查网络后重试', 'error');
+      showToast(tx('Google 登录失败，请检查网络后重试', 'Google login failed. Please check network and retry.', 'Google 登入失敗，請檢查網路後重試'), 'error');
     }
   };
 
@@ -245,11 +282,11 @@ export default function LoginScreen() {
         {/* Logo 和标题 */}
         <View style={styles.header}>
           <TouchableOpacity style={[styles.registerButton, styles.webCursor]} onPress={handleRegister} activeOpacity={0.7}>
-            <Text style={styles.registerButtonText}>注册</Text>
+            <Text style={styles.registerButtonText}>{tx('注册', 'Register', '註冊')}</Text>
           </TouchableOpacity>
           <Text style={styles.logo}>🏔️</Text>
-          <Text style={styles.title}>山海灵境</Text>
-          <Text style={styles.subtitle}>探索你的命运之旅</Text>
+          <Text style={styles.title}>{tx('山海灵境', 'Shanhai Realm', '山海靈境')}</Text>
+          <Text style={styles.subtitle}>{tx('探索你的命运之旅', 'Explore your destiny journey', '探索你的命運之旅')}</Text>
         </View>
 
         {/* 登录方式切换 */}
@@ -264,7 +301,7 @@ export default function LoginScreen() {
             }}
           >
             <Text style={[styles.methodButtonText, loginMethod === 'password' && styles.methodButtonTextActive]}>
-              密码登录
+              {tx('密码登录', 'Password Login', '密碼登入')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -277,7 +314,7 @@ export default function LoginScreen() {
             }}
           >
             <Text style={[styles.methodButtonText, loginMethod === 'code' && styles.methodButtonTextActive]}>
-              验证码登录
+              {tx('验证码登录', 'Code Login', '驗證碼登入')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -286,10 +323,10 @@ export default function LoginScreen() {
         <View style={styles.inputContainer}>
           {/* 邮箱输入 */}
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>邮箱</Text>
+            <Text style={styles.inputLabel}>{tx('邮箱', 'Email', '郵箱')}</Text>
             <TextInput
               style={[styles.input, emailError ? styles.inputError : null]}
-              placeholder="请输入邮箱地址"
+              placeholder={tx('请输入邮箱地址', 'Enter your email', '請輸入郵箱地址')}
               placeholderTextColor="#6F6287"
               value={email}
               onChangeText={(text) => {
@@ -308,11 +345,11 @@ export default function LoginScreen() {
           {/* 密码登录 */}
           {loginMethod === 'password' && (
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>密码</Text>
+              <Text style={styles.inputLabel}>{tx('密码', 'Password', '密碼')}</Text>
               <View style={styles.passwordInputContainer}>
                 <TextInput
                   style={[styles.input, styles.passwordInput, passwordError ? styles.inputError : null]}
-                  placeholder="请输入密码（至少 6 位）"
+                  placeholder={tx('请输入密码（至少 6 位）', 'Enter password (min 6 chars)', '請輸入密碼（至少 6 位）')}
                   placeholderTextColor="#6F6287"
                   value={password}
                   onChangeText={(text) => {
@@ -338,7 +375,7 @@ export default function LoginScreen() {
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               
               <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
-                <Text style={styles.forgotPasswordText}>忘记密码？</Text>
+                <Text style={styles.forgotPasswordText}>{tx('忘记密码？', 'Forgot password?', '忘記密碼？')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -346,11 +383,11 @@ export default function LoginScreen() {
           {/* 验证码登录 */}
           {loginMethod === 'code' && (
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>验证码</Text>
+              <Text style={styles.inputLabel}>{tx('验证码', 'Verification Code', '驗證碼')}</Text>
               <View style={styles.codeRow}>
                 <TextInput
                   style={[styles.input, styles.codeInput, codeError ? styles.inputError : null]}
-                  placeholder="请输入 6 位数字验证码"
+                  placeholder={tx('请输入 6 位数字验证码', 'Enter 6-digit code', '請輸入 6 位數字驗證碼')}
                   placeholderTextColor="#6F6287"
                   value={code}
                   onChangeText={(text) => {
@@ -374,7 +411,11 @@ export default function LoginScreen() {
                     <ActivityIndicator size="small" color="#F8D05F" />
                   ) : (
                     <Text style={styles.codeButtonText}>
-                      {countdown > 0 ? `${countdown}s 后重发` : (isCodeSent ? '重新发送' : '获取验证码')}
+                      {countdown > 0
+                        ? tx(`${countdown}s 后重发`, `Resend in ${countdown}s`, `${countdown}s 後重發`)
+                        : isCodeSent
+                        ? tx('重新发送', 'Resend', '重新發送')
+                        : tx('获取验证码', 'Get Code', '獲取驗證碼')}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -382,7 +423,9 @@ export default function LoginScreen() {
               {codeError ? <Text style={styles.errorText}>{codeError}</Text> : null}
               {isCodeSent && (
                 <Text style={styles.hintText}>
-                  未收到？请检查垃圾邮件箱，或 {countdown > 0 ? `${countdown}s 后` : '点击上方'}重新发送
+                  {tx('未收到？请检查垃圾邮件箱，或 ', 'Not received? Check spam, or ', '未收到？請檢查垃圾郵件箱，或 ')}
+                  {countdown > 0 ? tx(`${countdown}s 后`, `after ${countdown}s`, `${countdown}s 後`) : tx('点击上方', 'tap above', '點擊上方')}
+                  {tx('重新发送', ' to resend', '重新發送')}
                 </Text>
               )}
             </View>
@@ -399,14 +442,14 @@ export default function LoginScreen() {
           {isLoading ? (
             <ActivityIndicator color="#1A0A18" size="small" />
           ) : (
-            <Text style={styles.loginButtonText}>登录</Text>
+            <Text style={styles.loginButtonText}>{tx('登录', 'Log In', '登入')}</Text>
           )}
         </TouchableOpacity>
 
         {/* 分割线 */}
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>或</Text>
+          <Text style={styles.dividerText}>{tx('或', 'OR', '或')}</Text>
           <View style={styles.dividerLine} />
         </View>
 
@@ -419,12 +462,12 @@ export default function LoginScreen() {
           <View style={styles.socialIconContainer}>
             <Text style={styles.socialIcon}>G</Text>
           </View>
-          <Text style={styles.socialText}>Google 登录</Text>
+          <Text style={styles.socialText}>{tx('Google 登录', 'Google Login', 'Google 登入')}</Text>
         </TouchableOpacity>
 
         {/* 游客模式 */}
         <TouchableOpacity style={[styles.guestButton, styles.webCursor]} onPress={handleGuestMode} activeOpacity={0.7}>
-          <Text style={styles.guestText}>暂不登录，先逛逛</Text>
+          <Text style={styles.guestText}>{tx('暂不登录，先逛逛', 'Skip for now', '暫不登入，先逛逛')}</Text>
         </TouchableOpacity>
 
         <SiteComplianceFooter variant="full" />
