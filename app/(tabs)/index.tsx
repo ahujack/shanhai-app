@@ -1216,9 +1216,6 @@ export default function HomeScreen() {
                       {getFortuneGrade(drawFortune).label}
                     </Text>
                   </View>
-                  {!!drawFortune.drawCode && (
-                    <Text style={styles.drawCodeText}>签号：{drawFortune.drawCode}</Text>
-                  )}
                   <Text style={styles.fortunePoemTitle}>{drawFortune.poem.title}</Text>
                   <Text style={styles.fortunePoemText}>{drawFortune.poem.line1}</Text>
                   <Text style={styles.fortunePoemText}>{drawFortune.poem.line2}</Text>

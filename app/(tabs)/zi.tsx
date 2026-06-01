@@ -23,6 +23,7 @@ import AccuracyFeedback from '../../components/AccuracyFeedback';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
+import { isMembershipActive } from '../../src/utils/membership';
 import HandwritingCanvas from '../../components/HandwritingCanvas';
 
 /** Web 上 RN Image 对 raw.githubusercontent.com 等外链偶发不显示，用原生 img + no-referrer 更稳 */
@@ -147,7 +148,7 @@ export default function ZiScreen() {
     ],
   };
 
-  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+  const isVip = isMembershipActive(user);
   const ziTierLabel = !result
     ? isVip
       ? '深度版（会员）'
@@ -318,19 +319,23 @@ export default function ZiScreen() {
       if (msg.includes('积分不足')) {
         setShowSmartCta(true);
         await refreshPointsBalance();
-        Alert.alert('积分不足', '请使用下方快捷入口补充权益');
+        Alert.alert('积分不足', msg || '请使用下方快捷入口补充权益');
+      } else if (msg.includes('请输入一个有效的汉字')) {
+        Alert.alert('输入无效', msg);
       } else {
         Alert.alert(
           '测字失败',
-          '连接出现问题，请检查网络后重试',
+          msg || '连接出现问题，请检查网络后重试',
           [
             { text: '知道了', style: 'cancel' },
             { text: '重试', onPress: () => analyzeZiInput(rawZi, focusAspect, normalizedQuestion) },
           ]
         );
       }
-      setResultStage(previousResult ? 'full' : 'idle');
-      setResult(previousResult);
+      const previousZi = previousResult?.zi?.zi?.trim().charAt(0) || '';
+      const shouldRestorePrevious = !!(previousResult && previousZi && previousZi === zi);
+      setResultStage(shouldRestorePrevious ? 'full' : 'idle');
+      setResult(shouldRestorePrevious ? previousResult : null);
       return false;
     } finally {
       setIsLoading(false);

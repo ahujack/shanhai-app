@@ -72,7 +72,8 @@ export default function ReadingScreen() {
 
   const buildDeepReadingQuestionFromFortune = () => {
     if (!lastFortune) return question.trim();
-    return `我抽到「${lastFortune.poem.title}」${lastFortune.drawCode ? `（签号${lastFortune.drawCode}）` : ''}，请结合今天签文做深度解签，给我具体行动建议。`;
+    const missionPart = lastFortune.mission ? ` 今日任务是「${lastFortune.mission}」。` : '';
+    return `我刚完成一次抽签，请基于这次签文做深度解签，重点给我可执行行动建议与风险提醒，不要重新起卦。${missionPart}`;
   };
 
   useEffect(() => {
@@ -310,17 +311,71 @@ export default function ReadingScreen() {
   if (result) {
     const movingLines = result.hexagram.lines.filter((line) => line === '6' || line === '9').length;
     const confidence = Math.max(62, Math.min(92, 88 - movingLines * 6 + (result.hexagram.original === result.hexagram.changed ? 4 : 0)));
+    const confidenceValue = result.conclusion?.confidence || confidence;
+    const toneValue = result.conclusion?.emotionalTone || t('reading.result.neutral', '中性');
+    const reportSealText =
+      confidenceValue >= 85
+        ? t('reading.result.seal.high', '本次建议：稳中推进')
+        : confidenceValue >= 75
+        ? t('reading.result.seal.mid', '本次建议：先试后扩')
+        : t('reading.result.seal.low', '本次建议：先稳后动');
+    const reportSealTilt = confidenceValue >= 85 ? '-3deg' : confidenceValue >= 75 ? '-1.5deg' : '2deg';
+    const actionSteps = (
+      result.recommendations?.filter((item) => !!item && item.trim().length > 0) || []
+    ).slice(0, 4);
+    if (!actionSteps.length) {
+      actionSteps.push(
+        result.conclusion?.nextStep ||
+          result.interpretation.guidance ||
+          t('reading.result.nextFallback', '先稳住节奏，再做决定。'),
+      );
+    }
+    const riskItems = [
+      result.timing.caution,
+      movingLines >= 3
+        ? t('reading.result.risk.dynamic', '动爻偏多，外部变量变化快，避免一次性押注。')
+        : t('reading.result.risk.static', '动爻偏少，局面变化慢，警惕拖延与观望过久。'),
+      result.interpretation.situation || '',
+    ]
+      .map((item) => item?.trim())
+      .filter((item): item is string => !!item);
+    const weeklyRhythm = [
+      {
+        phase: t('reading.result.rhythm.monTue', '周初（周一-周二）'),
+        text:
+          result.conclusion?.nextStep ||
+          t('reading.result.rhythm.monTueFallback', '先定目标和边界，不急着做重决策。'),
+      },
+      {
+        phase: t('reading.result.rhythm.wedThu', '周中（周三-周四）'),
+        text: actionSteps[0] || t('reading.result.rhythm.wedThuFallback', '推进一个最小动作，优先拿到外部反馈。'),
+      },
+      {
+        phase: t('reading.result.rhythm.fri', '周后段（周五）'),
+        text: result.timing.suitable || t('reading.result.rhythm.friFallback', '适合收敛执行，减少临时新增事项。'),
+      },
+      {
+        phase: t('reading.result.rhythm.weekend', '周末（复盘）'),
+        text: result.timing.caution || t('reading.result.rhythm.weekendFallback', '回看得失，修正节奏，不做情绪化决定。'),
+      },
+    ];
 
     return (
       <ScrollView 
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       >
-        <Text style={styles.sectionTitle}>{t('reading.result.title', '🔮 占卜结果')}</Text>
+        <Text style={styles.sectionTitle}>
+          {fromFortune ? t('reading.result.fortuneTitle', '🔮 深度解签结果') : t('reading.result.title', '🔮 占卜结果')}
+        </Text>
         <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
           <Text style={styles.tierTitle}>当前解读档位：{readingTierLabel}</Text>
           <Text style={styles.tierDesc}>{readingTierDesc}</Text>
-          {!isVip ? <Text style={styles.tierHintInline}>提示：本次结果已解锁，会员用于后续解读免扣与追问。</Text> : null}
+          {!isVip ? (
+            <Text style={styles.tierHintInline}>
+              {t('reading.result.costHint', `提示：本次深度解签消耗 ${readingPointsCost} 积分，会员免扣。`)}
+            </Text>
+          ) : null}
         </View>
 
         {fromFortune && lastFortune && (
@@ -343,9 +398,7 @@ export default function ReadingScreen() {
             </View>
             {showFortuneSource && (
               <>
-                <Text style={styles.fromFortuneMeta}>
-                  {lastFortune.drawCode ? `签号：${lastFortune.drawCode} · ` : ''}签名：{lastFortune.poem.title}
-                </Text>
+                <Text style={styles.fromFortuneMeta}>签名：{lastFortune.poem.title}</Text>
                 {!!lastFortune.mission && (
                   <Text style={styles.fromFortuneHint}>🧩 今日任务：{lastFortune.mission}</Text>
                 )}
@@ -383,86 +436,92 @@ export default function ReadingScreen() {
 
         {showDetails && (
           <>
-        
-        {/* 卦象信息 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <View style={styles.hexagramHeader}>
-            <Text style={styles.hexagramName}>{result.hexagram.originalName}</Text>
-            <Text style={styles.hexagramOriginal}>本卦：{result.hexagram.original}</Text>
-            {result.hexagram.original !== result.hexagram.changed && (
-              <Text style={styles.hexagramChanged}>变卦：{result.hexagram.changedName}</Text>
-            )}
-          </View>
-          
-          {/* 爻辞 */}
-          <View style={styles.yaoContainer}>
-            <Text style={styles.yaoTitle}>六爻</Text>
-            {result.hexagram.yaoDescriptions.map((yao, idx) => (
-              <Text key={idx} style={styles.yaoText}>{yao}</Text>
-            ))}
-          </View>
-        </View>
-
-        {/* 解读 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>{t('reading.result.interpretation', '📖 解读')}</Text>
-          <Text style={styles.interpretationText}>{result.interpretation.overall}</Text>
-          <Text style={styles.interpretationText}>{result.interpretation.situation}</Text>
-          <Text style={styles.interpretationText}>{result.interpretation.guidance}</Text>
-        </View>
-
-        {/* 结构化解释卡 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>{t('reading.result.structured', '🧭 结构化解释')}</Text>
-          <View style={styles.structCard}>
-            <Text style={styles.structTitle}>依据</Text>
-            <Text style={styles.structText}>本卦：{result.hexagram.originalName}</Text>
-            <Text style={styles.structText}>变卦：{result.hexagram.changedName}</Text>
-            <Text style={styles.structText}>动爻数：{movingLines}（越多代表变化越快）</Text>
-          </View>
-          <View style={styles.structCard}>
-            <Text style={styles.structTitle}>建议</Text>
-            <Text style={styles.structText}>{result.interpretation.guidance}</Text>
-          </View>
-          <View style={styles.structCard}>
-            <Text style={styles.structTitle}>风险</Text>
-            <Text style={styles.structText}>⚠️ {result.timing.caution}</Text>
-          </View>
-          <View style={styles.confidenceRow}>
-            <Text style={styles.confidenceLabel}>解读置信度</Text>
-            <Text style={styles.confidenceValue}>{confidence}%</Text>
-          </View>
-        </View>
-
-        {/* 建议 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>{t('reading.result.suggestions', '💡 建议')}</Text>
-          {result.recommendations.map((rec, idx) => (
-            <View key={idx} style={styles.recItem}>
-              <Text style={styles.recNumber}>{idx + 1}</Text>
-              <Text style={styles.recText}>{rec}</Text>
+            <View style={[styles.card, styles.detailCard, { backgroundColor: colors.surface }]}>
+              <View style={styles.detailHeaderRow}>
+                <Text style={styles.cardTitle}>{t('reading.result.detail.conclusion', '① 结论')}</Text>
+                <View style={styles.detailValueBadge}>
+                  <Text style={styles.detailValueBadgeText}>{t('reading.result.badge.conclusion', '决策结论')}</Text>
+                </View>
+              </View>
+              <View style={styles.detailGoldDivider} />
+              <Text style={styles.detailMainText}>
+                {result.conclusion?.verdict || result.interpretation.overall}
+              </Text>
+              <View style={styles.reportSealWrap}>
+                <View style={[styles.reportSeal, { transform: [{ rotate: reportSealTilt }] }]}>
+                  <View style={styles.reportSealRing} />
+                  <Text style={styles.reportSealText}>{reportSealText}</Text>
+                  <Text style={styles.reportSealMeta}>
+                    {t('reading.result.detail.confidence', '置信度')} {confidenceValue}% · {toneValue}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.detailSubText}>
+                {t('reading.result.detail.confidence', '置信度')}：{result.conclusion?.confidence || confidence}% ·
+                {' '}
+                {t('reading.result.detail.tone', '情绪趋势')}：
+                {result.conclusion?.emotionalTone || t('reading.result.neutral', '中性')}
+              </Text>
+              <Text style={styles.detailHintText}>
+                {fromFortune
+                  ? `${t('reading.result.detail.basedOn', '依据')}: ${lastFortune?.poem.title || t('reading.result.detail.currentFortune', '本次签文')}`
+                  : `${t('reading.result.detail.basedOn', '依据')}: ${result.hexagram.originalName} → ${result.hexagram.changedName}`}
+              </Text>
             </View>
-          ))}
-        </View>
 
-        {/* 时机 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>{t('reading.result.timing', '⏰ 时机判断')}</Text>
-          <Text style={styles.timingText}>✅ {result.timing.suitable}</Text>
-          <Text style={styles.timingText}>⚠️ {result.timing.caution}</Text>
-        </View>
+            <View style={[styles.card, styles.detailCard, { backgroundColor: colors.surface }]}>
+              <View style={styles.detailHeaderRow}>
+                <Text style={styles.cardTitle}>{t('reading.result.detail.action', '② 行动步骤')}</Text>
+                <View style={styles.detailValueBadge}>
+                  <Text style={styles.detailValueBadgeText}>{t('reading.result.badge.action', '执行计划')}</Text>
+                </View>
+              </View>
+              <View style={styles.detailGoldDivider} />
+              {actionSteps.map((step, idx) => (
+                <View key={`step_${idx}`} style={styles.detailBulletRow}>
+                  <Text style={styles.detailBulletIndex}>{idx + 1}</Text>
+                  <Text style={styles.detailBulletText}>{step}</Text>
+                </View>
+              ))}
+              <TouchableOpacity style={styles.deepChatButton} onPress={handleDeepConversation}>
+                <Text style={styles.deepChatButtonText}>{t('reading.result.deepTalk', '和我聊聊现在的感受')}</Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* 情绪承接与深聊 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>{t('reading.result.supportTitle', '🤍 先把心放稳一点')}</Text>
-          <Text style={styles.supportText}>
-            这份解读不是在催你立刻行动，而是陪你把感受理顺。你可以先说情绪，再一起慢慢看下一步。
-          </Text>
-          <TouchableOpacity style={styles.deepChatButton} onPress={handleDeepConversation}>
-            <Text style={styles.deepChatButtonText}>{t('reading.result.deepTalk', '和我聊聊现在的感受')}</Text>
-          </TouchableOpacity>
-          <Text style={styles.supportHint}>会自动承接当前解读，不需要你重复描述。</Text>
-        </View>
+            <View style={[styles.card, styles.detailCard, { backgroundColor: colors.surface }]}>
+              <View style={styles.detailHeaderRow}>
+                <Text style={styles.cardTitle}>{t('reading.result.detail.risk', '③ 风险雷区')}</Text>
+                <View style={styles.detailValueBadge}>
+                  <Text style={styles.detailValueBadgeText}>{t('reading.result.badge.risk', '风险预警')}</Text>
+                </View>
+              </View>
+              <View style={styles.detailGoldDivider} />
+              {riskItems.map((risk, idx) => (
+                <View key={`risk_${idx}`} style={styles.detailBulletRow}>
+                  <Text style={styles.detailRiskIcon}>⚠️</Text>
+                  <Text style={styles.detailBulletText}>{risk}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={[styles.card, styles.detailCard, { backgroundColor: colors.surface }]}>
+              <View style={styles.detailHeaderRow}>
+                <Text style={styles.cardTitle}>{t('reading.result.detail.rhythm', '④ 本周节奏')}</Text>
+                <View style={styles.detailValueBadge}>
+                  <Text style={styles.detailValueBadgeText}>{t('reading.result.badge.rhythm', '节奏窗口')}</Text>
+                </View>
+              </View>
+              <View style={styles.detailGoldDivider} />
+              {weeklyRhythm.map((item) => (
+                <View key={item.phase} style={styles.rhythmRow}>
+                  <Text style={styles.rhythmPhase}>{item.phase}</Text>
+                  <Text style={styles.rhythmText}>{item.text}</Text>
+                </View>
+              ))}
+              <Text style={styles.rhythmHint}>
+                {t('reading.result.detail.rhythmHint', '建议：每完成一步就停下来复盘一次，再进入下一步。')}
+              </Text>
+            </View>
           </>
         )}
 
@@ -507,9 +566,13 @@ export default function ReadingScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={styles.cardTitle}>{t('reading.form.fortuneSummary', '🧿 抽签免费摘要')}</Text>
           <Text style={styles.featureText}>签名：{lastFortune.poem.title}</Text>
-          {lastFortune.drawCode ? <Text style={styles.featureText}>签号：{lastFortune.drawCode}</Text> : null}
           <Text style={styles.featureText}>今日：{lastFortune.day}</Text>
           <Text style={styles.hint}>{lastFortune.interpretation?.overall || '已为你带入本次抽签结果。'}</Text>
+          <Text style={styles.hint}>
+            {isVip
+              ? t('reading.form.cost.free', '当前会员有效期内免扣积分。')
+              : t('reading.form.cost.need', `解锁深度解签需 ${readingPointsCost} 积分，当前余额 ${availablePoints ?? '--'}。`)}
+          </Text>
           <TouchableOpacity
             style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
             onPress={unlockDeepFromFortune}
@@ -988,6 +1051,142 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#D6B36A',
     marginBottom: 16,
+  },
+  detailCard: {
+    borderColor: '#2A3448',
+    borderWidth: 1,
+  },
+  detailHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  detailValueBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(214,179,106,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(214,179,106,0.35)',
+    marginLeft: 8,
+  },
+  detailValueBadgeText: {
+    color: '#D6B36A',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  detailGoldDivider: {
+    height: 1,
+    backgroundColor: 'rgba(214,179,106,0.35)',
+    marginTop: -6,
+    marginBottom: 12,
+  },
+  detailMainText: {
+    color: '#E8ECF3',
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 10,
+  },
+  reportSealWrap: {
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  reportSeal: {
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(214,179,106,0.6)',
+    backgroundColor: 'rgba(214,179,106,0.08)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    opacity: 0.9,
+  },
+  reportSealRing: {
+    position: 'absolute',
+    top: 3,
+    left: 3,
+    right: 3,
+    bottom: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(214,179,106,0.24)',
+  },
+  reportSealText: {
+    color: '#D6B36A',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  reportSealMeta: {
+    color: '#AAB3C5',
+    fontSize: 11,
+  },
+  detailSubText: {
+    color: '#AAB3C5',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  detailHintText: {
+    color: '#94A0B8',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  detailBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  detailBulletIndex: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    textAlign: 'center',
+    lineHeight: 20,
+    color: '#121827',
+    backgroundColor: '#D6B36A',
+    fontSize: 12,
+    fontWeight: '700',
+    marginRight: 10,
+    marginTop: 2,
+  },
+  detailRiskIcon: {
+    width: 20,
+    textAlign: 'center',
+    marginRight: 10,
+    marginTop: 1,
+  },
+  detailBulletText: {
+    flex: 1,
+    color: '#AAB3C5',
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  rhythmRow: {
+    backgroundColor: '#1A2233',
+    borderWidth: 1,
+    borderColor: '#2A3448',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+  },
+  rhythmPhase: {
+    color: '#D6B36A',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  rhythmText: {
+    color: '#AAB3C5',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  rhythmHint: {
+    marginTop: 6,
+    color: '#94A0B8',
+    fontSize: 12,
+    lineHeight: 18,
   },
   interpretationText: {
     color: '#E8ECF3',
