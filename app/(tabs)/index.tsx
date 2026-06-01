@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Image } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Image, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +16,7 @@ import OnboardingModal from '../../components/OnboardingModal';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 import { useI18nStore } from '../../src/store/i18n';
 import type { AppLanguage } from '../../src/i18n/translations';
+import { isMembershipActive } from '../../src/utils/membership';
 
 // 主题颜色
 const colors = theme.dark;
@@ -57,6 +58,7 @@ export default function HomeScreen() {
   const [ziNudgeCooldownUntil, setZiNudgeCooldownUntil] = useState(0);
   const [ziNudgeShownDate, setZiNudgeShownDate] = useState('');
   const [showChartModal, setShowChartModal] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceDraftText, setVoiceDraftText] = useState('');
@@ -93,23 +95,28 @@ export default function HomeScreen() {
     ],
     [t],
   );
-  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
-  const languageOrder: AppLanguage[] = ['zh-CN', 'en-US', 'zh-TW'];
-  const languageLabel: Record<AppLanguage, string> = {
-    'zh-CN': '中',
+  const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
+  const isVip = isMembershipActive(user);
+  const languageLabelShort: Record<AppLanguage, string> = {
+    'zh-CN': '简',
     'en-US': 'EN',
     'zh-TW': '繁',
   };
-
-  const toggleLanguageQuickly = async () => {
-    const currentIndex = languageOrder.indexOf(language);
-    const next = languageOrder[(currentIndex + 1) % languageOrder.length];
+  const languageDisplayLabel: Record<AppLanguage, string> = {
+    'zh-CN': t('lang.simplified', '简体中文'),
+    'en-US': t('lang.english', 'English'),
+    'zh-TW': t('lang.traditional', '繁體中文'),
+  };
+  const languageOptions: AppLanguage[] = ['zh-CN', 'en-US', 'zh-TW'];
+  const switchLanguage = async (next: AppLanguage) => {
+    if (next === language) {
+      setShowLanguageMenu(false);
+      return;
+    }
     await setLanguage(next);
+    setShowLanguageMenu(false);
     showToast(
-      t(
-        'home.lang.changed',
-        `语言已切换为 ${next === 'zh-CN' ? '简体中文' : next === 'en-US' ? 'English' : '繁體中文'}`,
-      ),
+      t('home.lang.changed', '语言已切换为 {lang}').replace('{lang}', languageDisplayLabel[next]),
       'info',
       1200,
     );
@@ -562,12 +569,12 @@ export default function HomeScreen() {
   const loadingStageText = React.useMemo(() => {
     if (!isLoading) return '';
     if (lastSendSource === 'quick_template') {
-      return t('home.loading.quick', `${persona.name} 正在把你的情境转成可执行建议...`);
+      return t('home.loading.quick', '{name} 正在把你的情境转成可执行建议...').replace('{name}', persona.name);
     }
     if (lastSendSource === 'voice') {
-      return t('home.loading.voice', `${persona.name} 正在整理你刚才的语音重点...`);
+      return t('home.loading.voice', '{name} 正在整理你刚才的语音重点...').replace('{name}', persona.name);
     }
-    return t('home.loading.default', `${persona.name} 正在拆解问题并生成第一版结论...`);
+    return t('home.loading.default', '{name} 正在拆解问题并生成第一版结论...').replace('{name}', persona.name);
   }, [isLoading, lastSendSource, persona.name, t]);
 
   const handleInputKeyPress = (e: any) => {
@@ -765,7 +772,12 @@ export default function HomeScreen() {
         if (result.achievement) {
           setAchievementUnlock(result.achievement);
         } else {
-        showToast(t('home.toast.checkinSuccess', `🎉 签到成功！+${result.points}积分${result.reward ? `\n${result.reward}` : ''}`), 'success');
+        showToast(
+          t('home.toast.checkinSuccess', '🎉 签到成功！+{points}积分{reward}')
+            .replace('{points}', String(result.points ?? 0))
+            .replace('{reward}', result.reward ? `\n${result.reward}` : ''),
+          'success',
+        );
         }
       } else {
         showToast(result?.message || t('home.toast.checkinFailed', '签到失败'), 'error');
@@ -878,16 +890,17 @@ export default function HomeScreen() {
                 </Text>
               </TouchableOpacity>
               <View style={styles.titleCenter}>
-                <Text style={styles.title}>山海灵境</Text>
+                <Text style={styles.title}>{t('home.appTitle', '山海灵境')}</Text>
               </View>
               <View style={styles.headerRight}>
                 <TouchableOpacity
-                  style={styles.languageButton}
-                  onPress={() => void toggleLanguageQuickly()}
+                  style={[styles.languageButton, showLanguageMenu && styles.languageButtonActive]}
+                  onPress={() => setShowLanguageMenu((v) => !v)}
                   activeOpacity={0.8}
-                  accessibilityLabel={t('home.lang.switch', '切换语言')}
+                  accessibilityLabel={t('home.lang.switch', '选择语言')}
                 >
-                  <Text style={styles.languageButtonText}>{languageLabel[language]}</Text>
+                  <Text style={styles.languageButtonText}>{languageLabelShort[language]}</Text>
+                  <Text style={styles.languageButtonCaret}>▾</Text>
                 </TouchableOpacity>
                 {user && (
                   <TouchableOpacity 
@@ -922,7 +935,7 @@ export default function HomeScreen() {
             active={persona}
             onSelect={(p) => {
               setActive(p.id);
-              showToast(`已切换灵伴：${p.name}`, 'info', 1200);
+              showToast(t('home.persona.changed', '已切换灵伴：{name}').replace('{name}', p.name), 'info', 1200);
               setShowPersonaPicker(false);
             }}
             onClose={() => setShowPersonaPicker(false)}
@@ -953,7 +966,7 @@ export default function HomeScreen() {
                   </View>
                   <Text style={styles.welcomePersonaName}>{persona.name}</Text>
                 </View>
-                <Text style={styles.welcomeTag}>今日灵感</Text>
+                <Text style={styles.welcomeTag}>{t('home.welcome.tag', '今日灵感')}</Text>
                 <Text style={styles.welcomeText}>
                   {persona.greeting}
                 </Text>
@@ -1007,7 +1020,9 @@ export default function HomeScreen() {
           {isLoading && (
             <View style={[styles.typingIndicator, { backgroundColor: colors.surface }]}>
               <ActivityIndicator size="small" color={colors.accent} />
-              <Text style={styles.typingText}>{loadingStageText || t('home.loading.thinking', `${persona.name} 正在思考...`)}</Text>
+              <Text style={styles.typingText}>
+                {loadingStageText || t('home.loading.thinking', '{name} 正在思考...').replace('{name}', persona.name)}
+              </Text>
             </View>
           )}
 
@@ -1015,7 +1030,10 @@ export default function HomeScreen() {
             <View style={styles.ziNudgeCard}>
               <Text style={styles.ziNudgeTitle}>{t('home.ziNudge.title', '✍️ 要不要试试测字小游戏？')}</Text>
               <Text style={styles.ziNudgeText}>
-                你刚聊到一个具体困扰，我可以用「{detectedZi || '这个字'}」帮你做一版轻量拆解。
+                {t('home.ziNudge.desc', '你刚聊到一个具体困扰，我可以用「{zi}」帮你做一版轻量拆解。').replace(
+                  '{zi}',
+                  detectedZi || t('home.ziNudge.defaultChar', '这个字'),
+                )}
               </Text>
               <View style={styles.ziNudgeActions}>
                 <TouchableOpacity
@@ -1066,8 +1084,10 @@ export default function HomeScreen() {
               <View style={styles.voicePreviewBar}>
                 <Text style={styles.voicePreviewText} numberOfLines={2}>
                   {isVoiceListening
-                    ? (voiceDraftText ? t('home.voice.heard', `我听到的是：${voiceDraftText}`) : (voiceHint || t('home.voice.startTalk', '我在听，你可以开始说啦...')))
-                    : t('home.voice.youSaid', `你刚刚说：${voiceDraftText}`)}
+                    ? (voiceDraftText
+                        ? t('home.voice.heard', '我听到的是：{text}').replace('{text}', voiceDraftText)
+                        : (voiceHint || t('home.voice.startTalk', '我在听，你可以开始说啦...')))
+                    : t('home.voice.youSaid', '你刚刚说：{text}').replace('{text}', voiceDraftText)}
                 </Text>
               </View>
             )}
@@ -1185,6 +1205,26 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      <Modal visible={showLanguageMenu} transparent animationType="fade" onRequestClose={() => setShowLanguageMenu(false)}>
+        <View style={styles.languageMenuOverlay}>
+          <Pressable style={styles.languageMenuMask} onPress={() => setShowLanguageMenu(false)} />
+          <View style={styles.languageMenuPanel}>
+            {languageOptions.map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={[styles.languageMenuItem, option === language && styles.languageMenuItemActive]}
+                onPress={() => void switchLanguage(option)}
+              >
+                <Text style={[styles.languageMenuItemText, option === language && styles.languageMenuItemTextActive]}>
+                  {languageDisplayLabel[option]}
+                </Text>
+                {option === language ? <Text style={styles.languageMenuCheck}>✓</Text> : null}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
       {/* Toast提示 */}
       {toast.visible && (
         <View style={[styles.toastContainer, toast.type === 'error' && styles.toastError, toast.type === 'success' && styles.toastSuccess]}>
@@ -1245,6 +1285,9 @@ export default function HomeScreen() {
                       <Text style={styles.fortuneTierTitle}>
                         当前：{isVip ? '深度版今日签' : '简版今日签'}
                       </Text>
+                      {hasMembershipTier && !isVip ? (
+                        <Text style={styles.membershipExpiredInlineHint}>会员权益已过期，当前将按积分规则扣费。</Text>
+                      ) : null}
                       {isVip ? (
                         <Text style={styles.fortuneTierText}>
                           已解锁老师傅四向详批（事业/感情/财运/健康），并可一键进入深度解签继续追问。
@@ -2058,8 +2101,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#1A2233',
-    minWidth: 52,
+    minWidth: 62,
     height: 34,
     borderRadius: 20,
     borderWidth: 1,
@@ -2067,9 +2113,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  languageButtonActive: {
+    borderColor: '#4A5E85',
+    backgroundColor: '#202B42',
+  },
   languageButtonText: {
     color: '#D6B36A',
     fontSize: 11,
+    fontWeight: '700',
+  },
+  languageButtonCaret: {
+    color: '#AAB3C5',
+    fontSize: 9,
+    marginTop: 1,
+  },
+  languageMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 56,
+    paddingRight: 18,
+  },
+  languageMenuMask: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  languageMenuPanel: {
+    width: 166,
+    backgroundColor: '#121827',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A3448',
+    padding: 6,
+  },
+  languageMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  languageMenuItemActive: {
+    backgroundColor: '#1F2A42',
+  },
+  languageMenuItemText: {
+    color: '#C3CBDA',
+    fontSize: 13,
+  },
+  languageMenuItemTextActive: {
+    color: '#F1D188',
+    fontWeight: '700',
+  },
+  languageMenuCheck: {
+    color: '#D6B36A',
+    fontSize: 12,
     fontWeight: '700',
   },
   shareText: {
@@ -2763,6 +2861,12 @@ const styles = StyleSheet.create({
     color: '#CFC6DE',
     fontSize: 12,
     lineHeight: 19,
+  },
+  membershipExpiredInlineHint: {
+    color: '#F7B267',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 6,
   },
   funCard: {
     marginTop: 10,

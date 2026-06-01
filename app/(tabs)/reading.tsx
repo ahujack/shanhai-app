@@ -10,6 +10,7 @@ import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { useI18nStore } from '../../src/store/i18n';
+import { isMembershipActive } from '../../src/utils/membership';
 
 const colors = theme.dark;
 
@@ -101,11 +102,15 @@ export default function ReadingScreen() {
     { value: 'growth', label: t('reading.category.growth', '成长') },
   ] as const;
 
-  const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+  const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
+  const isVip = isMembershipActive(user);
   const readingTierLabel = isVip ? '深度版（会员）' : '完整版（单次解锁）';
   const readingTierDesc = isVip
     ? '包含逐句回应 + 动爻拆解 + 行动计划 + 可继续追问'
     : '已包含核心解读，升级会员可解锁「无限次深度解读 + 追问模式」';
+  const displayPointsCost = isVip ? 0 : readingPointsCost;
+  const billingPreviewText = `本次将扣：${displayPointsCost} 积分${isVip ? '（会员免扣）' : ''} · 当前余额：${availablePoints ?? '--'}`;
+  const membershipExpiredHint = hasMembershipTier && !isVip ? '会员权益已过期，当前按积分扣费。' : '';
 
   useEffect(() => {
     let alive = true;
@@ -371,11 +376,10 @@ export default function ReadingScreen() {
         <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
           <Text style={styles.tierTitle}>当前解读档位：{readingTierLabel}</Text>
           <Text style={styles.tierDesc}>{readingTierDesc}</Text>
-          {!isVip ? (
-            <Text style={styles.tierHintInline}>
-              {t('reading.result.costHint', `提示：本次深度解签消耗 ${readingPointsCost} 积分，会员免扣。`)}
-            </Text>
-          ) : null}
+          <Text style={styles.tierHintInline}>
+            {t('reading.result.costHint', `提示：本次深度解签消耗 ${displayPointsCost} 积分${isVip ? '（会员免扣）' : ''}。`)}
+          </Text>
+          {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
         </View>
 
         {fromFortune && lastFortune && (
@@ -570,9 +574,10 @@ export default function ReadingScreen() {
           <Text style={styles.hint}>{lastFortune.interpretation?.overall || '已为你带入本次抽签结果。'}</Text>
           <Text style={styles.hint}>
             {isVip
-              ? t('reading.form.cost.free', '当前会员有效期内免扣积分。')
+              ? t('reading.form.cost.free', '当前会员有效期内免扣积分（本次扣 0 积分）。')
               : t('reading.form.cost.need', `解锁深度解签需 ${readingPointsCost} 积分，当前余额 ${availablePoints ?? '--'}。`)}
           </Text>
+          {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
           <TouchableOpacity
             style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
             onPress={unlockDeepFromFortune}
@@ -595,7 +600,7 @@ export default function ReadingScreen() {
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
         <Text style={styles.hint}>
           {`将心中困惑如实道来，字数不限，可附加时间、人物或地点，以便匹配更精准的卦象。${
-            isVip ? '当前会员有效期内免扣积分。' : `免费用户本次 ${readingPointsCost} 积分。`
+            isVip ? '当前会员有效期内免扣积分（本次扣 0 积分）。' : `免费用户本次 ${readingPointsCost} 积分。`
           }`}
         </Text>
         
@@ -633,12 +638,9 @@ export default function ReadingScreen() {
         </View>
         
         <View style={styles.billingPreviewBar}>
-          <Text style={styles.billingPreviewText}>
-            {isVip
-              ? `本次将扣：会员免扣 · 当前余额：${availablePoints ?? '--'}`
-              : `本次将扣：${readingPointsCost} 积分 · 当前余额：${availablePoints ?? '--'}`}
-          </Text>
+          <Text style={styles.billingPreviewText}>{billingPreviewText}</Text>
         </View>
+        {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
 
         {showSmartCta && !isVip && (
           <View style={styles.smartCtaWrap}>
@@ -908,6 +910,12 @@ const styles = StyleSheet.create({
     color: '#AAB3C5',
     fontSize: 13,
     lineHeight: 20,
+  },
+  membershipExpiredHint: {
+    marginTop: 8,
+    color: '#F7B267',
+    fontSize: 12,
+    lineHeight: 18,
   },
   smartCtaWrap: {
     marginBottom: 4,

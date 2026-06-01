@@ -433,6 +433,8 @@ export default function PointsMallScreen() {
   const expiryZh = formatMembershipExpiryZh(user?.membershipExpiryAt ?? undefined);
   const readingCost = billingRules?.costs?.reading ?? 15;
   const ziCost = billingRules?.costs?.zi ?? 10;
+  const readingCostIfCurrent = membershipActive ? 0 : readingCost;
+  const ziCostIfCurrent = membershipActive ? 0 : ziCost;
   const bestPointUnitPrice = getBestPointUnitPrice(pointsProducts);
   const vipMonthly = subscriptionProducts.find((p) => p.code === 'vip_monthly');
   const vipYearly = subscriptionProducts.find((p) => p.code === 'vip_yearly');
@@ -544,6 +546,11 @@ export default function PointsMallScreen() {
                 </View>
               )}
             </View>
+            {expiredTier ? (
+              <View style={styles.expiredHintCard}>
+                <Text style={styles.expiredHintText}>你的会员档位仍在，但有效期已过期；当前测字/深度解签会按积分规则扣费。</Text>
+              </View>
+            ) : null}
 
             <View style={styles.renewalCard}>
               <Text style={styles.renewalTitle}>{t('points.renewal.title', '续费说明')}</Text>
@@ -569,7 +576,7 @@ export default function PointsMallScreen() {
               <View style={styles.memberValueList}>
                 <Text style={styles.memberValueItem}>• 八字老师傅批注（会员专属，当前不支持单次积分解锁）</Text>
                 <Text style={styles.memberValueItem}>• 测字甲骨文完整异体图与差异解读（会员可解锁）</Text>
-                <Text style={styles.memberValueItem}>• 测字/深度解签按规则免扣积分，适合高频用户</Text>
+                <Text style={styles.memberValueItem}>• 在会员有效期内：测字/深度解签按规则 0 积分/次（免扣）</Text>
               </View>
               <Text style={styles.memberValueFootnote}>
                 参考：若每周约 5 次深度解签，月均约需 {monthlyReadingPoints} 积分（约 {monthlyReadingCheckinDays} 天签到）。
@@ -737,7 +744,7 @@ export default function PointsMallScreen() {
               <Text style={styles.mallExplainTitle}>{t('points.guide.title', '订阅 和 积分 怎么选？')}</Text>
               <Text style={styles.mallExplainBody}>
                 <Text style={styles.mallExplainEm}>VIP 订阅</Text>
-                ：在会员有效期内，按规则使用测字、占卜可免扣积分，且可解锁部分会员专属能力，适合高频用户。
+                ：在会员有效期内，测字/深度解签按规则 0 积分/次，且可解锁部分会员专属能力，适合高频用户。
                 {'\n\n'}
                 <Text style={styles.mallExplainEm}>积分充值</Text>
                 ：单次付费、按次扣积分，灵活但高频成本会逐步上升；适合偶尔使用或临时补单。
@@ -790,11 +797,15 @@ export default function PointsMallScreen() {
               <View style={styles.pointsList}>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>✍️</Text>
-                  <Text style={styles.pointText}>测字 {billingRules?.costs?.zi ?? 10} 积分/次（会员免扣）</Text>
+                  <Text style={styles.pointText}>
+                    测字 当前扣费：{ziCostIfCurrent} 积分/次（基础规则 {ziCost}；会员有效期内 0 积分）
+                  </Text>
                 </View>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>🔮</Text>
-                  <Text style={styles.pointText}>抽签免费，深度解签 {billingRules?.costs?.reading ?? 15} 积分/次（会员免扣）</Text>
+                  <Text style={styles.pointText}>
+                    抽签免费，深度解签 当前扣费：{readingCostIfCurrent} 积分/次（基础规则 {readingCost}；会员有效期内 0 积分）
+                  </Text>
                 </View>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>📊</Text>
@@ -1088,6 +1099,21 @@ const styles = StyleSheet.create({
   vipCardExpired: {
     borderColor: '#8D6B4A',
     opacity: 0.95,
+  },
+  expiredHintCard: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#8D6B4A',
+    backgroundColor: 'rgba(141,107,74,0.18)',
+  },
+  expiredHintText: {
+    color: '#F7C58A',
+    fontSize: 12,
+    lineHeight: 18,
   },
   renewalCard: {
     marginHorizontal: 16,

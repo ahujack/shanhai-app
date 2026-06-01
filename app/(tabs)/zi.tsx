@@ -148,7 +148,10 @@ export default function ZiScreen() {
     ],
   };
 
+  const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
+  const displayZiCost = isVip ? 0 : ziPointsCost;
+  const membershipExpiredHint = hasMembershipTier && !isVip ? '会员权益已过期，当前按积分扣费。' : '';
   const ziTierLabel = !result
     ? isVip
       ? '深度版（会员）'
@@ -716,11 +719,10 @@ export default function ZiScreen() {
           </Text>
           <View style={styles.billingPreviewBar}>
             <Text style={styles.billingPreviewText}>
-              {isVip
-                ? `本次将扣：会员免扣 · 当前余额：${availablePoints ?? '--'}`
-                : `本次将扣：${ziPointsCost} 积分 · 当前余额：${availablePoints ?? '--'}`}
+              {`本次将扣：${displayZiCost} 积分${isVip ? '（会员免扣）' : ''} · 当前余额：${availablePoints ?? '--'}`}
             </Text>
           </View>
+          {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
           {showSmartCta && !isVip && (
             <View style={styles.smartCtaWrap}>
               <Text style={styles.smartCtaTitle}>余额不足，建议优先补充权益</Text>
@@ -1630,6 +1632,12 @@ const styles = StyleSheet.create({
     color: '#CFC6DE',
     fontSize: 13,
     lineHeight: 20,
+  },
+  membershipExpiredHint: {
+    marginBottom: 10,
+    color: '#F7B267',
+    fontSize: 12,
+    lineHeight: 18,
   },
   smartCtaWrap: {
     marginBottom: 12,
