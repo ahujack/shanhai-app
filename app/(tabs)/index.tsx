@@ -15,6 +15,7 @@ import AccuracyFeedback from '../../components/AccuracyFeedback';
 import OnboardingModal from '../../components/OnboardingModal';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 import { useI18nStore } from '../../src/store/i18n';
+import type { AppLanguage } from '../../src/i18n/translations';
 
 // 主题颜色
 const colors = theme.dark;
@@ -34,6 +35,8 @@ export default function HomeScreen() {
   const params = useLocalSearchParams<{ skipZiNudgeUntil?: string }>();
   const { active: persona, personas, setActive } = usePersonaStore();
   const t = useI18nStore((state) => state.t);
+  const language = useI18nStore((state) => state.language);
+  const setLanguage = useI18nStore((state) => state.setLanguage);
   const { user, chart, hasChart, generateChart, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
   const { setLastFortune } = useDivinationStore();
@@ -91,6 +94,26 @@ export default function HomeScreen() {
     [t],
   );
   const isVip = user?.membership === 'vip' || user?.membership === 'premium';
+  const languageOrder: AppLanguage[] = ['zh-CN', 'en-US', 'zh-TW'];
+  const languageLabel: Record<AppLanguage, string> = {
+    'zh-CN': '中',
+    'en-US': 'EN',
+    'zh-TW': '繁',
+  };
+
+  const toggleLanguageQuickly = async () => {
+    const currentIndex = languageOrder.indexOf(language);
+    const next = languageOrder[(currentIndex + 1) % languageOrder.length];
+    await setLanguage(next);
+    showToast(
+      t(
+        'home.lang.changed',
+        `语言已切换为 ${next === 'zh-CN' ? '简体中文' : next === 'en-US' ? 'English' : '繁體中文'}`,
+      ),
+      'info',
+      1200,
+    );
+  };
   
   // 神秘特效动画
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -858,6 +881,14 @@ export default function HomeScreen() {
                 <Text style={styles.title}>山海灵境</Text>
               </View>
               <View style={styles.headerRight}>
+                <TouchableOpacity
+                  style={styles.languageButton}
+                  onPress={() => void toggleLanguageQuickly()}
+                  activeOpacity={0.8}
+                  accessibilityLabel={t('home.lang.switch', '切换语言')}
+                >
+                  <Text style={styles.languageButtonText}>{languageLabel[language]}</Text>
+                </TouchableOpacity>
                 {user && (
                   <TouchableOpacity 
                     style={styles.checkInButton}
@@ -1985,7 +2016,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: '#1A2233',
-    minWidth: 92,
+    minWidth: 76,
     height: 34,
     borderRadius: 20,
     borderWidth: 1,
@@ -1995,7 +2026,7 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: '#E8ECF3',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   title: {
@@ -2015,7 +2046,7 @@ const styles = StyleSheet.create({
   },
   checkInButton: {
     backgroundColor: '#1A2233',
-    minWidth: 92,
+    minWidth: 76,
     height: 34,
     borderRadius: 20,
     borderWidth: 1,
@@ -2026,8 +2057,23 @@ const styles = StyleSheet.create({
   },
   checkInButtonText: {
     color: '#AAB3C5',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
+  },
+  languageButton: {
+    backgroundColor: '#1A2233',
+    minWidth: 52,
+    height: 34,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2A3448',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  languageButtonText: {
+    color: '#D6B36A',
+    fontSize: 11,
+    fontWeight: '700',
   },
   shareText: {
     color: '#B2A0FF',
