@@ -10,6 +10,18 @@ export default function Root({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        <meta
+          name="description"
+          content="Shanhai Realm — AI-assisted BaZi, Chinese character divination (测字), I Ching readings, and daily fortune. Entertainment only."
+        />
+        <meta property="og:site_name" content="Shanhai Realm" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.shanhai.app/" />
+        <meta
+          property="og:description"
+          content="AI tools for Eastern insight: BaZi chart, CeZi, I Ching divination, daily oracle slips."
+        />
+        <meta name="twitter:card" content="summary_large_image" />
 
         {/* 
           This viewport disables scaling which makes the mobile website act more like a native app.

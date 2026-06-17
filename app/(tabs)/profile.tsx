@@ -37,6 +37,53 @@ export default function ProfileScreen() {
   const setLanguage = useI18nStore((state) => state.setLanguage);
   const t = useI18nStore((state) => state.t);
   const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
+  const normalizeChartText = React.useCallback(
+    (value?: string) => {
+      const raw = String(value || '').trim();
+      if (!raw) return raw;
+      let text = raw
+        .replace(/(wood|fire|earth|metal|water)性偏旺/gi, (_, wx: string) => {
+          const map: Record<string, string> = { wood: '木', fire: '火', earth: '土', metal: '金', water: '水' };
+          return `${map[String(wx).toLowerCase()] || wx}性偏旺`;
+        })
+        .replace(/(wood|fire|earth|metal|water)性偏弱/gi, (_, wx: string) => {
+          const map: Record<string, string> = { wood: '木', fire: '火', earth: '土', metal: '金', water: '水' };
+          return `${map[String(wx).toLowerCase()] || wx}性偏弱`;
+        });
+      if (language !== 'zh-TW') return text;
+      const replacePairs: Array<[string, string]> = [
+        ['事业', '事業'],
+        ['运势', '運勢'],
+        ['财运', '財運'],
+        ['财务', '財務'],
+        ['财', '財'],
+        ['适合', '適合'],
+        ['创业', '創業'],
+        ['较好', '較好'],
+        ['善于', '善於'],
+        ['理财', '理財'],
+        ['建议', '建議'],
+        ['扩展', '擴展'],
+        ['机会', '機會'],
+        ['稳住', '穩住'],
+        ['节奏', '節奏'],
+        ['这份', '這份'],
+        ['肝胆', '肝膽'],
+        ['领导', '領導'],
+        ['气质', '氣質'],
+        ['加强', '加強'],
+        ['颜色', '顏色'],
+        ['环境', '環境'],
+        ['职业', '職業'],
+        ['锻炼', '鍛鍊'],
+      ];
+      for (const [from, to] of replacePairs) {
+        text = text.replaceAll(from, to);
+      }
+      return text;
+    },
+    [language],
+  );
   const localizedPersonas = React.useMemo(
     () => personas.map((persona) => localizePersona(persona, language)),
     [personas, language],
@@ -648,19 +695,19 @@ export default function ProfileScreen() {
           <Text style={styles.cardTitle}>八字</Text>
           <View style={styles.baziRow}>
             <View style={styles.baziItem}>
-              <Text style={styles.baziLabel}>年柱</Text>
+              <Text style={styles.baziLabel}>{tx('年柱', 'Year', '年柱')}</Text>
               <Text style={styles.baziValue}>{chart.yearGanZhi}</Text>
             </View>
             <View style={styles.baziItem}>
-              <Text style={styles.baziLabel}>月柱</Text>
+              <Text style={styles.baziLabel}>{tx('月柱', 'Month', '月柱')}</Text>
               <Text style={styles.baziValue}>{chart.monthGanZhi}</Text>
             </View>
             <View style={styles.baziItem}>
-              <Text style={styles.baziLabel}>日柱</Text>
+              <Text style={styles.baziLabel}>{tx('日柱', 'Day', '日柱')}</Text>
               <Text style={styles.baziValue}>{chart.dayGanZhi}</Text>
             </View>
             <View style={styles.baziItem}>
-              <Text style={styles.baziLabel}>时柱</Text>
+              <Text style={styles.baziLabel}>{tx('时柱', 'Hour', '時柱')}</Text>
               <Text style={styles.baziValue}>{chart.hourGanZhi}</Text>
             </View>
           </View>
@@ -668,7 +715,7 @@ export default function ProfileScreen() {
 
         {/* 五行强弱 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>🌟 五行强弱</Text>
+          <Text style={styles.cardTitle}>{tx('🌟 五行强弱', '🌟 Five Elements Balance', '🌟 五行強弱')}</Text>
           <View style={styles.wuxingContainer}>
             {chart.wuxingStrength ? Object.entries(chart.wuxingStrength).map(([key, value]) => (
               <View key={key} style={styles.wuxingItem}>
@@ -681,63 +728,63 @@ export default function ProfileScreen() {
                 <Text style={styles.wuxingValue}>{value}%</Text>
               </View>
             )) : (
-              <Text style={{ color: colors.textSecondary }}>暂无五行数据</Text>
+              <Text style={{ color: colors.textSecondary }}>{tx('暂无五行数据', 'No five-element data yet', '暫無五行資料')}</Text>
             )}
           </View>
         </View>
 
         {/* 性格特点 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>📝 性格特点</Text>
+          <Text style={styles.cardTitle}>{tx('📝 性格特点', '📝 Personality Traits', '📝 性格特點')}</Text>
           <View style={styles.traitsContainer}>
             {chart.personalityTraits && chart.personalityTraits.length > 0 ? (
               chart.personalityTraits.map((trait, idx) => (
                 <View key={idx} style={[styles.traitTag, { backgroundColor: colors.accentSecondary }]}>
-                  <Text style={styles.traitText}>{trait}</Text>
+                  <Text style={styles.traitText}>{normalizeChartText(trait)}</Text>
                 </View>
               ))
             ) : (
-              <Text style={{ color: colors.textSecondary }}>暂无性格数据</Text>
+              <Text style={{ color: colors.textSecondary }}>{tx('暂无性格数据', 'No personality data yet', '暫無性格資料')}</Text>
             )}
           </View>
         </View>
 
         {/* 运势简述 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>💫 运势简述</Text>
+          <Text style={styles.cardTitle}>{tx('💫 运势简述', '💫 Fortune Summary', '💫 運勢簡述')}</Text>
           {chart.fortuneSummary ? (
             <>
               <View style={styles.fortuneItem}>
-                <Text style={styles.fortuneLabel}>💼 事业</Text>
-                <Text style={styles.fortuneValue}>{chart.fortuneSummary.career}</Text>
+                <Text style={styles.fortuneLabel}>{tx('💼 事业', '💼 Career', '💼 事業')}</Text>
+                <Text style={styles.fortuneValue}>{normalizeChartText(chart.fortuneSummary.career)}</Text>
               </View>
               <View style={styles.fortuneItem}>
-                <Text style={styles.fortuneLabel}>💕 感情</Text>
-                <Text style={styles.fortuneValue}>{chart.fortuneSummary.love}</Text>
+                <Text style={styles.fortuneLabel}>{tx('💕 感情', '💕 Love', '💕 感情')}</Text>
+                <Text style={styles.fortuneValue}>{normalizeChartText(chart.fortuneSummary.love)}</Text>
               </View>
               <View style={styles.fortuneItem}>
-                <Text style={styles.fortuneLabel}>💰 财运</Text>
-                <Text style={styles.fortuneValue}>{chart.fortuneSummary.wealth}</Text>
+                <Text style={styles.fortuneLabel}>{tx('💰 财运', '💰 Wealth', '💰 財運')}</Text>
+                <Text style={styles.fortuneValue}>{normalizeChartText(chart.fortuneSummary.wealth)}</Text>
               </View>
               <View style={styles.fortuneItem}>
-                <Text style={styles.fortuneLabel}>❤️ 健康</Text>
-                <Text style={styles.fortuneValue}>{chart.fortuneSummary.health}</Text>
+                <Text style={styles.fortuneLabel}>{tx('❤️ 健康', '❤️ Health', '❤️ 健康')}</Text>
+                <Text style={styles.fortuneValue}>{normalizeChartText(chart.fortuneSummary.health)}</Text>
               </View>
             </>
           ) : (
-            <Text style={{ color: colors.textSecondary }}>暂无运势数据</Text>
+            <Text style={{ color: colors.textSecondary }}>{tx('暂无运势数据', 'No fortune data yet', '暫無運勢資料')}</Text>
           )}
         </View>
 
         {/* 建议 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <Text style={styles.cardTitle}>✨ 建议</Text>
+          <Text style={styles.cardTitle}>{tx('✨ 建议', '✨ Suggestions', '✨ 建議')}</Text>
           {chart.suggestions && chart.suggestions.length > 0 ? (
             chart.suggestions.map((suggestion, idx) => (
-              <Text key={idx} style={styles.suggestionText}>• {suggestion}</Text>
+              <Text key={idx} style={styles.suggestionText}>• {normalizeChartText(suggestion)}</Text>
             ))
           ) : (
-            <Text style={{ color: colors.textSecondary }}>暂无建议</Text>
+            <Text style={{ color: colors.textSecondary }}>{tx('暂无建议', 'No suggestions yet', '暫無建議')}</Text>
           )}
         </View>
 

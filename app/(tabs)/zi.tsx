@@ -20,6 +20,7 @@ import theme from '../../constants/Colors';
 import { ziApi, ZiResult, handwritingApi, pointsApi } from '../../src/services/api';
 import { trackFeature } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
+import ResultShareCard from '../../components/ResultShareCard';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
@@ -100,6 +101,47 @@ export default function ZiScreen() {
   const language = useI18nStore((state) => state.language);
   const t = useI18nStore((state) => state.t);
   const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
+  const aspectOptionLabels = React.useMemo<Record<string, string>>(
+    () => ({
+      事业: tx('事业', 'Career', '事業'),
+      财运: tx('财运', 'Wealth', '財運'),
+      婚姻: tx('婚姻', 'Marriage', '婚姻'),
+      学业: tx('学业', 'Study', '學業'),
+      健康: tx('健康', 'Health', '健康'),
+      人际关系: tx('人际关系', 'Relationships', '人際關係'),
+    }),
+    [language],
+  );
+  const normalizeZiText = React.useCallback(
+    (value: string | number | null | undefined) => {
+      const raw = String(value ?? '').trim();
+      if (!raw) return '';
+      const cleaned = raw.replace(/meta\|/gi, '').replace(/\s{2,}/g, ' ').trim();
+      if (language !== 'zh-TW') return cleaned;
+      const replacements: Array<[RegExp, string]> = [
+        [/测/g, '測'],
+        [/汉/g, '漢'],
+        [/运/g, '運'],
+        [/势/g, '勢'],
+        [/财/g, '財'],
+        [/关/g, '關'],
+        [/键/g, '鍵'],
+        [/议/g, '議'],
+        [/体/g, '體'],
+        [/态/g, '態'],
+        [/阶/g, '階'],
+        [/节/g, '節'],
+        [/业/g, '業'],
+        [/画/g, '畫'],
+        [/气/g, '氣'],
+        [/稳/g, '穩'],
+        [/后/g, '後'],
+        [/这/g, '這'],
+      ];
+      return replacements.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), cleaned);
+    },
+    [language],
+  );
   const wuxingTheme = getWuxingTheme(result?.zi?.wuxing);
   const shouldShowOracleUnlock = !!(
     result?.zi.oracleBone?.previewLocked &&
@@ -228,59 +270,107 @@ export default function ZiScreen() {
 
   const buildPreviewResult = (zi: string, focusLabel?: string): ZiResult => {
     const cleanZi = zi.trim().charAt(0);
-    const focus = (focusLabel || '').trim() || '综合';
+    const focus = (focusLabel || '').trim() || tx('综合', 'General', '綜合');
     return {
       handwriting: {
         pressure: 'medium',
-        pressureInterpretation: `你写的「${cleanZi}」已收到，正在生成笔迹细节解读…`,
+        pressureInterpretation: tx(
+          `你写的「${cleanZi}」已收到，正在生成笔迹细节解读…`,
+          `Received "${cleanZi}". Generating handwriting detail...`,
+          `你寫的「${cleanZi}」已收到，正在生成筆跡細節解讀…`,
+        ),
         stability: 'average',
-        stabilityInterpretation: '先给你看核心结构，稳定性细节正在补全。',
+        stabilityInterpretation: tx(
+          '先给你看核心结构，稳定性细节正在补全。',
+          'Showing core structure first. Stability details are being completed.',
+          '先給你看核心結構，穩定性細節正在補全。',
+        ),
         structure: 'balanced',
-        structureInterpretation: '结构解析已启动，正在结合语境深挖。',
+        structureInterpretation: tx(
+          '结构解析已启动，正在结合语境深挖。',
+          'Structure analysis started. Deep interpretation is in progress.',
+          '結構解析已啟動，正在結合語境深挖。',
+        ),
         continuity: 'average',
-        continuityInterpretation: '连贯性需要结合完整模型结果，马上返回。',
-        overallStyle: '快速预览',
-        personalityInsights: ['分析中', '请稍候'],
+        continuityInterpretation: tx(
+          '连贯性需要结合完整模型结果，马上返回。',
+          'Continuity needs full-model context and will return shortly.',
+          '連貫性需要結合完整模型結果，馬上返回。',
+        ),
+        overallStyle: tx('快速预览', 'Quick preview', '快速預覽'),
+        personalityInsights: [tx('分析中', 'Analyzing', '分析中'), tx('请稍候', 'Please wait', '請稍候')],
       },
       zi: {
         zi: cleanZi,
-        bushou: '解析中',
+        bushou: tx('解析中', 'Analyzing', '解析中'),
         bihua: 0,
-        wuxing: '待定',
-        yinyang: '待定',
-        jixiong: '待定',
-        yijing: '待定',
-        guaXiang: '已进入深度推演，先为你呈现速览结果。',
+        wuxing: tx('待定', 'Pending', '待定'),
+        yinyang: tx('待定', 'Pending', '待定'),
+        jixiong: tx('待定', 'Pending', '待定'),
+        yijing: tx('待定', 'Pending', '待定'),
+        guaXiang: tx(
+          '已进入深度推演，先为你呈现速览结果。',
+          'Deep inference started. Showing quick preview first.',
+          '已進入深度推演，先為你呈現速覽結果。',
+        ),
         components: [cleanZi],
-        componentMeanings: ['基础结构解析中'],
-        associativeMeaning: `先给你看「${cleanZi}」的首轮结果，完整结论正在生成。`,
-        lihefa: ['离合法细化生成中…'],
-        tianziGe: ['填字格细化生成中…'],
-        imageryInference: '象形投射生成中…',
-        probingQuestion: `围绕「${focus}」，你最在意的真实问题是什么？`,
+        componentMeanings: [tx('基础结构解析中', 'Base structure is being analyzed', '基礎結構解析中')],
+        associativeMeaning: tx(
+          `先给你看「${cleanZi}」的首轮结果，完整结论正在生成。`,
+          `Showing the first-pass result of "${cleanZi}" first. Full conclusion is generating.`,
+          `先給你看「${cleanZi}」的首輪結果，完整結論正在生成。`,
+        ),
+        lihefa: [tx('离合法细化生成中…', 'Split-combine details generating…', '離合法細化生成中…')],
+        tianziGe: [tx('填字格细化生成中…', 'Grid-mapping details generating…', '填字格細化生成中…')],
+        imageryInference: tx('象形投射生成中…', 'Imagery projection generating…', '象形投射生成中…'),
+        probingQuestion: tx(
+          `围绕「${focus}」，你最在意的真实问题是什么？`,
+          `Around "${focus}", what is your most important real question right now?`,
+          `圍繞「${focus}」，你最在意的真實問題是什麼？`,
+        ),
         oracleBone: {
           exists: false,
-          source: '加载中',
+          source: tx('加载中', 'Loading', '載入中'),
           imageUrls: [],
           totalImages: 0,
           shownImages: 0,
           previewLocked: false,
-          interpretation: `「${cleanZi}」的甲骨字形与意象正在整理中…`,
-          note: '完整字形与差异解读稍后展示。',
+          interpretation: tx(
+            `「${cleanZi}」的甲骨字形与意象正在整理中…`,
+            `Oracle glyphs and imagery for "${cleanZi}" are being prepared...`,
+            `「${cleanZi}」的甲骨字形與意象正在整理中…`,
+          ),
+          note: tx('完整字形与差异解读稍后展示。', 'Full glyph variations and differences will appear soon.', '完整字形與差異解讀稍後展示。'),
         },
       },
       interpretation: {
-        overall: `你这次重点想看「${focus}」，我先把字形和主线给你，完整方向解读正在生成。`,
-        career: '事业向解读生成中…',
-        love: '情感向解读生成中…',
-        wealth: '财运向解读生成中…',
-        health: '健康向解读生成中…',
-        advice: ['先看上方基础结果，完整版会自动补全。'],
+        overall: tx(
+          `你这次重点想看「${focus}」，我先把字形和主线给你，完整方向解读正在生成。`,
+          `You want to focus on "${focus}". Showing structure and main line first; full focused reading is generating.`,
+          `你這次重點想看「${focus}」，我先把字形和主線給你，完整方向解讀正在生成。`,
+        ),
+        career: tx('事业向解读生成中…', 'Career reading generating…', '事業向解讀生成中…'),
+        love: tx('情感向解读生成中…', 'Love reading generating…', '情感向解讀生成中…'),
+        wealth: tx('财运向解读生成中…', 'Wealth reading generating…', '財運向解讀生成中…'),
+        health: tx('健康向解读生成中…', 'Health reading generating…', '健康向解讀生成中…'),
+        advice: [tx('先看上方基础结果，完整版会自动补全。', 'Check the base result first; full version will auto-complete soon.', '先看上方基礎結果，完整版會自動補全。')],
       },
-      coldReadings: ['收到这个字了，正在按你的方向做深度推演。'],
-      followUpQuestions: [`围绕「${focus}」，你现在最希望先解决哪一步？`],
+      coldReadings: [
+        tx(
+          '收到这个字了，正在按你的方向做深度推演。',
+          'Character received. Running deeper inference by your focus.',
+          '收到這個字了，正在按你的方向做深度推演。',
+        ),
+      ],
+      followUpQuestions: [
+        tx(
+          `围绕「${focus}」，你现在最希望先解决哪一步？`,
+          `For "${focus}", which step do you want to solve first?`,
+          `圍繞「${focus}」，你現在最希望先解決哪一步？`,
+        ),
+      ],
       metadata: {
-        method: '测字有术 - 预览阶段',
+        method: '测字有术 - AI笔迹与语义分析',
         generatedAt: new Date().toISOString(),
       },
     };
@@ -633,11 +723,11 @@ export default function ZiScreen() {
   const handleFollowUpQuestion = async (_question: string) => {
     const zi = result?.zi?.zi || '';
     const followUpQuestions = [
-      `你写的"${zi}"字，中间的部分你想表达什么？`,
-      `对于"${zi}"这个字，你首先想到的是什么？`,
-      `为什么选择写"${zi}"这个字？有什么特别的意义吗？`,
-      `写"${zi}"字的时候，你的心情是怎样的？`,
-      `如果让你用"${zi}"字来形容最近的生活，你会怎么解释？`,
+      tx(`你写的"${zi}"字，中间的部分你想表达什么？`, `In "${zi}", what does the middle part express for you?`, `你寫的"${zi}"字，中間的部分你想表達什麼？`),
+      tx(`对于"${zi}"这个字，你首先想到的是什么？`, `When you see "${zi}", what comes to mind first?`, `對於"${zi}"這個字，你首先想到的是什麼？`),
+      tx(`为什么选择写"${zi}"这个字？有什么特别的意义吗？`, `Why did you choose "${zi}"? Does it carry a special meaning?`, `為什麼選擇寫"${zi}"這個字？有什麼特別的意義嗎？`),
+      tx(`写"${zi}"字的时候，你的心情是怎样的？`, `How did you feel when writing "${zi}"?`, `寫"${zi}"字的時候，你的心情是怎樣的？`),
+      tx(`如果让你用"${zi}"字来形容最近的生活，你会怎么解释？`, `If "${zi}" describes your recent life, how would you explain it?`, `如果讓你用"${zi}"字來形容最近的生活，你會怎麼解釋？`),
     ];
     
     const randomQuestion = followUpQuestions[Math.floor(Math.random() * followUpQuestions.length)];
@@ -664,11 +754,11 @@ export default function ZiScreen() {
   // 打字模式测字完成后自动发送后续问题
   const autoSendFollowUpQuestion = async (zi: string) => {
     const followUpQuestions = [
-      `你写的"${zi}"字，中间的部分你想表达什么？`,
-      `对于"${zi}"这个字，你首先想到的是什么？`,
-      `为什么选择写"${zi}"这个字？有什么特别的意义吗？`,
-      `写"${zi}"字的时候，你的心情是怎样的？`,
-      `如果让你用"${zi}"字来形容最近的生活，你会怎么解释？`,
+      tx(`你写的"${zi}"字，中间的部分你想表达什么？`, `In "${zi}", what does the middle part express for you?`, `你寫的"${zi}"字，中間的部分你想表達什麼？`),
+      tx(`对于"${zi}"这个字，你首先想到的是什么？`, `When you see "${zi}", what comes to mind first?`, `對於"${zi}"這個字，你首先想到的是什麼？`),
+      tx(`为什么选择写"${zi}"这个字？有什么特别的意义吗？`, `Why did you choose "${zi}"? Does it carry a special meaning?`, `為什麼選擇寫"${zi}"這個字？有什麼特別的意義嗎？`),
+      tx(`写"${zi}"字的时候，你的心情是怎样的？`, `How did you feel when writing "${zi}"?`, `寫"${zi}"字的時候，你的心情是怎樣的？`),
+      tx(`如果让你用"${zi}"字来形容最近的生活，你会怎么解释？`, `If "${zi}" describes your recent life, how would you explain it?`, `如果讓你用"${zi}"字來形容最近的生活，你會怎麼解釋？`),
     ];
     
     const randomQuestion = followUpQuestions[Math.floor(Math.random() * followUpQuestions.length)];
@@ -754,9 +844,13 @@ export default function ZiScreen() {
           {showSmartCta && !isVip && (
             <View style={styles.smartCtaWrap}>
               <Text style={styles.smartCtaTitle}>{tx('余额不足，建议优先补充权益', 'Low balance, top up first', '餘額不足，建議優先補充權益')}</Text>
-              <Text style={styles.smartCtaHint}>
-                {`按每周约 5 次测算，测字本月约需 ${projectedMonthlyPoints} 积分（约 ${projectedCheckinDays} 天签到）。`}
-              </Text>
+                <Text style={styles.smartCtaHint}>
+                  {tx(
+                    `按每周约 5 次测算，测字本月约需 ${projectedMonthlyPoints} 积分（约 ${projectedCheckinDays} 天签到）。`,
+                    `At about 5 readings/week, this month needs around ${projectedMonthlyPoints} points (about ${projectedCheckinDays} check-in days).`,
+                    `按每週約 5 次測算，測字本月約需 ${projectedMonthlyPoints} 積分（約 ${projectedCheckinDays} 天簽到）。`,
+                  )}
+                </Text>
               <View style={styles.smartCtaActions}>
                 <TouchableOpacity style={styles.smartCtaPrimary} onPress={goPointsMall}>
                   <Text style={styles.smartCtaPrimaryText}>{tx('去充值积分', 'Top up points', '去儲值積分')}</Text>
@@ -829,7 +923,11 @@ export default function ZiScreen() {
                     {tx('置信度约', 'Confidence', '置信度約')} {Math.round(Math.min(1, Math.max(0, handwritingPreview.confidence)) * 100)}%
                   </Text>
                   <Text style={styles.handwritingPreviewHint}>
-                    {`下方「深度解读」需消耗积分（当前 ${ziPointsCost} 积分/次）。若刚才提示积分不足，请先签到或前往「灵石」获取积分，再点按钮重试。`}
+                    {tx(
+                      `下方「深度解读」需消耗积分（当前 ${ziPointsCost} 积分/次）。若刚才提示积分不足，请先签到或前往「灵石」获取积分，再点按钮重试。`,
+                      `The deep reading below costs points (currently ${ziPointsCost} points/time). If you saw low balance, check in or get points first, then retry.`,
+                      `下方「深度解讀」需消耗積分（目前 ${ziPointsCost} 積分/次）。若剛才提示積分不足，請先簽到或前往「靈石」取得積分，再點按鈕重試。`,
+                    )}
                   </Text>
                   <TouchableOpacity
                     style={[styles.handwritingPreviewBtn, isLoading && styles.handwritingPreviewBtnDisabled]}
@@ -884,18 +982,18 @@ export default function ZiScreen() {
           <>
             {isPreviewStage && (
               <View style={styles.previewBanner}>
-                <Text style={styles.previewBannerText}>已为你先展示首轮结果，深度解读正在补全中…</Text>
+                <Text style={styles.previewBannerText}>{tx('已为你先展示首轮结果，深度解读正在补全中…', 'First-pass result is ready. Deep reading is still completing…', '已先為你展示首輪結果，深度解讀正在補全中…')}</Text>
               </View>
             )}
             <View style={styles.tierCard}>
-              <Text style={styles.tierTitle}>当前解读档位：{ziTierLabel}</Text>
+              <Text style={styles.tierTitle}>{tx('当前解读档位：', 'Current tier: ', '當前解讀檔位：')}{ziTierLabel}</Text>
               <Text style={styles.tierDesc}>{ziTierDesc}</Text>
               {!isVip && (
                 <TouchableOpacity
                   style={styles.tierUpgradeBtn}
                   onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
                 >
-                  <Text style={styles.tierUpgradeBtnText}>立即解锁当前结果（老师傅深度版）</Text>
+                  <Text style={styles.tierUpgradeBtnText}>{tx('立即解锁当前结果（老师傅深度版）', 'Unlock current result now (Deep Master tier)', '立即解鎖當前結果（老師傅深度版）')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -905,7 +1003,7 @@ export default function ZiScreen() {
                 style={[styles.collapseHeader, { backgroundColor: theme.dark.card }]}
                 onPress={() => setShowColdReading(!showColdReading)}
               >
-                <Text style={styles.collapseTitle}>💫 AI直觉解读</Text>
+                <Text style={styles.collapseTitle}>{tx('💫 AI直觉解读', '💫 AI Intuitive Reading', '💫 AI直覺解讀')}</Text>
                 <Text style={styles.collapseIcon}>{showColdReading ? '▼' : '▶'}</Text>
               </TouchableOpacity>
               
@@ -913,7 +1011,7 @@ export default function ZiScreen() {
                 <View style={[styles.collapseContent, { backgroundColor: theme.dark.card }]}>
                   {result.coldReadings.map((reading, index) => (
                     <Text key={index} style={styles.coldReadingText}>
-                      {reading}
+                      {normalizeZiText(reading)}
                     </Text>
                   ))}
                 </View>
@@ -922,7 +1020,7 @@ export default function ZiScreen() {
 
             {/* 汉字解析 */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📦 字形拆解</Text>
+              <Text style={styles.sectionTitle}>{tx('📦 字形拆解', '📦 Character Structure', '📦 字形拆解')}</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                 <View style={styles.ziDisplay}>
                   <Text style={styles.ziText}>{result.zi.zi}</Text>
@@ -931,40 +1029,44 @@ export default function ZiScreen() {
                 <View style={styles.ziInfo}>
                   <View style={styles.infoGrid}>
                     <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>笔画</Text>
-                      <Text style={styles.infoValue}>{isPreviewStage ? '解析中' : `${result.zi.bihua} 画`}</Text>
+                      <Text style={styles.infoLabel}>{tx('笔画', 'Strokes', '筆畫')}</Text>
+                      <Text style={styles.infoValue}>{isPreviewStage ? tx('解析中', 'Analyzing', '解析中') : `${result.zi.bihua} ${tx('画', 'strokes', '畫')}`}</Text>
                     </View>
                     <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>部首</Text>
-                      <Text style={styles.infoValue}>{result.zi.bushou}</Text>
+                      <Text style={styles.infoLabel}>{tx('部首', 'Radical', '部首')}</Text>
+                      <Text style={styles.infoValue}>{normalizeZiText(result.zi.bushou)}</Text>
                     </View>
                     <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>五行</Text>
+                      <Text style={styles.infoLabel}>{tx('五行', 'Element', '五行')}</Text>
                       <Text style={[styles.infoValue, { color: getWuxingColor(result.zi.wuxing) }]}>
-                        {isPreviewStage ? '待定' : result.zi.wuxing}
+                        {isPreviewStage ? tx('待定', 'Pending', '待定') : normalizeZiText(result.zi.wuxing)}
                       </Text>
                     </View>
                     <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>阴阳</Text>
-                      <Text style={styles.infoValue}>{isPreviewStage ? '待定' : result.zi.yinyang}</Text>
+                      <Text style={styles.infoLabel}>{tx('阴阳', 'Yin-Yang', '陰陽')}</Text>
+                      <Text style={styles.infoValue}>{isPreviewStage ? tx('待定', 'Pending', '待定') : normalizeZiText(result.zi.yinyang)}</Text>
                     </View>
                     <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>吉凶</Text>
+                      <Text style={styles.infoLabel}>{tx('吉凶', 'Auspice', '吉凶')}</Text>
                       <Text style={[styles.infoValue, { color: getJixiongColor(result.zi.jixiong) }]}>
-                        {isPreviewStage ? '待定' : result.zi.jixiong}
+                        {isPreviewStage ? tx('待定', 'Pending', '待定') : normalizeZiText(result.zi.jixiong)}
                       </Text>
                     </View>
                   </View>
                 </View>
                 <Text style={styles.ziMetaSource}>
-                  数据来源：笔画/部首-汉典；五行-部首五行归属；阴阳-笔画奇偶；吉凶-字义传统分类
+                  {tx(
+                    '数据来源：笔画/部首-汉典；五行-部首五行归属；阴阳-笔画奇偶；吉凶-字义传统分类',
+                    'Data source: Han dictionary strokes/radicals, element mapping, yin-yang parity, and traditional semantics.',
+                    '資料來源：筆畫/部首-漢典；五行-部首五行歸屬；陰陽-筆畫奇偶；吉凶-字義傳統分類',
+                  )}
                 </Text>
               </View>
             </View>
 
             {/* 我想测哪方面 - 放在识别结果下面 */}
             <View style={styles.aspectSection}>
-              <Text style={styles.aspectTitle}>💭 我想测：</Text>
+              <Text style={styles.aspectTitle}>{tx('💭 我想测：', '💭 Focus on:', '💭 我想測：')}</Text>
               <View style={styles.aspectTags}>
                 {aspectOptions.map((aspect) => (
                   <TouchableOpacity
@@ -979,7 +1081,7 @@ export default function ZiScreen() {
                       styles.aspectTagText,
                       selectedAspect === aspect && styles.aspectTagTextSelected
                     ]}>
-                      {aspect}
+                      {aspectOptionLabels[aspect] || (language === 'zh-TW' ? normalizeZiText(aspect) : aspect)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -1001,7 +1103,7 @@ export default function ZiScreen() {
               />
               <View style={styles.refineInlineWrap}>
                 <Text style={styles.refineInlineHint}>
-                  已识别「{result.zi.zi}」，选择方向后可重解读
+                  {tx('已识别', 'Recognized ', '已識別')}「{result.zi.zi}」，{tx('选择方向后可重解读', 'choose a focus to re-read', '選擇方向後可重解讀')}
                 </Text>
                 <TouchableOpacity
                   style={[
@@ -1022,27 +1124,27 @@ export default function ZiScreen() {
 
             {/* 部件拆解 */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🧩 部件拆解</Text>
+              <Text style={styles.sectionTitle}>{tx('🧩 部件拆解', '🧩 Component Breakdown', '🧩 部件拆解')}</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                 <View style={styles.componentsRow}>
                   {result.zi.components.map((comp, index) => (
                     <View key={index} style={styles.componentBox}>
                       <Text style={styles.componentText}>{comp}</Text>
                       <Text style={styles.componentMeaning}>
-                        {result.zi.componentMeanings[index]}
+                        {normalizeZiText(result.zi.componentMeanings[index])}
                       </Text>
                     </View>
                   ))}
                 </View>
                 <Text style={styles.associativeText}>
-                  💡 {result.zi.associativeMeaning}
+                  💡 {normalizeZiText(result.zi.associativeMeaning)}
                 </Text>
               </View>
             </View>
 
             {/* 甲骨文象形：紧接部件，图片置顶便于第一眼看到字形 */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🪨 甲骨文·字形示意</Text>
+              <Text style={styles.sectionTitle}>{tx('🪨 甲骨文·字形示意', '🪨 Oracle Script · Glyph Reference', '🪨 甲骨文·字形示意')}</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                 {!!result.zi.oracleBone?.imageUrls?.length && (
                   <ScrollView
@@ -1060,75 +1162,79 @@ export default function ZiScreen() {
                 {!result.zi.oracleBone?.imageUrls?.length && (
                   <View style={styles.oracleEmptyHint}>
                     <Text style={styles.oracleEmptyHintText}>
-                      字表暂未收录「{result.zi.zi}」独体甲骨图，已用部件检索或文字说明辅助；常见字会逐渐补全。
+                      {tx(
+                        `字表暂未收录「${result.zi.zi}」独体甲骨图，已用部件检索或文字说明辅助；常见字会逐渐补全。`,
+                        `No standalone oracle glyph found for "${result.zi.zi}" yet. Using component hints and text explanation for now.`,
+                        `字表暫未收錄「${result.zi.zi}」獨體甲骨圖，已用部件檢索或文字說明輔助；常見字會逐漸補全。`,
+                      )}
                     </Text>
                   </View>
                 )}
                 <Text style={styles.oracleInterpretLead}>
-                  {result.zi.oracleBone?.interpretation || '暂以部件与意象做辅助解读。'}
+                  {normalizeZiText(result.zi.oracleBone?.interpretation) || tx('暂以部件与意象做辅助解读。', 'Using components and imagery as auxiliary reading for now.', '暫以部件與意象做輔助解讀。')}
                 </Text>
                 <Text style={styles.oracleTip}>
-                  {result.zi.oracleBone?.note || '说明：甲骨字形来源为开源字表，仅作文化示意，非书法范本。'}
+                  {normalizeZiText(result.zi.oracleBone?.note) || tx('说明：甲骨字形来源为开源字表，仅作文化示意，非书法范本。', 'Note: oracle glyphs come from open-source lexicons and are for cultural reference only.', '說明：甲骨字形來源為開源字表，僅作文化示意，非書法範本。')}
                 </Text>
                 {!!result.zi.oracleBone?.totalImages && (
                   <Text style={styles.oracleCounter}>
-                    已展示 {result.zi.oracleBone.shownImages}/{result.zi.oracleBone.totalImages} 张字形样本
+                    {tx('已展示', 'Shown', '已展示')} {result.zi.oracleBone.shownImages}/{result.zi.oracleBone.totalImages} {tx('张字形样本', 'glyph samples', '張字形樣本')}
                   </Text>
                 )}
                 {shouldShowOracleUnlock && (
                   <>
-                    <Text style={styles.oracleRemainText}>还差 {lockedImageCount} 张未解锁</Text>
+                    <Text style={styles.oracleRemainText}>{tx('还差', 'Still ', '還差')} {lockedImageCount} {tx('张未解锁', 'locked', '張未解鎖')}</Text>
                     <Animated.View style={oracleUnlockAnimStyle}>
                       <TouchableOpacity
                         style={styles.oracleUnlockBtn}
                         onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
                       >
-                        <Text style={styles.oracleUnlockText}>查看完整异体图与差异解读</Text>
+                        <Text style={styles.oracleUnlockText}>{tx('查看完整异体图与差异解读', 'View all variants and differences', '查看完整異體圖與差異解讀')}</Text>
                       </TouchableOpacity>
                     </Animated.View>
                   </>
                 )}
                 <Text style={styles.oracleSource}>
-                  图源：{result.zi.oracleBone?.source || 'JiaGuWen 开源字表'}
+                  {tx('图源：', 'Source: ', '圖源：')}{normalizeZiText(result.zi.oracleBone?.source || 'JiaGuWen 开源字表')}
                 </Text>
               </View>
             </View>
 
             {!isPreviewStage && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🧠 技法细化（离合 / 填字 / 投射）</Text>
+                <Text style={styles.sectionTitle}>{tx('🧠 技法细化（离合 / 填字 / 投射）', '🧠 Technique Refinement (Split / Grid / Projection)', '🧠 技法細化（離合 / 填字 / 投射）')}</Text>
                 <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                   <View style={styles.skillGroup}>
-                    <Text style={styles.skillHead}>离合法</Text>
-                    <Text style={styles.skillHint}>把字拆开看意象，再合起来看整体</Text>
+                    <Text style={styles.skillHead}>{tx('离合法', 'Split-Combine', '離合法')}</Text>
+                    <Text style={styles.skillHint}>{tx('把字拆开看意象，再合起来看整体', 'Split the character for imagery, then combine for whole-pattern reading.', '把字拆開看意象，再合起來看整體')}</Text>
                     {(result.zi.lihefa || []).map((line, index) => (
                       <Text key={`lihefa_${index}`} style={styles.skillText}>
-                        {line}
+                        {normalizeZiText(line)}
                       </Text>
                     ))}
                   </View>
                   <View style={styles.skillDivider} />
                   <View style={styles.skillGroup}>
-                    <Text style={styles.skillHead}>填字格</Text>
-                    <Text style={styles.skillHint}>中心 / 边界 / 落点，对应你心里最在意的位置</Text>
+                    <Text style={styles.skillHead}>{tx('填字格', 'Grid Mapping', '填字格')}</Text>
+                    <Text style={styles.skillHint}>{tx('中心 / 边界 / 落点，对应你心里最在意的位置', 'Center / boundary / landing point mirror your current concerns.', '中心 / 邊界 / 落點，對應你心裡最在意的位置')}</Text>
                     {(result.zi.tianziGe || []).map((line, index) => (
                       <Text key={`tianzi_${index}`} style={styles.skillText}>
-                        {line}
+                        {normalizeZiText(line)}
                       </Text>
                     ))}
                   </View>
                   <View style={styles.skillDivider} />
                   <View style={styles.skillGroup}>
-                    <Text style={styles.skillHead}>象形投射</Text>
-                    <Text style={styles.skillTextBlock}>{result.zi.imageryInference || '当前暂无象形投射结果。'}</Text>
+                    <Text style={styles.skillHead}>{tx('象形投射', 'Imagery Projection', '象形投射')}</Text>
+                    <Text style={styles.skillTextBlock}>{normalizeZiText(result.zi.imageryInference) || tx('当前暂无象形投射结果。', 'No imagery projection result yet.', '目前暫無象形投射結果。')}</Text>
                   </View>
                   <View style={styles.skillDivider} />
                   <View style={styles.skillGroup}>
-                    <Text style={styles.skillHead}>反问引导</Text>
-                    <Text style={styles.skillTextEmphasis}>{result.zi.probingQuestion || '这个字里你最在意哪一部分？'}</Text>
+                    <Text style={styles.skillHead}>{tx('反问引导', 'Reflective Prompt', '反問引導')}</Text>
+                    <Text style={styles.skillTextEmphasis}>{normalizeZiText(result.zi.probingQuestion) || tx('这个字里你最在意哪一部分？', 'Which part of this character matters to you most?', '這個字裡你最在意哪一部分？')}</Text>
                   </View>
                   <TouchableOpacity style={styles.probingChatBtn} onPress={goProbingChat}>
-                    <Text style={styles.probingChatText}>💬 去对话里深聊这个反问</Text>
+                    <Text style={styles.probingChatText}>{tx('💬 去对话里深聊这个反问', '💬 Discuss this reflective prompt in chat', '💬 去對話裡深聊這個反問')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1136,35 +1242,35 @@ export default function ZiScreen() {
 
             {result.interpretation.focusReading && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🧭 方向详解 · {result.interpretation.focusReading.focus}</Text>
+                <Text style={styles.sectionTitle}>{tx('🧭 方向详解 · ', '🧭 Focus Deep Dive · ', '🧭 方向詳解 · ')}{normalizeZiText(result.interpretation.focusReading.focus)}</Text>
                 <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                   <View style={styles.focusSummaryBox}>
-                    <Text style={styles.focusSummaryLabel}>核心结论</Text>
-                    <Text style={styles.focusSummary}>{result.interpretation.focusReading.summary}</Text>
+                    <Text style={styles.focusSummaryLabel}>{tx('核心结论', 'Core Conclusion', '核心結論')}</Text>
+                    <Text style={styles.focusSummary}>{normalizeZiText(result.interpretation.focusReading.summary)}</Text>
                   </View>
-                  <Text style={styles.focusSubhead}>关键锚点</Text>
+                  <Text style={styles.focusSubhead}>{tx('关键锚点', 'Key Anchors', '關鍵錨點')}</Text>
                   {result.interpretation.focusReading.anchors.map((item, idx) => (
                     <View key={`anchor_${idx}`} style={styles.focusBulletRow}>
                       <Text style={styles.focusBulletDot}>●</Text>
-                      <Text style={styles.focusItem}>{item}</Text>
+                      <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
                     </View>
                   ))}
-                  <Text style={styles.focusSubhead}>风险信号</Text>
+                  <Text style={styles.focusSubhead}>{tx('风险信号', 'Risk Signals', '風險信號')}</Text>
                   {result.interpretation.focusReading.riskSignals.map((item, idx) => (
                     <View key={`risk_${idx}`} style={styles.focusBulletRow}>
                       <Text style={styles.focusBulletDotWarn}>!</Text>
-                      <Text style={styles.focusItem}>{item}</Text>
+                      <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
                     </View>
                   ))}
-                  <Text style={styles.focusSubhead}>行动计划</Text>
+                  <Text style={styles.focusSubhead}>{tx('行动计划', 'Action Plan', '行動計畫')}</Text>
                   {result.interpretation.focusReading.actionPlan.map((item, idx) => (
                     <View key={`plan_${idx}`} style={styles.focusBulletRow}>
                       <Text style={styles.focusBulletNum}>{idx + 1}</Text>
-                      <Text style={styles.focusItem}>{item}</Text>
+                      <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
                     </View>
                   ))}
                   <TouchableOpacity style={styles.focusChatBtn} onPress={goActionPlanChat}>
-                    <Text style={styles.focusChatBtnText}>💬 去对话里执行行动计划</Text>
+                    <Text style={styles.focusChatBtnText}>{tx('💬 去对话里执行行动计划', '💬 Execute action plan in chat', '💬 去對話裡執行行動計畫')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1175,25 +1281,25 @@ export default function ZiScreen() {
                   style={styles.premiumHintCard}
                   onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
                 >
-                  <Text style={styles.premiumHintText}>🔓 {result.interpretation.premiumHint}</Text>
-                  <Text style={styles.premiumHintLink}>点击升级，本次解读立即升级为老师傅深度版</Text>
+                  <Text style={styles.premiumHintText}>🔓 {normalizeZiText(result.interpretation.premiumHint)}</Text>
+                  <Text style={styles.premiumHintLink}>{tx('点击升级，本次解读立即升级为老师傅深度版', 'Upgrade now to unlock deep master reading immediately', '點擊升級，本次解讀立即升級為老師傅深度版')}</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {/* 易经对应 */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📜 易经对应</Text>
+              <Text style={styles.sectionTitle}>{tx('📜 易经对应', '📜 I Ching Mapping', '📜 易經對應')}</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                 <View style={styles.yijingRow}>
                   <View style={styles.yijingBox}>
-                    <Text style={styles.yijingLabel}>卦象</Text>
-                    <Text style={styles.yijingValue}>{result.zi.yijing}</Text>
+                    <Text style={styles.yijingLabel}>{tx('卦象', 'Hexagram', '卦象')}</Text>
+                    <Text style={styles.yijingValue}>{normalizeZiText(result.zi.yijing)}</Text>
                   </View>
                   <View style={styles.yijingBox}>
-                    <Text style={styles.yijingLabel}>五行</Text>
+                    <Text style={styles.yijingLabel}>{tx('五行', 'Element', '五行')}</Text>
                     <Text style={[styles.yijingValue, { color: getWuxingColor(result.zi.wuxing) }]}>
-                      {result.zi.wuxing}
+                      {normalizeZiText(result.zi.wuxing)}
                     </Text>
                   </View>
                 </View>
@@ -1216,10 +1322,10 @@ export default function ZiScreen() {
 
             {!isPreviewStage && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>✍️ 笔迹心理学</Text>
+              <Text style={styles.sectionTitle}>{tx('✍️ 笔迹心理学', '✍️ Handwriting Psychology', '✍️ 筆跡心理學')}</Text>
                 <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                   <View style={styles.handwritingItem}>
-                    <Text style={styles.handwritingLabel}>力度</Text>
+                    <Text style={styles.handwritingLabel}>{tx('力度', 'Pressure', '力度')}</Text>
                     <Text style={styles.handwritingValue}>
                       {result.handwriting.pressure === 'heavy'
                         ? tx('较重', 'Heavy', '較重')
@@ -1229,11 +1335,11 @@ export default function ZiScreen() {
                     </Text>
                   </View>
                   <Text style={styles.handwritingInterpretation}>
-                    {result.handwriting.pressureInterpretation}
+                    {normalizeZiText(result.handwriting.pressureInterpretation)}
                   </Text>
 
                   <View style={styles.handwritingItem}>
-                    <Text style={styles.handwritingLabel}>稳定性</Text>
+                    <Text style={styles.handwritingLabel}>{tx('稳定性', 'Stability', '穩定性')}</Text>
                     <Text style={styles.handwritingValue}>
                       {result.handwriting.stability === 'stable'
                         ? tx('稳定', 'Stable', '穩定')
@@ -1243,11 +1349,11 @@ export default function ZiScreen() {
                     </Text>
                   </View>
                   <Text style={styles.handwritingInterpretation}>
-                    {result.handwriting.stabilityInterpretation}
+                    {normalizeZiText(result.handwriting.stabilityInterpretation)}
                   </Text>
 
                   <View style={styles.handwritingItem}>
-                    <Text style={styles.handwritingLabel}>结构</Text>
+                    <Text style={styles.handwritingLabel}>{tx('结构', 'Structure', '結構')}</Text>
                     <Text style={styles.handwritingValue}>
                       {result.handwriting.structure === 'compact'
                         ? tx('紧凑', 'Compact', '緊湊')
@@ -1257,7 +1363,7 @@ export default function ZiScreen() {
                     </Text>
                   </View>
                   <Text style={styles.handwritingInterpretation}>
-                    {result.handwriting.structureInterpretation}
+                    {normalizeZiText(result.handwriting.structureInterpretation)}
                   </Text>
                 </View>
               </View>
@@ -1265,12 +1371,12 @@ export default function ZiScreen() {
 
             {!isPreviewStage && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>👤 性格画像</Text>
+                <Text style={styles.sectionTitle}>{tx('👤 性格画像', '👤 Personality Profile', '👤 性格畫像')}</Text>
                 <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                   <View style={styles.traitsRow}>
                     {result.handwriting.personalityInsights.map((trait, index) => (
                       <View key={index} style={[styles.traitTag, { backgroundColor: '#FFD700' }]}>
-                        <Text style={[styles.traitText, { color: '#1a1a2e' }]}>{trait}</Text>
+                        <Text style={[styles.traitText, { color: '#1a1a2e' }]}>{normalizeZiText(trait)}</Text>
                       </View>
                     ))}
                   </View>
@@ -1280,38 +1386,53 @@ export default function ZiScreen() {
 
             {/* 运势解读 */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🌟 运势解读</Text>
+              <Text style={styles.sectionTitle}>{tx('🌟 运势解读', '🌟 Fortune Reading', '🌟 運勢解讀')}</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                 <View style={styles.fortuneItem}>
-                  <Text style={styles.fortuneLabel}>💼 事业</Text>
-                  <Text style={styles.fortuneText}>{result.interpretation.career}</Text>
+                  <Text style={styles.fortuneLabel}>{tx('💼 事业', '💼 Career', '💼 事業')}</Text>
+                  <Text style={styles.fortuneText}>{normalizeZiText(result.interpretation.career)}</Text>
                 </View>
                 <View style={styles.fortuneItem}>
-                  <Text style={styles.fortuneLabel}>💕 感情</Text>
-                  <Text style={styles.fortuneText}>{result.interpretation.love}</Text>
+                  <Text style={styles.fortuneLabel}>{tx('💕 感情', '💕 Love', '💕 感情')}</Text>
+                  <Text style={styles.fortuneText}>{normalizeZiText(result.interpretation.love)}</Text>
                 </View>
                 <View style={styles.fortuneItem}>
-                  <Text style={styles.fortuneLabel}>💰 财运</Text>
-                  <Text style={styles.fortuneText}>{result.interpretation.wealth}</Text>
+                  <Text style={styles.fortuneLabel}>{tx('💰 财运', '💰 Wealth', '💰 財運')}</Text>
+                  <Text style={styles.fortuneText}>{normalizeZiText(result.interpretation.wealth)}</Text>
                 </View>
                 <View style={[styles.fortuneItem, styles.fortuneItemLast]}>
-                  <Text style={styles.fortuneLabel}>🏥 健康</Text>
-                  <Text style={styles.fortuneText}>{result.interpretation.health}</Text>
+                  <Text style={styles.fortuneLabel}>{tx('🏥 健康', '🏥 Health', '🏥 健康')}</Text>
+                  <Text style={styles.fortuneText}>{normalizeZiText(result.interpretation.health)}</Text>
                 </View>
               </View>
             </View>
 
             {/* 建议 */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>💡 建议</Text>
+              <Text style={styles.sectionTitle}>{tx('💡 建议', '💡 Suggestions', '💡 建議')}</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                 {result.interpretation.advice.map((advice, index) => (
                   <Text key={index} style={styles.adviceText}>
-                    {index + 1}. {advice}
+                    {index + 1}. {normalizeZiText(advice)}
                   </Text>
                 ))}
               </View>
             </View>
+
+            {!isPreviewStage && (
+              <ResultShareCard
+                kind="zi"
+                headline={`「${result.zi.zi}」${getFocusAspect() ? ` · ${getFocusAspect()}` : ''}`}
+                summary={
+                  result.interpretation.focusReading?.summary ||
+                  result.coldReadings?.[0] ||
+                  result.interpretation.advice?.[0] ||
+                  ''
+                }
+                badge={ziTierLabel}
+                referralCode={user?.referralCode || (user?.id ?? null)}
+              />
+            )}
 
             <AccuracyFeedback
               category="zi_analysis"
@@ -1325,7 +1446,7 @@ export default function ZiScreen() {
                   style={styles.continueChatButton}
                   onPress={() => handleFollowUpQuestion('')}
                 >
-                  <Text style={styles.continueChatText}>💬 继续聊聊这个字</Text>
+                  <Text style={styles.continueChatText}>{tx('💬 继续聊聊这个字', '💬 Continue chatting about this character', '💬 繼續聊聊這個字')}</Text>
                 </TouchableOpacity>
               </View>
             )}

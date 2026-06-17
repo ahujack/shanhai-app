@@ -433,6 +433,7 @@ export interface ChartPreviewDto {
   birthLongitude?: number;
   birthLocation?: string;
   timezone?: string;
+  language?: ClientLanguage;
 }
 
 export const chartApi = {
@@ -440,13 +441,13 @@ export const chartApi = {
   preview: (dto: ChartPreviewDto) =>
     request<BaziChart>('/charts/preview', {
       method: 'POST',
-      body: JSON.stringify(dto),
+      body: JSON.stringify({ ...dto, language: dto.language || globalAppLanguage }),
     }),
 
   generate: (userId: string, gender: 'male' | 'female') =>
     request<BaziChart>(`/charts/${userId}`, { 
       method: 'POST', 
-      body: JSON.stringify({ gender }) 
+      body: JSON.stringify({ gender, language: globalAppLanguage }) 
     }),
     
   get: (userId: string) =>

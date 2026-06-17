@@ -8,6 +8,7 @@ import { useUserStore } from '../../src/store/user';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { userApi, chartApi, BaziChart } from '../../src/services/api';
 import { useI18nStore } from '../../src/store/i18n';
+import ResultShareCard from '../../components/ResultShareCard';
 
 const colors = theme.dark;
 
@@ -371,6 +372,36 @@ export default function BaziScreen() {
   const params = useLocalSearchParams<{ highlight?: string; fromPayment?: string }>();
   const language = useI18nStore((state) => state.language);
   const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
+  const normalizeChartText = React.useCallback(
+    (value: string | number | null | undefined) => {
+      const raw = String(value ?? '').trim();
+      if (!raw) return '';
+      const cleaned = raw.replace(/meta\|/gi, '').replace(/\s{2,}/g, ' ').trim();
+      if (language !== 'zh-TW') return cleaned;
+      const replacements: Array<[RegExp, string]> = [
+        [/运/g, '運'],
+        [/势/g, '勢'],
+        [/财/g, '財'],
+        [/关/g, '關'],
+        [/键/g, '鍵'],
+        [/议/g, '議'],
+        [/体/g, '體'],
+        [/态/g, '態'],
+        [/阶/g, '階'],
+        [/节/g, '節'],
+        [/业/g, '業'],
+        [/宫/g, '宮'],
+        [/线/g, '線'],
+        [/发/g, '發'],
+        [/稳/g, '穩'],
+        [/险/g, '險'],
+        [/压/g, '壓'],
+        [/这几年/g, '這幾年'],
+      ];
+      return replacements.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), cleaned);
+    },
+    [language],
+  );
   const tenGodMeta = React.useMemo(() => resolveTenGodMeta(language), [language]);
   const { user, chart, hasChart, generateChart, isLoading } = useUserStore();
   const [godClicks, setGodClicks] = React.useState<Record<string, number>>({});
@@ -862,7 +893,7 @@ export default function BaziScreen() {
           </View>
         ) : null}
         <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-          <Text style={styles.link}>去个人资料页完善</Text>
+          <Text style={styles.link}>{tx('去个人资料页完善', 'Complete profile', '去個人資料頁完善')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -912,12 +943,20 @@ export default function BaziScreen() {
           {tenGodMeta[storedGod]?.title || storedGod}
         </Text>
         <Text style={styles.bodyMuted}>{tenGodMeta[storedGod]?.empathy || tx('我们先从你最在意的感受聊起。', 'Let us start from what you care most.', '我們先從你最在意的感受聊起。')}</Text>
-        <Text style={styles.body}>{c.conclusion?.overall || tx('你的命盘呈现稳中有进的结构。', 'Your chart shows a steady-upward pattern.', '你的命盤呈現穩中有進的結構。')}</Text>
-        <Text style={styles.bodyMuted}>{c.conclusion?.mindset || tx('建议先稳住内在节奏，再扩展外部机会。', 'Stabilize inner rhythm first, then expand externally.', '建議先穩住內在節奏，再擴展外部機會。')}</Text>
+        <Text style={styles.body}>{normalizeChartText(c.conclusion?.overall) || tx('你的命盘呈现稳中有进的结构。', 'Your chart shows a steady-upward pattern.', '你的命盤呈現穩中有進的結構。')}</Text>
+        <Text style={styles.bodyMuted}>{normalizeChartText(c.conclusion?.mindset) || tx('建议先稳住内在节奏，再扩展外部机会。', 'Stabilize inner rhythm first, then expand externally.', '建議先穩住內在節奏，再擴展外部機會。')}</Text>
         <TouchableOpacity style={styles.chatCtaBtn} onPress={goBaziDeepChat}>
           <Text style={styles.chatCtaText}>{tx('去对话深入探讨这份八字', 'Discuss this chart in chat', '去對話深入探討這份八字')}</Text>
         </TouchableOpacity>
       </View>
+
+      <ResultShareCard
+        kind="bazi"
+        headline={`${c.yearGanZhi} ${c.monthGanZhi} ${c.dayGanZhi} ${c.hourGanZhi}`}
+        summary={normalizeChartText(c.conclusion?.overall) || normalizeChartText(c.conclusion?.mindset) || ''}
+        badge={tx('八字命盘', 'BaZi Chart', '八字命盤')}
+        referralCode={user?.referralCode || (user?.id ?? null)}
+      />
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>{tx('四柱八字', 'Four Pillars', '四柱八字')}</Text>
@@ -956,16 +995,16 @@ export default function BaziScreen() {
           <Text style={styles.bodyMuted}>{tx('提醒：', 'Watch-outs:', '提醒：')}{tenGodMeta[activeGod]?.risks || tx('注意情绪负荷和节奏管理。', 'Watch emotional load and pacing.', '注意情緒負荷和節奏管理。')}</Text>
         </View>
         {(c.tenGods?.summary || []).map((line, idx) => (
-          <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
+          <Text key={idx} style={styles.bodyMuted}>- {normalizeChartText(line)}</Text>
         ))}
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>{tx('运势速览', 'Trend Snapshot', '運勢速覽')}</Text>
-        <Text style={styles.body}>{tx('事业：', 'Career: ', '事業：')}{c.fortuneSummary?.career}</Text>
-        <Text style={styles.body}>{tx('感情：', 'Love: ', '感情：')}{c.fortuneSummary?.love}</Text>
-        <Text style={styles.body}>{tx('财运：', 'Wealth: ', '財運：')}{c.fortuneSummary?.wealth}</Text>
-        <Text style={styles.body}>{tx('健康：', 'Health: ', '健康：')}{c.fortuneSummary?.health}</Text>
+        <Text style={styles.body}>{tx('事业：', 'Career: ', '事業：')}{normalizeChartText(c.fortuneSummary?.career)}</Text>
+        <Text style={styles.body}>{tx('感情：', 'Love: ', '感情：')}{normalizeChartText(c.fortuneSummary?.love)}</Text>
+        <Text style={styles.body}>{tx('财运：', 'Wealth: ', '財運：')}{normalizeChartText(c.fortuneSummary?.wealth)}</Text>
+        <Text style={styles.body}>{tx('健康：', 'Health: ', '健康：')}{normalizeChartText(c.fortuneSummary?.health)}</Text>
       </View>
 
       <View style={styles.card}>
@@ -988,35 +1027,35 @@ export default function BaziScreen() {
         </View>
         <View style={[styles.moduleCard, styles.moduleCore]}>
           <Text style={styles.sectionHead}>{tx('🧭 核心格局', '🧭 Core Pattern', '🧭 核心格局')}</Text>
-          <Text style={styles.body}>{c.detailedReading?.corePattern || tx('正在生成更细致的盘面解读...', 'Generating deeper chart interpretation...', '正在生成更細緻的盤面解讀...')}</Text>
+          <Text style={styles.body}>{normalizeChartText(c.detailedReading?.corePattern) || tx('正在生成更细致的盘面解读...', 'Generating deeper chart interpretation...', '正在生成更細緻的盤面解讀...')}</Text>
         </View>
 
         {viewMode === 'pro' ? (
           <View style={[styles.moduleCard, styles.moduleRelation]}>
             <Text style={styles.sectionHead}>{tx('💕 感情关系', '💕 Relationship', '💕 感情關係')}</Text>
-            <Text style={styles.body}>{c.detailedReading?.relationship || '-'}</Text>
+            <Text style={styles.body}>{normalizeChartText(c.detailedReading?.relationship) || '-'}</Text>
           </View>
         ) : null}
 
         <View style={[styles.moduleCard, styles.moduleCareer]}>
           <Text style={styles.sectionHead}>{tx('💼 事业发展', '💼 Career Development', '💼 事業發展')}</Text>
-          <Text style={styles.body}>{c.detailedReading?.career || '-'}</Text>
+          <Text style={styles.body}>{normalizeChartText(c.detailedReading?.career) || '-'}</Text>
         </View>
 
         {viewMode === 'pro' ? (
           <>
             <View style={[styles.moduleCard, styles.moduleWealth]}>
               <Text style={styles.sectionHead}>{tx('💰 财务节奏', '💰 Wealth Rhythm', '💰 財務節奏')}</Text>
-              <Text style={styles.body}>{c.detailedReading?.wealth || '-'}</Text>
+              <Text style={styles.body}>{normalizeChartText(c.detailedReading?.wealth) || '-'}</Text>
             </View>
             <View style={[styles.moduleCard, styles.moduleHealth]}>
               <Text style={styles.sectionHead}>{tx('🫀 身心状态', '🫀 Body & Mind', '🫀 身心狀態')}</Text>
-              <Text style={styles.body}>{c.detailedReading?.health || '-'}</Text>
+              <Text style={styles.body}>{normalizeChartText(c.detailedReading?.health) || '-'}</Text>
             </View>
             <View style={[styles.moduleCard, styles.moduleRhythm]}>
               <Text style={styles.sectionHead}>{tx('⏳ 阶段节奏参考', '⏳ Stage Rhythm', '⏳ 階段節奏參考')}</Text>
               {(c.detailedReading?.decadeRhythm || []).map((line, idx) => (
-                <Text key={idx} style={styles.bodyMuted}>- {line}</Text>
+                <Text key={idx} style={styles.bodyMuted}>- {normalizeChartText(line)}</Text>
               ))}
             </View>
             <View style={[styles.moduleCard, styles.moduleRhythm]}>
@@ -1030,7 +1069,7 @@ export default function BaziScreen() {
               </Text>
               {(c.detailedReading?.luckCycles?.cycles || []).map((cycle, idx) => (
                 <Text key={`cycle_${idx}`} style={styles.bodyMuted}>
-                  - {cycle.ageRange}（{cycle.ganZhi}）：{cycle.focus}
+                  - {cycle.ageRange}（{cycle.ganZhi}）：{normalizeChartText(cycle.focus)}
                 </Text>
               ))}
             </View>
@@ -1042,29 +1081,29 @@ export default function BaziScreen() {
           style={[styles.moduleCard, styles.moduleAnnual, highlightMaster ? styles.highlightPanel : undefined]}
         >
           <Text style={styles.sectionHead}>{tx('📅 近五年流年', '📅 Next 5 Years', '📅 近五年流年')}</Text>
-          {showUnlockTip ? <Text style={styles.unlockTip}>✨ 已解锁老师傅批注，以下为高级流年细化</Text> : null}
+          {showUnlockTip ? <Text style={styles.unlockTip}>{tx('✨ 已解锁老师傅批注，以下为高级流年细化', '✨ Master notes unlocked. Advanced yearly details below.', '✨ 已解鎖老師傅批註，以下為高級流年細化')}</Text> : null}
           {(c.detailedReading?.annualForecast || [])
             .slice(0, viewMode === 'compact' ? 2 : 5)
             .map((yearItem, idx) => (
             <View key={`year_${idx}`} style={{ marginBottom: 6 }}>
               <Text style={styles.bodyMuted}>
-                - {yearItem.year}（{yearItem.ganZhi} / {yearItem.tenGod}）：{yearItem.hint}
+                - {yearItem.year}（{yearItem.ganZhi} / {yearItem.tenGod}）：{normalizeChartText(yearItem.hint)}
               </Text>
-              <Text style={styles.bodyMuted}>  {tx('宜：', 'Do: ', '宜：')}{yearItem.favorable || tx('稳步推进主线事项', 'Advance the main line steadily', '穩步推進主線事項')}</Text>
-              <Text style={styles.bodyMuted}>  {tx('忌：', "Don't: ", '忌：')}{yearItem.caution || tx('避免多线分散与情绪化决策', 'Avoid fragmented focus and emotional decisions', '避免多線分散與情緒化決策')}</Text>
+              <Text style={styles.bodyMuted}>  {tx('宜：', 'Do: ', '宜：')}{normalizeChartText(yearItem.favorable) || tx('稳步推进主线事项', 'Advance the main line steadily', '穩步推進主線事項')}</Text>
+              <Text style={styles.bodyMuted}>  {tx('忌：', "Don't: ", '忌：')}{normalizeChartText(yearItem.caution) || tx('避免多线分散与情绪化决策', 'Avoid fragmented focus and emotional decisions', '避免多線分散與情緒化決策')}</Text>
               <Text style={styles.bodyMuted}>
                 {' '}
-                {tx('关键窗口月：', 'Key window months: ', '關鍵窗口月：')}{(yearItem.windowMonths || []).join('、') || tx('3-4月、9-10月', 'Mar-Apr, Sep-Oct', '3-4月、9-10月')}
+                {tx('关键窗口月：', 'Key window months: ', '關鍵窗口月：')}{normalizeChartText((yearItem.windowMonths || []).join('、')) || tx('3-4月、9-10月', 'Mar-Apr, Sep-Oct', '3-4月、9-10月')}
               </Text>
               {yearItem.masterCommentary ? (
                 <Text style={[styles.body, highlightMaster ? styles.masterCommentaryHighlight : undefined]}>
                   {' '}
-                  {yearItem.masterCommentary}
+                  {normalizeChartText(yearItem.masterCommentary)}
                 </Text>
               ) : null}
             </View>
           ))}
-          {viewMode === 'compact' ? <Text style={styles.bodyMuted}>* 切换到「专业模式」可查看完整五年流年。</Text> : null}
+          {viewMode === 'compact' ? <Text style={styles.bodyMuted}>{tx('* 切换到「专业模式」可查看完整五年流年。', '* Switch to Pro mode to view all five years.', '* 切換到「專業模式」可查看完整五年流年。')}</Text> : null}
           {readingTier === 'lite' ? (
             <TouchableOpacity
               onPress={() =>
@@ -1075,10 +1114,10 @@ export default function BaziScreen() {
               }
             >
               <Text style={[styles.bodyMuted, styles.paywallLink]}>
-                🔓 当前为简版，解锁完整版老师傅点评（含完整年度宜忌与窗口月）
+                {tx('🔓 当前为简版，解锁完整版老师傅点评（含完整年度宜忌与窗口月）', '🔓 You are on Lite. Unlock Full for complete yearly actions and timing windows.', '🔓 當前為簡版，解鎖完整版老師傅點評（含完整年度宜忌與窗口月）')}
               </Text>
               {c.detailedReading?.paywallHint ? (
-                <Text style={[styles.bodyMuted, styles.paywallSubText]}>{c.detailedReading.paywallHint}</Text>
+                <Text style={[styles.bodyMuted, styles.paywallSubText]}>{normalizeChartText(c.detailedReading.paywallHint)}</Text>
               ) : null}
             </TouchableOpacity>
           ) : null}
@@ -1093,28 +1132,28 @@ export default function BaziScreen() {
                 }
               >
                 <Text style={[styles.bodyMuted, styles.paywallLink]}>
-                  ⬆️ 当前为完整版，升级深度版可解锁「关键词 + 年度一招 + 避坑提醒」
+                  {tx('⬆️ 当前为完整版，升级深度版可解锁「关键词 + 年度一招 + 避坑提醒」', '⬆️ You are on Full. Upgrade to Deep for keywords, annual move, and pitfall alerts.', '⬆️ 當前為完整版，升級深度版可解鎖「關鍵詞 + 年度一招 + 避坑提醒」')}
                 </Text>
               </TouchableOpacity>
             ) : (
-              <Text style={[styles.bodyMuted, styles.paywallSubText]}>✅ 当前已解锁完整版老师傅点评</Text>
+              <Text style={[styles.bodyMuted, styles.paywallSubText]}>{tx('✅ 当前已解锁完整版老师傅点评', '✅ Full master notes unlocked', '✅ 當前已解鎖完整版老師傅點評')}</Text>
             )
           ) : null}
           {readingTier === 'deep' ? (
-            <Text style={[styles.bodyMuted, styles.tierTopBadge]}>✅ 已解锁最高档：深度版老师傅批注</Text>
+            <Text style={[styles.bodyMuted, styles.tierTopBadge]}>{tx('✅ 已解锁最高档：深度版老师傅批注', '✅ Highest tier unlocked: Deep master annotations', '✅ 已解鎖最高檔：深度版老師傅批註')}</Text>
           ) : null}
         </View>
 
         <View style={[styles.moduleCard, styles.moduleAnnual]}>
-          <Text style={styles.sectionHead}>📝 年度提醒</Text>
+          <Text style={styles.sectionHead}>{tx('📝 年度提醒', '📝 Yearly Reminders', '📝 年度提醒')}</Text>
           {(c.detailedReading?.yearlyTips || [])
             .slice(0, viewMode === 'compact' ? 2 : 8)
             .map((line, idx) => (
-            <Text key={`tip_${idx}`} style={styles.bodyMuted}>- {line}</Text>
+            <Text key={`tip_${idx}`} style={styles.bodyMuted}>- {normalizeChartText(line)}</Text>
           ))}
         </View>
 
-        <Text style={styles.disclaimer}>{c.detailedReading?.disclaimer || ''}</Text>
+        <Text style={styles.disclaimer}>{normalizeChartText(c.detailedReading?.disclaimer)}</Text>
       </View>
     </ScrollView>
   );

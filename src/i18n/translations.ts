@@ -724,7 +724,7 @@ const zhTW: TranslationMap = {
   'reading.result.nextFallback': '先穩住節奏，再做決定。',
   'reading.result.talkFeelings': '先聊聊我的感受',
   'reading.result.deepTalk': '和我聊聊現在的感受',
-  'reading.result.comparePlans': '看方案對比',
+  'reading.result.comparePlans': '看方案比較',
   'reading.result.memberBenefits': '看會員權益',
   'reading.result.showDetails': '展開完整細節',
   'reading.result.hideDetails': '收起完整細節',

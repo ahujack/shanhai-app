@@ -2,11 +2,15 @@
   "name": "shanhai-app",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=20 <21"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "export:web": "expo export --platform web && node scripts/inject-seo-meta.js",
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll"
   },
