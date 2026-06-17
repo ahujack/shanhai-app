@@ -18,7 +18,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
         */}
         <meta
           name="viewport"
-          content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1.00001,viewport-fit=cover"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover"
         />
         {/* 
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native. 

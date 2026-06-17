@@ -1,6 +1,7 @@
 node_modules/
 .pnp
 .pnp.js
+shanhai-server/
 
 # Build
 dist/
@@ -12,6 +13,8 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
+!.env.example
 
 # Logs
 *.log
