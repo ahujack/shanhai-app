@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { AppLanguage, t as translate } from '../i18n/translations';
 import { setGlobalAppLanguage } from '../services/api';
+import { useUserStore } from './user';
 
 const LANGUAGE_KEY = 'shanhai_app_language';
 
@@ -32,35 +33,63 @@ function normalizeLanguage(raw: string | null | undefined): AppLanguage {
 
 interface I18nState {
   language: AppLanguage;
+  /** 每次切换语言 +1，供页面感知并刷新缓存内容 */
+  languageRevision: number;
   initialized: boolean;
   loadLanguage: () => Promise<void>;
   setLanguage: (language: AppLanguage) => Promise<void>;
   t: (key: string, fallback?: string) => string;
+  tx: (zh: string, en: string, tw: string) => string;
 }
 
 function createTranslator(language: AppLanguage) {
   return (key: string, fallback?: string) => translate(language, key, fallback);
 }
 
-export const useI18nStore = create<I18nState>((set) => ({
+function createTx(language: AppLanguage) {
+  return (zh: string, en: string, tw: string) =>
+    language === 'en-US' ? en : language === 'zh-TW' ? tw : zh;
+}
+
+export const useI18nStore = create<I18nState>((set, get) => ({
   language: 'zh-CN',
+  languageRevision: 0,
   initialized: false,
   t: createTranslator('zh-CN'),
+  tx: createTx('zh-CN'),
   loadLanguage: async () => {
     try {
       const stored = await storage.getItem(LANGUAGE_KEY);
       const normalized = normalizeLanguage(stored);
       setGlobalAppLanguage(normalized);
-      set({ language: normalized, initialized: true, t: createTranslator(normalized) });
+      set({
+        language: normalized,
+        initialized: true,
+        t: createTranslator(normalized),
+        tx: createTx(normalized),
+      });
     } catch {
       set({ initialized: true });
     }
   },
   setLanguage: async (language: AppLanguage) => {
+    const prev = get().language;
     const normalized = normalizeLanguage(language);
+    if (normalized === prev) return;
+
     setGlobalAppLanguage(normalized);
-    set({ language: normalized, t: createTranslator(normalized) });
+    set((state) => ({
+      language: normalized,
+      languageRevision: state.languageRevision + 1,
+      t: createTranslator(normalized),
+      tx: createTx(normalized),
+    }));
     await storage.setItem(LANGUAGE_KEY, normalized);
+
+    const { user, hasChart, refreshChart } = useUserStore.getState();
+    if (user && hasChart) {
+      refreshChart().catch(() => null);
+    }
   },
 }));
 

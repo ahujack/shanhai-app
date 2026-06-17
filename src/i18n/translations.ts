@@ -12,7 +12,7 @@ const zhCN: TranslationMap = {
   'lang.english': 'English',
   'lang.traditional': '繁體中文',
   'profile.language.title': '语言设置',
-  'profile.language.hint': '切换后将优先显示对应语言文案（未覆盖部分默认简体）。',
+  'profile.language.hint': '切换语言后，界面文案会立即更新；八字与测字等 AI 解读需重新生成以匹配新语言。',
   'root.loading': '加载中...',
   'auth.expired.title': '登录已过期',
   'auth.expired.message':
@@ -272,7 +272,7 @@ const enUS: TranslationMap = {
   'lang.traditional': 'Traditional Chinese',
   'profile.language.title': 'Language',
   'profile.language.hint':
-    'After switching, matching translations are shown first. Untranslated parts fall back to Simplified Chinese.',
+    'UI text updates immediately after switching. Bazi and character readings may need regeneration to match the new language.',
   'root.loading': 'Loading...',
   'auth.expired.title': 'Session Expired',
   'auth.expired.message':
@@ -531,7 +531,7 @@ const zhTW: TranslationMap = {
   'lang.english': 'English',
   'lang.traditional': '繁體中文',
   'profile.language.title': '語言設定',
-  'profile.language.hint': '切換後會優先顯示對應語言文案（未覆蓋部分預設簡體）。',
+  'profile.language.hint': '切換語言後，介面文案會立即更新；八字與測字等 AI 解讀需重新生成以匹配新語言。',
   'root.loading': '載入中...',
   'auth.expired.title': '登入已過期',
   'auth.expired.message':

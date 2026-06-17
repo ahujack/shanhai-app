@@ -11,6 +11,7 @@ import { localizePersona } from '../../src/utils/personaI18n';
 import { localizeAuthMessage } from '../../src/utils/authMessage';
 import * as Clipboard from 'expo-clipboard';
 import { useI18nStore } from '../../src/store/i18n';
+import { normalizeBackendText } from '../../src/utils/backendText';
 import type { AppLanguage } from '../../src/i18n/translations';
 
 const colors = theme.dark;
@@ -36,52 +37,9 @@ export default function ProfileScreen() {
   const language = useI18nStore((state) => state.language);
   const setLanguage = useI18nStore((state) => state.setLanguage);
   const t = useI18nStore((state) => state.t);
-  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
+  const tx = useI18nStore((state) => state.tx);
   const normalizeChartText = React.useCallback(
-    (value?: string) => {
-      const raw = String(value || '').trim();
-      if (!raw) return raw;
-      let text = raw
-        .replace(/(wood|fire|earth|metal|water)性偏旺/gi, (_, wx: string) => {
-          const map: Record<string, string> = { wood: '木', fire: '火', earth: '土', metal: '金', water: '水' };
-          return `${map[String(wx).toLowerCase()] || wx}性偏旺`;
-        })
-        .replace(/(wood|fire|earth|metal|water)性偏弱/gi, (_, wx: string) => {
-          const map: Record<string, string> = { wood: '木', fire: '火', earth: '土', metal: '金', water: '水' };
-          return `${map[String(wx).toLowerCase()] || wx}性偏弱`;
-        });
-      if (language !== 'zh-TW') return text;
-      const replacePairs: Array<[string, string]> = [
-        ['事业', '事業'],
-        ['运势', '運勢'],
-        ['财运', '財運'],
-        ['财务', '財務'],
-        ['财', '財'],
-        ['适合', '適合'],
-        ['创业', '創業'],
-        ['较好', '較好'],
-        ['善于', '善於'],
-        ['理财', '理財'],
-        ['建议', '建議'],
-        ['扩展', '擴展'],
-        ['机会', '機會'],
-        ['稳住', '穩住'],
-        ['节奏', '節奏'],
-        ['这份', '這份'],
-        ['肝胆', '肝膽'],
-        ['领导', '領導'],
-        ['气质', '氣質'],
-        ['加强', '加強'],
-        ['颜色', '顏色'],
-        ['环境', '環境'],
-        ['职业', '職業'],
-        ['锻炼', '鍛鍊'],
-      ];
-      for (const [from, to] of replacePairs) {
-        text = text.replaceAll(from, to);
-      }
-      return text;
-    },
+    (value?: string) => normalizeBackendText(value, language),
     [language],
   );
   const localizedPersonas = React.useMemo(

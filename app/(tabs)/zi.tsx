@@ -22,10 +22,10 @@ import { trackFeature } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import ResultShareCard from '../../components/ResultShareCard';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
-import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
 import { isMembershipActive } from '../../src/utils/membership';
 import { localizeAuthMessage } from '../../src/utils/authMessage';
+import { normalizeBackendText } from '../../src/utils/backendText';
 import HandwritingCanvas from '../../components/HandwritingCanvas';
 import { useI18nStore } from '../../src/store/i18n';
 
@@ -58,6 +58,8 @@ export default function ZiScreen() {
   const [ziPointsCost, setZiPointsCost] = useState(10);
   const [availablePoints, setAvailablePoints] = useState<number | null>(null);
   const [showSmartCta, setShowSmartCta] = useState(false);
+  const [showLanguageRefreshHint, setShowLanguageRefreshHint] = useState(false);
+  const prevLanguageRevisionRef = useRef(0);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
   /** 手写识别成功后的预览（手写 Tab 无输入框，需单独展示；积分不足时仍有字可看） */
@@ -94,13 +96,11 @@ export default function ZiScreen() {
     return map[wuxing || ''] || { bg: '#1a1a2e', glow: 'rgba(255,255,255,0.06)' };
   };
   
-  // 聊天相关
-  const { messages, sendMessage } = useChatStore();
-  const { active: persona } = usePersonaStore();
   const { user } = useUserStore();
   const language = useI18nStore((state) => state.language);
+  const languageRevision = useI18nStore((state) => state.languageRevision);
   const t = useI18nStore((state) => state.t);
-  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
+  const tx = useI18nStore((state) => state.tx);
   const aspectOptionLabels = React.useMemo<Record<string, string>>(
     () => ({
       事业: tx('事业', 'Career', '事業'),
@@ -110,36 +110,10 @@ export default function ZiScreen() {
       健康: tx('健康', 'Health', '健康'),
       人际关系: tx('人际关系', 'Relationships', '人際關係'),
     }),
-    [language],
+    [language, tx],
   );
   const normalizeZiText = React.useCallback(
-    (value: string | number | null | undefined) => {
-      const raw = String(value ?? '').trim();
-      if (!raw) return '';
-      const cleaned = raw.replace(/meta\|/gi, '').replace(/\s{2,}/g, ' ').trim();
-      if (language !== 'zh-TW') return cleaned;
-      const replacements: Array<[RegExp, string]> = [
-        [/测/g, '測'],
-        [/汉/g, '漢'],
-        [/运/g, '運'],
-        [/势/g, '勢'],
-        [/财/g, '財'],
-        [/关/g, '關'],
-        [/键/g, '鍵'],
-        [/议/g, '議'],
-        [/体/g, '體'],
-        [/态/g, '態'],
-        [/阶/g, '階'],
-        [/节/g, '節'],
-        [/业/g, '業'],
-        [/画/g, '畫'],
-        [/气/g, '氣'],
-        [/稳/g, '穩'],
-        [/后/g, '後'],
-        [/这/g, '這'],
-      ];
-      return replacements.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), cleaned);
-    },
+    (value: string | number | null | undefined) => normalizeBackendText(value, language),
     [language],
   );
   const wuxingTheme = getWuxingTheme(result?.zi?.wuxing);
@@ -409,6 +383,7 @@ export default function ZiScreen() {
       const data = await ziApi.analyze(zi, focusAspect, undefined, normalizedQuestion || undefined);
       setResult(data);
       setResultStage('full');
+      setShowLanguageRefreshHint(false);
       trackFeature('zi_analyze_complete', { zi: data?.zi?.zi, aspect: focusAspect || null });
       setHandwritingPreview(null);
       setShowSmartCta(false);
@@ -539,6 +514,24 @@ export default function ZiScreen() {
     }, 1000);
     return () => clearTimeout(timer);
   }, [ritualCountdown]);
+
+  React.useEffect(() => {
+    if (languageRevision === 0 || languageRevision === prevLanguageRevisionRef.current) return;
+    prevLanguageRevisionRef.current = languageRevision;
+    if (resultStage !== 'full' || !result?.zi?.zi || isLoading) return;
+
+    const ziChar = result.zi.zi.trim().charAt(0);
+    if (!/[\u4e00-\u9fa5]/.test(ziChar)) return;
+
+    const focus = getFocusAspect();
+    if (isVip && user) {
+      analyzeZiInput(ziChar, focus, userQuestion).catch(() => null);
+      return;
+    }
+    if (user) {
+      setShowLanguageRefreshHint(true);
+    }
+  }, [languageRevision]);
 
   // 打字模式测字
   const handleAnalyze = async () => {
@@ -751,36 +744,6 @@ export default function ZiScreen() {
     }, 500);
   };
   
-  // 打字模式测字完成后自动发送后续问题
-  const autoSendFollowUpQuestion = async (zi: string) => {
-    const followUpQuestions = [
-      tx(`你写的"${zi}"字，中间的部分你想表达什么？`, `In "${zi}", what does the middle part express for you?`, `你寫的"${zi}"字，中間的部分你想表達什麼？`),
-      tx(`对于"${zi}"这个字，你首先想到的是什么？`, `When you see "${zi}", what comes to mind first?`, `對於"${zi}"這個字，你首先想到的是什麼？`),
-      tx(`为什么选择写"${zi}"这个字？有什么特别的意义吗？`, `Why did you choose "${zi}"? Does it carry a special meaning?`, `為什麼選擇寫"${zi}"這個字？有什麼特別的意義嗎？`),
-      tx(`写"${zi}"字的时候，你的心情是怎样的？`, `How did you feel when writing "${zi}"?`, `寫"${zi}"字的時候，你的心情是怎樣的？`),
-      tx(`如果让你用"${zi}"字来形容最近的生活，你会怎么解释？`, `If "${zi}" describes your recent life, how would you explain it?`, `如果讓你用"${zi}"字來形容最近的生活，你會怎麼解釋？`),
-    ];
-    
-    const randomQuestion = followUpQuestions[Math.floor(Math.random() * followUpQuestions.length)];
-    
-    // 跳转到聊天界面并发送问题
-    goChatWithZiCooldown();
-    
-    setTimeout(() => {
-      // 模拟AI发送问题
-      const aiMessage: ChatMessage = {
-        id: `ai_${Date.now()}`,
-        role: 'assistant',
-        content: randomQuestion,
-        timestamp: new Date(),
-      };
-      // 添加到聊天记录
-      useChatStore.setState((state) => ({ 
-        messages: [...state.messages, aiMessage] 
-      }));
-    }, 500);
-  };
-
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: wuxingTheme.bg }]}>
       <View pointerEvents="none" style={[styles.wuxingAura, { backgroundColor: wuxingTheme.glow }]} />
@@ -997,6 +960,32 @@ export default function ZiScreen() {
                 </TouchableOpacity>
               )}
             </View>
+            {showLanguageRefreshHint ? (
+              <View style={styles.languageRefreshBanner}>
+                <Text style={styles.languageRefreshText}>
+                  {tx(
+                    '已切换语言。当前结果为旧语言内容，重新解读可获取完整新语言版本。',
+                    'Language changed. Re-read to regenerate the full result in your selected language.',
+                    '已切換語言。目前結果為舊語言內容，重新解讀可取得完整新語言版本。',
+                  )}
+                </Text>
+                <TouchableOpacity
+                  style={styles.languageRefreshBtn}
+                  disabled={isLoading}
+                  onPress={() => {
+                    const ziChar = (result?.zi?.zi || inputZi || '').trim().charAt(0);
+                    if (!/[\u4e00-\u9fa5]/.test(ziChar)) return;
+                    analyzeZiInput(ziChar, getFocusAspect(), userQuestion).catch(() => null);
+                  }}
+                >
+                  <Text style={styles.languageRefreshBtnText}>
+                    {isLoading
+                      ? tx('解读中…', 'Reading…', '解讀中…')
+                      : tx('按当前语言重新解读', 'Re-read in current language', '按當前語言重新解讀')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
             {/* 冷读话术 - 首先展示 */}
             <View style={styles.section}>
               <TouchableOpacity
@@ -1508,6 +1497,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
+  },
+  languageRefreshBanner: {
+    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(109, 80, 166, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 150, 255, 0.35)',
+  },
+  languageRefreshText: {
+    color: '#D7C8FF',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  languageRefreshBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#6D50A6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  languageRefreshBtnText: {
+    color: '#F7F6F0',
+    fontSize: 12,
+    fontWeight: '700',
   },
   tierCard: {
     marginBottom: 14,

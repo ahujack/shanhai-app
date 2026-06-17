@@ -34,23 +34,18 @@ function readApiUrlFromEnv(): string {
   );
 }
 
-/** 未配置时 Web 端走同源 /api，由 Vercel rewrite 转发到后端。 */
+/**
+ * 未配置时使用默认 Railway API，避免 CI/Vercel 未设变量时构建/运行直接失败。
+ * 生产仍建议在环境变量中显式配置 API 基址。
+ */
 function resolveApiBaseUrl(): string {
   const raw = readApiUrlFromEnv();
   if (raw) return raw.replace(/\/$/, '');
-
-  if (typeof window !== 'undefined' && window.location) {
-    const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:3000/api';
-    }
-    return '/api';
-  }
-
   const fallback = 'https://shanhai-production.up.railway.app/api';
+  if (isDevBundle()) return fallback;
   if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
     console.warn(
-      '[shanhai-app] 未配置 EXPO_PUBLIC_API_URL / NEXT_PUBLIC_API_URL，非浏览器环境已回退默认后端。建议在 CI 中显式设置。',
+      '[shanhai-app] 未配置 EXPO_PUBLIC_API_URL / NEXT_PUBLIC_API_URL，已回退默认后端。建议在 Vercel/CI 中显式设置。',
     );
   }
   return fallback;

@@ -8,6 +8,7 @@ import { useUserStore } from '../../src/store/user';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { userApi, chartApi, BaziChart } from '../../src/services/api';
 import { useI18nStore } from '../../src/store/i18n';
+import { normalizeBackendText } from '../../src/utils/backendText';
 import ResultShareCard from '../../components/ResultShareCard';
 
 const colors = theme.dark;
@@ -371,35 +372,10 @@ export default function BaziScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ highlight?: string; fromPayment?: string }>();
   const language = useI18nStore((state) => state.language);
-  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
+  const languageRevision = useI18nStore((state) => state.languageRevision);
+  const tx = useI18nStore((state) => state.tx);
   const normalizeChartText = React.useCallback(
-    (value: string | number | null | undefined) => {
-      const raw = String(value ?? '').trim();
-      if (!raw) return '';
-      const cleaned = raw.replace(/meta\|/gi, '').replace(/\s{2,}/g, ' ').trim();
-      if (language !== 'zh-TW') return cleaned;
-      const replacements: Array<[RegExp, string]> = [
-        [/运/g, '運'],
-        [/势/g, '勢'],
-        [/财/g, '財'],
-        [/关/g, '關'],
-        [/键/g, '鍵'],
-        [/议/g, '議'],
-        [/体/g, '體'],
-        [/态/g, '態'],
-        [/阶/g, '階'],
-        [/节/g, '節'],
-        [/业/g, '業'],
-        [/宫/g, '宮'],
-        [/线/g, '線'],
-        [/发/g, '發'],
-        [/稳/g, '穩'],
-        [/险/g, '險'],
-        [/压/g, '壓'],
-        [/这几年/g, '這幾年'],
-      ];
-      return replacements.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), cleaned);
-    },
+    (value: string | number | null | undefined) => normalizeBackendText(value, language),
     [language],
   );
   const tenGodMeta = React.useMemo(() => resolveTenGodMeta(language), [language]);
@@ -631,6 +607,29 @@ export default function BaziScreen() {
       setGuestPreviewLoading(false);
     }
   };
+
+  const prevLanguageRevisionRef = React.useRef(languageRevision);
+  React.useEffect(() => {
+    if (languageRevision === prevLanguageRevisionRef.current) return;
+    prevLanguageRevisionRef.current = languageRevision;
+    if (languageRevision === 0 || !guestChart) return;
+
+    const bd = normalizeBirthDate(guestBirthDate);
+    const bt = normalizeBirthTime(guestBirthTime);
+    if (!bd || !bt) return;
+
+    chartApi
+      .preview({
+        birthDate: bd,
+        birthTime: bt,
+        gender: guestGender,
+        calendarType: guestCalendarType,
+        isLeapMonth: guestLeap,
+        timezone: 'Asia/Shanghai',
+      })
+      .then(setGuestChart)
+      .catch(() => null);
+  }, [languageRevision, guestChart, guestBirthDate, guestBirthTime, guestGender, guestCalendarType, guestLeap]);
 
   const handleGuestDatePick = (nextValue: string) => {
     if (!nextValue) return;
