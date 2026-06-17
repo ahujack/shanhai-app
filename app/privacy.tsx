@@ -1,7 +1,9 @@
 import React from 'react';
 import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SeoHead } from '../components/SeoHead';
 import { useI18nStore } from '../src/store/i18n';
+import { STATIC_PAGE_SEO } from '../src/seo/site';
 
 const colors = {
   background: '#1A1A2E',
@@ -200,7 +202,9 @@ export default function PrivacyPolicyScreen() {
         };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <>
+      <SeoHead {...STATIC_PAGE_SEO.privacy} />
+      <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.lastUpdate}>{copy.lastUpdate}</Text>
@@ -219,6 +223,7 @@ export default function PrivacyPolicyScreen() {
         <Text style={styles.footer}>{copy.footer}</Text>
       </ScrollView>
     </View>
+    </>
   );
 }
 

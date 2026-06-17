@@ -1,46 +1,47 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
+import { HOME_SEO, SEO_SITE, buildOrganizationJsonLd, buildWebSiteJsonLd } from '../src/seo/site';
 
-// This file is web-only and used to configure the root HTML for every
-// web page during static rendering.
-// The contents of this function only run in Node.js environments and
-// do not have access to the DOM or browser APIs.
+// This file is web-only and configures the root HTML shell for static rendering.
 export default function Root({ children }: { children: React.ReactNode }) {
+  const organizationJsonLd = JSON.stringify(buildOrganizationJsonLd());
+  const websiteJsonLd = JSON.stringify(buildWebSiteJsonLd());
+
   return (
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta
-          name="description"
-          content="Shanhai Realm — AI-assisted BaZi, Chinese character divination (测字), I Ching readings, and daily fortune. Entertainment only."
-        />
-        <meta property="og:site_name" content="Shanhai Realm" />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://www.shanhai.app/" />
-        <meta
-          property="og:description"
-          content="AI tools for Eastern insight: BaZi chart, CeZi, I Ching divination, daily oracle slips."
-        />
-        <meta name="twitter:card" content="summary_large_image" />
+        <title>{HOME_SEO.title}</title>
+        <meta name="description" content={HOME_SEO.description} />
+        <meta name="keywords" content={HOME_SEO.keywords} />
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content={SEO_SITE.name} />
+        <meta name="theme-color" content={SEO_SITE.themeColor} />
+        <link rel="canonical" href={HOME_SEO.canonical} />
 
-        {/* 
-          This viewport disables scaling which makes the mobile website act more like a native app.
-          However this does reduce built-in accessibility. If you want to enable scaling, use this instead:
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-        */}
+        <meta property="og:site_name" content={SEO_SITE.name} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={HOME_SEO.canonical} />
+        <meta property="og:title" content={HOME_SEO.title} />
+        <meta property="og:description" content={HOME_SEO.description} />
+        <meta property="og:image" content={SEO_SITE.ogImage} />
+        <meta property="og:locale" content={SEO_SITE.locale} />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content={SEO_SITE.twitterHandle} />
+        <meta name="twitter:title" content={HOME_SEO.title} />
+        <meta name="twitter:description" content={HOME_SEO.description} />
+        <meta name="twitter:image" content={SEO_SITE.ogImage} />
+
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: organizationJsonLd }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: websiteJsonLd }} />
+
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1.0, viewport-fit=cover"
         />
-        {/* 
-          Disable body scrolling on web. This makes ScrollView components work closer to how they do on native. 
-          However, body scrolling is often nice to have for mobile web. If you want to enable it, remove this line.
-        */}
         <ScrollViewStyleReset />
-
-        {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
-        {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
       <body>{children}</body>
     </html>

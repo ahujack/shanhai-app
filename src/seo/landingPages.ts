@@ -1,3 +1,5 @@
+import { SEO_SITE } from './site';
+
 export type LandingFaq = { question: string; answer: string };
 
 export type LandingPageConfig = {
@@ -22,7 +24,7 @@ export type LandingPageConfig = {
   cta: { primary: string; secondary: string };
 };
 
-const SITE = 'https://www.shanhai.app';
+const SITE = SEO_SITE.url;
 
 export const LANDING_PAGE_LIST: LandingPageConfig[] = [
   {

@@ -1,14 +1,25 @@
 /**
  * Post-process expo static export: inject per-route <title> and meta tags.
  * Run after: npx expo export --platform web
+ *
+ * Keep page titles/descriptions aligned with src/seo/site.ts and landingPages.ts.
  */
 const fs = require('fs');
 const path = require('path');
 
 const DIST = path.join(__dirname, '..', 'dist');
+const OG_IMAGE = 'https://www.shanhai.app/og-image.png';
 
-/** Keep in sync with src/seo/landingPages.ts */
 const PAGES = [
+  {
+    file: 'index.html',
+    title: 'Shanhai Realm | AI BaZi, CeZi, I Ching & Daily Fortune',
+    description:
+      'Shanhai Realm is an AI-assisted Eastern metaphysics companion: BaZi Four Pillars chart, Chinese character divination (测字), I Ching readings, and daily oracle slips. Entertainment only.',
+    keywords:
+      'shanhai realm, bazi calculator, chinese character divination, cezi, i ching reading, daily fortune, 八字, 测字, 占卜, 山海灵境',
+    canonical: 'https://www.shanhai.app/',
+  },
   {
     file: 'bazi-calculator.html',
     title: 'BaZi Chart Calculator Online | Four Pillars AI Reading | Shanhai Realm',
@@ -53,6 +64,38 @@ const PAGES = [
     keywords: 'chinese metaphysics app, bazi, cezi, i ching, daily fortune, shanhai realm',
     canonical: 'https://www.shanhai.app/tools',
   },
+  {
+    file: 'pricing.html',
+    title: 'Pricing & Membership | Shanhai Realm',
+    description:
+      'Compare Shanhai Realm free and VIP plans. Unlock deeper BaZi commentary, unlimited readings, and premium AI guidance. Points packs available.',
+    keywords: 'shanhai realm pricing, membership, vip, points, bazi premium',
+    canonical: 'https://www.shanhai.app/pricing',
+  },
+  {
+    file: 'faq.html',
+    title: 'FAQ | Shanhai Realm — BaZi, CeZi & I Ching Help',
+    description:
+      'Answers about Shanhai Realm: points, VIP benefits, check-in rewards, data privacy, and how AI-assisted BaZi, 测字, and I Ching readings work.',
+    keywords: 'shanhai realm faq, help, points, vip, bazi help',
+    canonical: 'https://www.shanhai.app/faq',
+  },
+  {
+    file: 'privacy.html',
+    title: 'Privacy Policy | Shanhai Realm',
+    description:
+      'How Shanhai Realm collects, uses, and protects your account, birth chart, and usage data. We do not sell personal information.',
+    keywords: 'shanhai realm privacy policy, data protection',
+    canonical: 'https://www.shanhai.app/privacy',
+  },
+  {
+    file: 'terms.html',
+    title: 'Terms of Service | Shanhai Realm',
+    description:
+      'Terms for using Shanhai Realm AI metaphysics tools. Readings are for entertainment and inspiration only — not medical, legal, or financial advice.',
+    keywords: 'shanhai realm terms of service, disclaimer',
+    canonical: 'https://www.shanhai.app/terms',
+  },
 ];
 
 function escapeHtml(value) {
@@ -74,6 +117,7 @@ function injectPage(config) {
   const description = escapeHtml(config.description);
   const keywords = escapeHtml(config.keywords);
   const canonical = escapeHtml(config.canonical);
+  const ogImage = escapeHtml(OG_IMAGE);
 
   html = html.replace(/<title[^>]*>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
   html = html.replace(
@@ -83,11 +127,14 @@ function injectPage(config) {
 
   const extraMeta = [
     `<meta name="keywords" content="${keywords}"/>`,
+    `<meta name="robots" content="index, follow"/>`,
     `<meta property="og:title" content="${title}"/>`,
     `<meta property="og:description" content="${description}"/>`,
     `<meta property="og:url" content="${canonical}"/>`,
+    `<meta property="og:image" content="${ogImage}"/>`,
     `<meta name="twitter:title" content="${title}"/>`,
     `<meta name="twitter:description" content="${description}"/>`,
+    `<meta name="twitter:image" content="${ogImage}"/>`,
     `<link rel="canonical" href="${canonical}"/>`,
   ].join('');
 

@@ -2,11 +2,12 @@ import React from 'react';
 import { ScrollView, Text, View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import Head from 'expo-router/head';
 import theme from '../constants/Colors';
 import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
+import { SeoHead } from '../components/SeoHead';
 import { LANDING_PAGE_LIST, TOOLS_HUB } from '../src/seo/landingPages';
 import { trackNamedEvent } from '../src/services/analytics';
+import { SEO_SITE, buildBreadcrumbJsonLd } from '../src/seo/site';
 
 const colors = theme.dark;
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
@@ -17,15 +18,16 @@ export default function ToolsHubScreen() {
 
   return (
     <>
-      <Head>
-        <title>{TOOLS_HUB.seo.title}</title>
-        <meta name="description" content={TOOLS_HUB.seo.description} />
-        <meta name="keywords" content={TOOLS_HUB.seo.keywords} />
-        <meta property="og:title" content={TOOLS_HUB.seo.title} />
-        <meta property="og:description" content={TOOLS_HUB.seo.description} />
-        <meta property="og:url" content={TOOLS_HUB.canonical} />
-        <link rel="canonical" href={TOOLS_HUB.canonical} />
-      </Head>
+      <SeoHead
+        title={TOOLS_HUB.seo.title}
+        description={TOOLS_HUB.seo.description}
+        keywords={TOOLS_HUB.seo.keywords}
+        canonical={TOOLS_HUB.canonical}
+        jsonLd={buildBreadcrumbJsonLd([
+          { name: SEO_SITE.name, url: SEO_SITE.url },
+          { name: 'Tools', url: TOOLS_HUB.canonical },
+        ])}
+      />
 
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.topBar}>

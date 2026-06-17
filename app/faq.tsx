@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ScrollView, Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SeoHead } from '../components/SeoHead';
 import { useI18nStore } from '../src/store/i18n';
+import { STATIC_PAGE_SEO, buildFaqPageJsonLd } from '../src/seo/site';
 
 const colors = {
   background: '#1A1A2E',
@@ -79,7 +81,9 @@ export default function FAQScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <>
+      <SeoHead {...STATIC_PAGE_SEO.faq} jsonLd={buildFaqPageJsonLd()} />
+      <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <Text style={styles.title}>{pageTitle}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
@@ -107,6 +111,7 @@ export default function FAQScreen() {
         </View>
       </ScrollView>
     </View>
+    </>
   );
 }
 

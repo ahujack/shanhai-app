@@ -27,7 +27,13 @@ export function SiteComplianceFooter({ variant = 'compact' }: Props) {
 
   const isDock = variant === 'dock';
 
-  const FooterLink = ({ label, href }: { label: string; href: '/privacy' | '/terms' | '/pricing' | '/faq' }) => (
+  const FooterLink = ({
+    label,
+    href,
+  }: {
+    label: string;
+    href: '/privacy' | '/terms' | '/pricing' | '/faq' | '/tools';
+  }) => (
     <Pressable
       onPress={() => router.push(href)}
       accessibilityRole="link"

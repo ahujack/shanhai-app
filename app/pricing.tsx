@@ -12,9 +12,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { paymentApi, PaymentProduct } from '../src/services/api';
 import { SiteComplianceFooter, SUPPORT_EMAIL } from '../components/SiteComplianceFooter';
+import { SeoHead } from '../components/SeoHead';
 import { trackNamedEvent } from '../src/services/analytics';
 import { getGrowthConfig, type GrowthConfig } from '../src/config/growth';
 import { useI18nStore } from '../src/store/i18n';
+import { STATIC_PAGE_SEO } from '../src/seo/site';
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
 const ui = {
@@ -95,7 +97,9 @@ export default function PricingScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <>
+      <SeoHead {...STATIC_PAGE_SEO.pricing} />
+      <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, webPointer]} hitSlop={12}>
           <Text style={styles.backText}>{t('common.back', '‹ 返回')}</Text>
@@ -206,6 +210,7 @@ export default function PricingScreen() {
         <SiteComplianceFooter variant="full" />
       </ScrollView>
     </View>
+    </>
   );
 }
 

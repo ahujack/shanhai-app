@@ -10,14 +10,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import Head from 'expo-router/head';
 import theme from '../constants/Colors';
 import { SiteComplianceFooter } from './SiteComplianceFooter';
+import { SeoHead } from './SeoHead';
 import { trackNamedEvent } from '../src/services/analytics';
 import {
   LANDING_PAGES,
   type LandingPageConfig,
 } from '../src/seo/landingPages';
+import { SEO_SITE, buildBreadcrumbJsonLd } from '../src/seo/site';
 
 const colors = theme.dark;
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
@@ -67,8 +68,11 @@ export default function SeoLandingPage({ page }: Props) {
     .map((slug) => LANDING_PAGES[slug])
     .filter(Boolean);
 
-  const faqJsonLd = JSON.stringify(buildFaqJsonLd(page));
-  const webAppJsonLd = JSON.stringify(buildWebAppJsonLd(page));
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: SEO_SITE.name, url: SEO_SITE.url },
+    { name: 'Tools', url: `${SEO_SITE.url}/tools` },
+    { name: page.hero.badge, url: page.canonical },
+  ]);
 
   const goPrimary = () => {
     trackNamedEvent('seo_landing_cta', { slug: page.slug, target: 'primary' });
@@ -87,22 +91,13 @@ export default function SeoLandingPage({ page }: Props) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Head>
-        <title>{page.seo.title}</title>
-        <meta name="description" content={page.seo.description} />
-        <meta name="keywords" content={page.seo.keywords} />
-        <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="Shanhai Realm" />
-        <meta property="og:title" content={page.seo.title} />
-        <meta property="og:description" content={page.seo.description} />
-        <meta property="og:url" content={page.canonical} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={page.seo.title} />
-        <meta name="twitter:description" content={page.seo.description} />
-        <link rel="canonical" href={page.canonical} />
-        <script type="application/ld+json">{faqJsonLd}</script>
-        <script type="application/ld+json">{webAppJsonLd}</script>
-      </Head>
+      <SeoHead
+        title={page.seo.title}
+        description={page.seo.description}
+        keywords={page.seo.keywords}
+        canonical={page.canonical}
+        jsonLd={[buildFaqJsonLd(page), buildWebAppJsonLd(page), breadcrumbJsonLd]}
+      />
 
       <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, webPointer]} hitSlop={12}>
