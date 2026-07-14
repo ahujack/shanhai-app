@@ -17,9 +17,9 @@ export type SeoMeta = {
 };
 
 export const HOME_SEO: SeoMeta = {
-  title: 'Shanhai Realm | AI BaZi, CeZi, I Ching & Daily Fortune',
+  title: 'Shanhai Realm | Eastern Metaphysics AI Companion for Life Decisions',
   description:
-    'Shanhai Realm is an AI-assisted Eastern metaphysics companion: BaZi Four Pillars chart, Chinese character divination (测字), I Ching readings, and daily oracle slips. Entertainment only.',
+    'Shanhai Realm helps overseas Chinese users process relationships, career choices, and life uncertainty with an AI companion grounded in BaZi, CeZi, I Ching, and daily oracle slips. Entertainment only.',
   keywords:
     'shanhai realm, bazi calculator, chinese character divination, cezi, i ching reading, daily fortune, 八字, 测字, 占卜, 山海灵境',
   canonical: SEO_SITE.url,
@@ -36,7 +36,7 @@ export const STATIC_PAGE_SEO = {
   faq: {
     title: 'FAQ | Shanhai Realm — BaZi, CeZi & I Ching Help',
     description:
-      'Answers about Shanhai Realm: points, VIP benefits, check-in rewards, data privacy, and how AI-assisted BaZi, 测字, and I Ching readings work.',
+      'Answers about Shanhai Realm: how the AI companion helps with life decisions, points, VIP benefits, check-in rewards, data privacy, and BaZi, 测字, and I Ching readings.',
     keywords: 'shanhai realm faq, help, points, vip, bazi help',
     canonical: `${SEO_SITE.url}/faq`,
   },
@@ -61,7 +61,7 @@ export const FAQ_SCHEMA_ITEMS = [
   {
     question: 'What is Shanhai Realm?',
     answer:
-      'Shanhai Realm is an AI-assisted destiny interpretation product inspired by traditional Eastern metaphysics, including BaZi, character divination, and I Ching readings.',
+      'Shanhai Realm is an AI companion for overseas Chinese users who want to reflect on relationships, career choices, and uncertainty through traditional Eastern metaphysics, including BaZi, character divination, and I Ching readings.',
   },
   {
     question: 'Are readings guaranteed accurate?',

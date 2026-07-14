@@ -76,24 +76,24 @@ export default function HomeScreen() {
   const quickStartPrompts = React.useMemo(
     () => [
       {
-        label: t('home.quick.relationship.label', '关系'),
-        sub: t('home.quick.relationship.sub', '先判断要不要继续'),
-        prompt: t('home.quick.relationship.prompt', '我现在这段感情该不该继续？请先给一句结论，再给我下一步。'),
+        label: t('home.quick.relationship.label', '要不要继续'),
+        sub: t('home.quick.relationship.sub', '关系卡住时'),
+        prompt: t('home.quick.relationship.prompt', '我现在这段关系让我很消耗，但又放不下。请先给一句结论，再用卦象/心理状态帮我判断下一步。'),
       },
       {
-        label: t('home.quick.career.label', '事业'),
-        sub: t('home.quick.career.sub', '帮我看近期决策'),
-        prompt: t('home.quick.career.prompt', '我最近在工作上很纠结，想知道现在该稳住还是主动调整。'),
+        label: t('home.quick.career.label', '要不要换方向'),
+        sub: t('home.quick.career.sub', '工作/签证压力'),
+        prompt: t('home.quick.career.prompt', '我最近在工作和身份规划上很纠结，想知道现在该稳住、跳槽，还是先做准备。请给我一个清晰判断。'),
       },
       {
-        label: t('home.quick.chart.label', '命盘'),
-        sub: t('home.quick.chart.sub', '用命盘看趋势'),
-        prompt: t('home.quick.chart.prompt', '结合我的命盘，帮我看接下来一个月的重点趋势和避坑点。'),
+        label: t('home.quick.chart.label', '下个月重点'),
+        sub: t('home.quick.chart.sub', '用命盘看节奏'),
+        prompt: t('home.quick.chart.prompt', '结合我的命盘，帮我看接下来一个月最该抓住什么、避开什么，以及哪件事先别急。'),
       },
       {
-        label: t('home.quick.zi.label', '测字'),
-        sub: t('home.quick.zi.sub', '先来轻量拆解'),
-        prompt: t('home.quick.zi.prompt', '我想测一个字，先帮我快速看看最近的整体状态。'),
+        label: t('home.quick.zi.label', '一个字看状态'),
+        sub: t('home.quick.zi.sub', '适合说不清时'),
+        prompt: t('home.quick.zi.prompt', '我现在说不清哪里不对劲，想用一个字测最近状态。请先引导我选字，再给我一句结论。'),
       },
     ],
     [t, language],
@@ -1002,13 +1002,27 @@ export default function HomeScreen() {
                   </View>
                   <Text style={styles.welcomePersonaName}>{localizedPersona.name}</Text>
                 </View>
-                <Text style={styles.welcomeTag}>{t('home.welcome.tag', '今日灵感')}</Text>
+                <Text style={styles.welcomeTag}>{t('home.welcome.tag', '先把一件事说清楚')}</Text>
                 <Text style={styles.welcomeText}>
-                  {localizedPersona.greeting || t('home.welcome.greetingDefault', '欢迎来到山海灵境，今天你想聊什么？')}
+                  {t('home.welcome.hero', '把最近困住你的关系、工作或人生选择说出来。{name} 会先给一句结论，再用东方命理帮你拆依据和下一步。').replace('{name}', localizedPersona.name)}
                 </Text>
                 <Text style={styles.welcomeHint}>
-                  {t('home.welcome.hint', '你可以问我关于占卜、命盘的问题，或者只是想聊聊。')}
+                  {t('home.welcome.hint', '适合海外生活里那些不方便问别人、但又一直压在心里的事。')}
                 </Text>
+                <View style={styles.valueProofRow}>
+                  <View style={styles.valueProofItem}>
+                    <Text style={styles.valueProofKicker}>{t('home.value.conclusion.kicker', '先给')}</Text>
+                    <Text style={styles.valueProofText}>{t('home.value.conclusion.text', '一句结论')}</Text>
+                  </View>
+                  <View style={styles.valueProofItem}>
+                    <Text style={styles.valueProofKicker}>{t('home.value.basis.kicker', '再看')}</Text>
+                    <Text style={styles.valueProofText}>{t('home.value.basis.text', '命理依据')}</Text>
+                  </View>
+                  <View style={styles.valueProofItem}>
+                    <Text style={styles.valueProofKicker}>{t('home.value.action.kicker', '最后')}</Text>
+                    <Text style={styles.valueProofText}>{t('home.value.action.text', '下一步')}</Text>
+                  </View>
+                </View>
                 {!user ? (
                   <TouchableOpacity style={styles.loginHintBar} onPress={() => router.push('/login')} activeOpacity={0.8}>
                     <Text style={styles.loginHintText}>
@@ -1017,7 +1031,7 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 ) : null}
                 {/* 试试问我 - 示例问题 */}
-                <Text style={styles.suggestedTitle}>{t('home.quick.title', '一键直发')}</Text>
+                <Text style={styles.suggestedTitle}>{t('home.quick.title', '不知道怎么问，就从这里开始')}</Text>
                 <View style={styles.suggestedChips}>
                   {quickStartPrompts.map((item) => (
                     <TouchableOpacity
@@ -1099,18 +1113,18 @@ export default function HomeScreen() {
                     void handleSend();
                     return;
                   }
-                  setInputText(t('home.input.seed', '我最近有点纠结，想听你先给一句结论。'));
+                  setInputText(t('home.input.seed', '我最近被一件事卡住了，想先听你给一句结论。'));
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={styles.entryActionPrimaryText}>{t('home.entry.start', '开始对话')}</Text>
+                <Text style={styles.entryActionPrimaryText}>{t('home.entry.start', '先给我结论')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.entryActionBtn, styles.entryActionSecondary]}
                 onPress={openDrawModal}
                 activeOpacity={0.85}
               >
-                <Text style={styles.entryActionSecondaryText}>{t('home.entry.draw', '去抽签')}</Text>
+                <Text style={styles.entryActionSecondaryText}>{t('home.entry.draw', '今日抽签')}</Text>
               </TouchableOpacity>
             </View>
             {isLoading ? (
@@ -1132,8 +1146,8 @@ export default function HomeScreen() {
                 style={styles.input}
                 placeholder={
                   Platform.OS === 'web'
-                    ? t('home.input.web', '输入问题（回车发送，Shift+回车换行）...')
-                    : t('home.input.mobile', '输入你的问题或心声...')
+                    ? t('home.input.web', '说出卡住你的那件事，例如：这段关系还要继续吗？')
+                    : t('home.input.mobile', '说出卡住你的那件事...')
                 }
                 placeholderTextColor="#6F6287"
                 value={inputText}
@@ -2266,17 +2280,49 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   welcomeText: {
-    fontSize: 14,
+    fontSize: 17,
     color: '#E8ECF3',
-    lineHeight: 21,
+    lineHeight: 25,
     marginBottom: 10,
     textAlign: 'center',
+    fontWeight: '700',
   },
   welcomeHint: {
     fontSize: 13,
     color: '#AAB3C5',
     textAlign: 'center',
     marginBottom: 4,
+    lineHeight: 19,
+  },
+  valueProofRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  valueProofItem: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#33415A',
+    backgroundColor: '#1A2233',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    justifyContent: 'center',
+  },
+  valueProofKicker: {
+    color: '#94A0B8',
+    fontSize: 11,
+    marginBottom: 3,
+    textAlign: 'center',
+  },
+  valueProofText: {
+    color: '#F1D188',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   suggestedTitle: {
     color: '#D6B36A',

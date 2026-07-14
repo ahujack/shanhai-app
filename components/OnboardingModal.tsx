@@ -5,9 +5,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const ONBOARDING_KEY = 'shanhai_has_seen_onboarding';
 
 const slides = [
-  { title: '欢迎来到山海灵境', desc: '探索命运、测字占卜、八字命盘\n与 AI 灵伴对话，寻找内心答案', emoji: '🔮' },
-  { title: '四大核心功能', desc: '对话 · 测字 · 占卜 · 八字\n抽签、冥想、每日运势', emoji: '✨' },
-  { title: '开始探索', desc: '试试问我今日运势，或抽一签\n登录后保存记录、解锁更多', emoji: '🌟' },
+  { title: '先说出卡住你的事', desc: '关系、工作、身份规划、家庭压力\n不用整理得很完美，直接说就好', emoji: '🔮' },
+  { title: '先给结论，再拆依据', desc: '灵伴会先回应你真正纠结的点\n再用八字、测字或卦象给下一步', emoji: '✨' },
+  { title: '把陪伴留下来', desc: '登录后保存命盘、解读和积分\n让每次追问都接得上上一次', emoji: '🌟' },
 ];
 
 export default function OnboardingModal() {
@@ -65,7 +65,7 @@ export default function OnboardingModal() {
             ))}
           </View>
           <TouchableOpacity style={styles.primaryBtn} onPress={handleNext}>
-            <Text style={styles.primaryBtnText}>{isLast ? '开始探索' : '下一步'}</Text>
+            <Text style={styles.primaryBtnText}>{isLast ? '先说一件事' : '下一步'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
             <Text style={styles.skipText}>跳过</Text>
