@@ -7,6 +7,7 @@ import { readingApi, CreateReadingDto, DivinationResult, pointsApi } from '../..
 import { trackFeature, trackNamedEvent } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import ResultShareCard from '../../components/ResultShareCard';
+import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
@@ -483,23 +484,31 @@ export default function ReadingScreen() {
             {t('reading.result.tone', '情绪趋势')}：{result.conclusion?.emotionalTone || t('reading.result.neutral', '中性')}  |  {t('reading.result.confidence', '置信度')}：{result.conclusion?.confidence || confidence}%
           </Text>
           <Text style={styles.conclusionNext}>{t('reading.result.next', '下一步')}：{result.conclusion?.nextStep || t('reading.result.nextFallback', '先稳住节奏，再做决定。')}</Text>
-          <TouchableOpacity style={styles.quickChatBtn} onPress={handleDeepConversation}>
-            <Text style={styles.quickChatBtnText}>{t('reading.result.talkFeelings', '先聊聊我的感受')}</Text>
-          </TouchableOpacity>
-          {!isVip && (
-            <View style={styles.conclusionActionsRow}>
-              <TouchableOpacity style={styles.conclusionSecondaryBtn} onPress={openPricingWithTrack}>
-                <Text style={styles.conclusionSecondaryText}>{t('reading.result.comparePlans', '看方案对比')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.conclusionSecondaryBtn} onPress={openVipPlanWithTrack}>
-                <Text style={styles.conclusionSecondaryText}>{t('reading.result.memberBenefits', '看会员权益')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
           <TouchableOpacity style={styles.toggleDetailsButton} onPress={() => setShowDetails((v) => !v)}>
             <Text style={styles.toggleDetailsText}>{showDetails ? t('reading.result.hideDetails', '收起完整细节') : t('reading.result.showDetails', '展开完整细节')}</Text>
           </TouchableOpacity>
         </View>
+
+        <DeliveryNextStepCard
+          title={t('reading.result.delivery.title', '接下来做什么')}
+          summary={result.conclusion?.nextStep || t('reading.result.nextFallback', '先稳住节奏，再做决定。')}
+          primary={{
+            label: t('reading.result.delivery.chat', '继续聊这件事'),
+            onPress: handleDeepConversation,
+          }}
+          secondary={
+            !isVip
+              ? {
+                  label: t('reading.result.delivery.upgrade', '解锁深度追问'),
+                  onPress: openVipPlanWithTrack,
+                }
+              : null
+          }
+          tertiary={{
+            label: t('reading.result.delivery.again', '再测一次'),
+            onPress: handleReset,
+          }}
+        />
 
         {showDetails && (
           <>

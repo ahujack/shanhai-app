@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Image, Pressable, Dimensions } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Image, Pressable, Dimensions, ImageStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -914,7 +914,7 @@ export default function HomeScreen() {
                 activeOpacity={0.75}
               >
                 <View style={styles.personaAvatarWrap}>
-                  <Image source={personaAvatarSource} style={styles.personaAvatar} resizeMode="cover" />
+                  <Image source={personaAvatarSource} style={styles.personaAvatar as ImageStyle} resizeMode="cover" />
                 </View>
                 <View style={styles.personaChipTextCol}>
                   <Text style={styles.personaChipLabel}>{t('home.persona', '灵伴')}</Text>
@@ -2108,7 +2108,7 @@ const styles = StyleSheet.create({
   },
   headerRightCompact: {
     flex: 0,
-    maxWidth: 'none',
+    maxWidth: 999,
     gap: 6,
   },
   checkInButton: {

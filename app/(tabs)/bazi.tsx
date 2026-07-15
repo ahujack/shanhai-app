@@ -10,6 +10,7 @@ import { userApi, chartApi, BaziChart } from '../../src/services/api';
 import { useI18nStore } from '../../src/store/i18n';
 import { normalizeBackendText } from '../../src/utils/backendText';
 import ResultShareCard from '../../components/ResultShareCard';
+import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 
 const colors = theme.dark;
 
@@ -944,10 +945,33 @@ export default function BaziScreen() {
         <Text style={styles.bodyMuted}>{tenGodMeta[storedGod]?.empathy || tx('我们先从你最在意的感受聊起。', 'Let us start from what you care most.', '我們先從你最在意的感受聊起。')}</Text>
         <Text style={styles.body}>{normalizeChartText(c.conclusion?.overall) || tx('你的命盘呈现稳中有进的结构。', 'Your chart shows a steady-upward pattern.', '你的命盤呈現穩中有進的結構。')}</Text>
         <Text style={styles.bodyMuted}>{normalizeChartText(c.conclusion?.mindset) || tx('建议先稳住内在节奏，再扩展外部机会。', 'Stabilize inner rhythm first, then expand externally.', '建議先穩住內在節奏，再擴展外部機會。')}</Text>
-        <TouchableOpacity style={styles.chatCtaBtn} onPress={goBaziDeepChat}>
-          <Text style={styles.chatCtaText}>{tx('去对话深入探讨这份八字', 'Discuss this chart in chat', '去對話深入探討這份八字')}</Text>
-        </TouchableOpacity>
       </View>
+
+      <DeliveryNextStepCard
+        title={tx('接下来做什么', 'Next step', '接下來做什麼')}
+        summary={normalizeChartText(c.conclusion?.mindset) || tx('先从最影响你当下判断的一件事继续聊。', 'Continue with the one issue affecting your decisions most.', '先從最影響你當下判斷的一件事繼續聊。')}
+        primary={{
+          label: tx('去对话深入探讨这份八字', 'Discuss this chart in chat', '去對話深入探討這份八字'),
+          onPress: goBaziDeepChat,
+        }}
+        secondary={
+          !user
+            ? {
+                label: tx('登录保存命盘', 'Log in to save chart', '登入保存命盤'),
+                onPress: () => router.push('/login'),
+              }
+            : userAccessTier !== 'vip'
+            ? {
+                label: tx('升级深度版', 'Upgrade to deep tier', '升級深度版'),
+                onPress: () => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } }),
+              }
+            : null
+        }
+        tertiary={{
+          label: viewMode === 'compact' ? tx('看专业模式', 'View pro mode', '看專業模式') : tx('看简洁模式', 'View compact mode', '看簡潔模式'),
+          onPress: () => setViewMode(viewMode === 'compact' ? 'pro' : 'compact'),
+        }}
+      />
 
       <ResultShareCard
         kind="bazi"

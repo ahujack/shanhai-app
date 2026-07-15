@@ -21,6 +21,7 @@ import { ziApi, ZiResult, handwritingApi, pointsApi } from '../../src/services/a
 import { trackFeature } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import ResultShareCard from '../../components/ResultShareCard';
+import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { useUserStore } from '../../src/store/user';
 import { isMembershipActive } from '../../src/utils/membership';
@@ -1436,6 +1437,33 @@ export default function ZiScreen() {
               </View>
             </View>
 
+            <DeliveryNextStepCard
+              title={tx('接下来做什么', 'Next step', '接下來做什麼')}
+              summary={normalizeZiText(result.interpretation.advice?.[0]) || tx('先把这次解读落到一个具体问题上。', 'Turn this reading into one concrete question.', '先把這次解讀落到一個具體問題上。')}
+              primary={{
+                label: tx('去对话里继续问', 'Continue in chat', '去對話裡繼續問'),
+                onPress: () => handleFollowUpQuestion(''),
+              }}
+              secondary={
+                !user
+                  ? {
+                      label: tx('登录保存结果', 'Log in to save', '登入保存結果'),
+                      onPress: () => router.push('/login'),
+                    }
+                  : !isVip
+                  ? {
+                      label: tx('升级深度版', 'Upgrade deep tier', '升級深度版'),
+                      onPress: () => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } }),
+                    }
+                  : null
+              }
+              tertiary={{
+                label: tx('按方向重解读', 'Re-read by focus', '按方向重解讀'),
+                onPress: handleFocusedReanalyze,
+                disabled: isLoading,
+              }}
+            />
+
             {!isPreviewStage && (
               <ResultShareCard
                 kind="zi"
@@ -1451,17 +1479,6 @@ export default function ZiScreen() {
               context={{ zi: result.zi?.zi, aspect: getFocusAspect() }}
             />
 
-            {/* 后续问题 - 可点击跳转聊天 */}
-            {result.followUpQuestions.length > 0 && (
-              <View style={styles.section}>
-                <TouchableOpacity 
-                  style={styles.continueChatButton}
-                  onPress={() => handleFollowUpQuestion('')}
-                >
-                  <Text style={styles.continueChatText}>{tx('💬 继续聊聊这个字', '💬 Continue chatting about this character', '💬 繼續聊聊這個字')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </>
         )}
 
