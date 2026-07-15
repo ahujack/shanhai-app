@@ -657,7 +657,7 @@ export default function BaziScreen() {
       return (
         <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
           <Text style={styles.title}>{tx('📜 八字看盘', '📜 Bazi Chart', '📜 八字看盤')}</Text>
-          <Text style={styles.sub}>{tx('未登录可试算（结果仅本次会话展示，不保存）', 'Guest preview available (not saved)', '未登入可試算（結果僅本次會話展示，不保存）')}</Text>
+          <Text style={styles.sub}>{tx('未登录也能先试算。登录后可保存命盘，并在对话里继续追问。', 'Preview as a guest. Log in to save the chart and continue in chat.', '未登入也能先試算。登入後可保存命盤，並在對話裡繼續追問。')}</Text>
           <Text style={styles.fieldLabel}>{tx('出生日期', 'Birth Date', '出生日期')}</Text>
           <TextInput
             style={styles.input}
@@ -761,11 +761,11 @@ export default function BaziScreen() {
             {guestPreviewLoading ? (
               <ActivityIndicator color="#1A0A18" />
             ) : (
-              <Text style={styles.primaryBtnText}>{tx('试算八字', 'Preview Chart', '試算八字')}</Text>
+              <Text style={styles.primaryBtnText}>{tx('先试算一次', 'Preview once', '先試算一次')}</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/login')} style={{ marginTop: 16 }}>
-            <Text style={styles.link}>{tx('登录后保存命盘', 'Log in to save chart', '登入後保存命盤')}</Text>
+            <Text style={styles.link}>{tx('登录保存命盘', 'Log in to save chart', '登入保存命盤')}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -774,10 +774,10 @@ export default function BaziScreen() {
     return (
       <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <Text style={styles.title}>{tx('📜 八字看盘', '📜 Bazi Chart', '📜 八字看盤')}</Text>
-        <Text style={styles.sub}>{tx('先生成命盘，再查看十神与五行结构', 'Generate chart first, then view structure', '先生成命盤，再查看十神與五行結構')}</Text>
+        <Text style={styles.sub}>{tx('先生成命盘，再看格局、近期节奏和可追问方向。', 'Generate your chart first, then view pattern, rhythm, and follow-up directions.', '先生成命盤，再看格局、近期節奏和可追問方向。')}</Text>
         {genError && <Text style={styles.errorText}>{genError}</Text>}
         <TouchableOpacity style={styles.primaryBtn} onPress={handleGenerate} disabled={isLoading}>
-          <Text style={styles.primaryBtnText}>{isLoading ? tx('生成中...', 'Generating...', '生成中...') : tx('生成我的命盘', 'Generate My Chart', '生成我的命盤')}</Text>
+          <Text style={styles.primaryBtnText}>{isLoading ? tx('生成中...', 'Generating...', '生成中...') : tx('生成并查看命盘', 'Generate and view chart', '生成並查看命盤')}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setShowInlineBirthForm((v) => !v)}>
           <Text style={styles.link}>{showInlineBirthForm ? tx('收起填写表单', 'Hide form', '收起填寫表單') : tx('在当前页填写出生信息', 'Fill birth info here', '在當前頁填寫出生資訊')}</Text>
@@ -913,7 +913,7 @@ export default function BaziScreen() {
       {!user && guestChart ? (
         <View style={styles.guestBanner}>
           <Text style={styles.guestBannerText}>
-            {tx('试算模式：登录并完善资料后可保存命盘', 'Trial mode: log in to save your chart', '試算模式：登入並完善資料後可保存命盤')}
+            {tx('试算模式：登录后可保存命盘，下次继续追问', 'Trial mode: log in to save and continue later', '試算模式：登入後可保存命盤，下次繼續追問')}
           </Text>
         </View>
       ) : null}

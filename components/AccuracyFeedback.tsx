@@ -11,9 +11,9 @@ type Props = {
 };
 
 const LABELS: Record<AccuracyFeedbackCategory, string> = {
-  fortune_draw: '这次灵签对你有启发吗？',
-  zi_analysis: '测字解读符合你的感受吗？',
-  divination_reading: '这次卦象解读有帮助吗？',
+  fortune_draw: '这支签对你有帮助吗？',
+  zi_analysis: '这次测字贴近你的状态吗？',
+  divination_reading: '这次判断对你有帮助吗？',
 };
 
 export default function AccuracyFeedback({ category, title, context }: Props) {
@@ -79,7 +79,7 @@ export default function AccuracyFeedback({ category, title, context }: Props) {
   if (done) {
     return (
       <View style={styles.wrap}>
-        <Text style={styles.thanks}>感谢你的反馈，我们会持续改进解读质量。</Text>
+        <Text style={styles.thanks}>已收到反馈，我们会继续优化解读质量。</Text>
       </View>
     );
   }
@@ -104,18 +104,18 @@ export default function AccuracyFeedback({ category, title, context }: Props) {
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.hint}>1 星偏低，5 星很准（支持点击或滑动评分）</Text>
+      <Text style={styles.hint}>1 星不准，5 星很贴近（可点击或滑动）</Text>
       <TouchableOpacity
         style={styles.commentToggle}
         onPress={() => setShowCommentInput((v) => !v)}
         disabled={submitting}
       >
-        <Text style={styles.commentToggleText}>{showCommentInput ? '收起补充说明' : '补充说明（可选）'}</Text>
+        <Text style={styles.commentToggleText}>{showCommentInput ? '收起补充' : '补一句感受（可选）'}</Text>
       </TouchableOpacity>
       {showCommentInput ? (
         <TextInput
           style={styles.input}
-          placeholder="一句话说说哪里准/不准"
+          placeholder="哪里贴近，哪里不太准？"
           placeholderTextColor="#888"
           value={comment}
           onChangeText={setComment}

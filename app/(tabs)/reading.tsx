@@ -753,7 +753,7 @@ export default function ReadingScreen() {
             </Text>
             <View style={styles.smartCtaActions}>
               <TouchableOpacity style={styles.smartCtaPrimary} onPress={openPointsMallWithTrack}>
-                <Text style={styles.smartCtaPrimaryText}>{t('reading.paywall.recharge', '去充值积分')}</Text>
+                <Text style={styles.smartCtaPrimaryText}>{t('reading.paywall.recharge', '买积分包')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.smartCtaSecondary} onPress={openVipPlanWithTrack}>
                 <Text style={styles.smartCtaSecondaryText}>{t('reading.paywall.openVip', '开会员更划算')}</Text>

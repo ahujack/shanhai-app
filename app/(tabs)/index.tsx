@@ -1052,7 +1052,7 @@ export default function HomeScreen() {
 
           {showZiNudge && !showZiModal && (
             <View style={styles.ziNudgeCard}>
-              <Text style={styles.ziNudgeTitle}>{t('home.ziNudge.title', '✍️ 要不要试试测字小游戏？')}</Text>
+              <Text style={styles.ziNudgeTitle}>{t('home.ziNudge.title', '✍️ 要不要用一个字看状态？')}</Text>
               <Text style={styles.ziNudgeText}>
                 {t('home.ziNudge.desc', '你刚聊到一个具体困扰，我可以用「{zi}」帮你做一版轻量拆解。').replace(
                   '{zi}',

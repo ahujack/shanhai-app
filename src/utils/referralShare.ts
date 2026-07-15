@@ -63,8 +63,8 @@ function pickCopy(language: AppLanguage, kind: ResultShareKind): { label: string
     language === 'en-US'
       ? 'Register with my invite link — we both get +50 points!'
       : language === 'zh-TW'
-        ? '用我的邀請連結註冊，你我都可獲得 +50 積分！'
-        : '用我的邀请链接注册，你我各得 50 积分！';
+        ? '用我的連結註冊，你我各得 50 積分。'
+        : '用我的链接注册，你我各得 50 积分。';
 
   return { label: kindLabel, inviteLine };
 }
@@ -91,12 +91,12 @@ export function buildResultShareCopy(params: {
     return {
       title: 'Shanhai Realm',
       body: [
-        `🔮 I just tried ${label} on Shanhai Realm`,
-        safeHeadline ? `📌 Result: ${safeHeadline}` : '',
-        safeSummary ? `💬 It read: ${safeSummary}` : '',
+        `🔮 I just used Shanhai Realm for a ${label}`,
+        safeHeadline ? `📌 Main takeaway: ${safeHeadline}` : '',
+        safeSummary ? `💬 Note: ${safeSummary}` : '',
         referralCode ? `\nInvite code: ${referralCode}` : '',
         inviteLine,
-        `\nTry it: ${url}`,
+        `\nTry it here: ${url}`,
         '\nFor entertainment reference only.',
       ]
         .filter(Boolean)
@@ -107,10 +107,10 @@ export function buildResultShareCopy(params: {
 
   const brand = language === 'zh-TW' ? '山海靈境' : '山海灵境';
   const intro = language === 'zh-TW'
-    ? `🔮 我剛在${brand}做了一次${label}`
-    : `🔮 我刚在${brand}做了一次${label}`;
-  const resultLabel = language === 'zh-TW' ? '📌 結果：' : '📌 结果：';
-  const summaryLabel = language === 'zh-TW' ? '💬 解讀說：' : '💬 解读说：';
+    ? `🔮 我剛在${brand}看了一次${label}`
+    : `🔮 我刚在${brand}看了一次${label}`;
+  const resultLabel = language === 'zh-TW' ? '📌 主要提醒：' : '📌 主要提醒：';
+  const summaryLabel = language === 'zh-TW' ? '💬 其中一句：' : '💬 其中一句：';
   const tryLabel = language === 'zh-TW' ? '立即體驗：' : '立即体验：';
   const disclaimer = language === 'zh-TW' ? '僅供娛樂參考，不構成專業建議。' : '仅供娱乐参考，不构成专业建议。';
   return {

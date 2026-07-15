@@ -5,9 +5,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const ONBOARDING_KEY = 'shanhai_has_seen_onboarding';
 
 const slides = [
-  { title: '先说出卡住你的事', desc: '关系、工作、身份规划、家庭压力\n不用整理得很完美，直接说就好', emoji: '🔮' },
-  { title: '先给结论，再拆依据', desc: '灵伴会先回应你真正纠结的点\n再用八字、测字或卦象给下一步', emoji: '✨' },
-  { title: '把陪伴留下来', desc: '登录后保存命盘、解读和积分\n让每次追问都接得上上一次', emoji: '🌟' },
+  { title: '先说一件真实的事', desc: '关系、工作、身份规划、家庭压力\n不用整理得很完美，直接说就好', emoji: '🔮' },
+  { title: '先给结论，再拆依据', desc: '先回应你真正纠结的点\n再用测字、卦象或命盘给下一步', emoji: '✨' },
+  { title: '让每次追问接得上', desc: '登录后保存命盘、解读和积分\n下次回来不用从头讲起', emoji: '🌟' },
 ];
 
 export default function OnboardingModal() {
@@ -66,7 +66,7 @@ export default function OnboardingModal() {
             ))}
           </View>
           <TouchableOpacity style={styles.primaryBtn} onPress={handleNext}>
-            <Text style={styles.primaryBtnText}>{isLast ? '先说一件事' : '下一步'}</Text>
+            <Text style={styles.primaryBtnText}>{isLast ? '开始提问' : '下一步'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
             <Text style={styles.skipText}>跳过</Text>

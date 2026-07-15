@@ -62,7 +62,7 @@ export default function ResultShareCard({
     language === 'en-US' ? en : language === 'zh-TW' ? tw : zh;
 
   const meta = KIND_META[kind];
-  const displayHeadline = headline.trim() || tx('我的解读结果', 'My reading result', '我的解讀結果');
+  const displayHeadline = headline.trim() || tx('我刚做了一次解读', 'My reading result', '我剛做了一次解讀');
   const displaySummary = summary.trim().slice(0, 160);
   const inviteUrl = referralCode ? buildReferralUrl(referralCode) : 'https://www.shanhai.app';
   const canShareImage = Platform.OS !== 'web';
@@ -72,7 +72,7 @@ export default function ResultShareCard({
     if (requireLogin && !referralCode) {
       Alert.alert(
         t('common.notice', '提示'),
-        tx('登录后可生成带邀请码的分享卡片，邀请好友各得 50 积分。', 'Log in to share with your invite code. Both sides get +50 points.', '登入後可生成帶邀請碼的分享卡片，邀請好友各得 50 積分。'),
+        tx('登录后可带邀请码分享，好友注册后你们各得 50 积分。', 'Log in to share with your invite code. Both sides get +50 points.', '登入後可帶邀請碼分享，好友註冊後你們各得 50 積分。'),
         [
           { text: t('common.cancel', '取消'), style: 'cancel' },
           { text: t('common.login', '去登录'), onPress: () => router.push('/login') },
@@ -156,7 +156,7 @@ export default function ResultShareCard({
                 <Text style={styles.inviteLabel}>{tx('邀请码', 'Invite code', '邀請碼')}</Text>
                 <Text style={styles.inviteCode}>{referralCode}</Text>
                 <Text style={styles.inviteHint} numberOfLines={1}>
-                  {tx('注册各得 50 积分', 'Both get +50 pts', '註冊各得 50 積分')}
+                  {tx('好友注册，你们各得 50 积分', 'Both get +50 pts', '好友註冊，你們各得 50 積分')}
                 </Text>
               </>
             ) : (
@@ -180,14 +180,14 @@ export default function ResultShareCard({
         ) : (
           <Text style={styles.shareBtnText}>
             {copied
-              ? tx('已复制，去分享给好友', 'Copied. Share with friends', '已複製，去分享給好友')
-              : tx('分享解读 · 邀请好友', 'Share reading · Invite friends', '分享解讀 · 邀請好友')}
+              ? tx('已复制，可以发给好友', 'Copied. Share with friends', '已複製，可以發給好友')
+              : tx('复制分享文案', 'Copy share text', '複製分享文案')}
           </Text>
         )}
       </TouchableOpacity>
       {copied ? (
         <Text style={styles.copySuccessText}>
-          {tx('已复制，可直接粘贴分享给好友', 'Copied. Paste it to share with friends.', '已複製，可直接貼上分享給好友')}
+          {tx('复制成功，可直接粘贴发给好友', 'Copied. Paste it to share with friends.', '複製成功，可直接貼上發給好友')}
         </Text>
       ) : null}
     </View>

@@ -769,7 +769,7 @@ export default function ZiScreen() {
       <View pointerEvents="none" style={[styles.wuxingAura, { backgroundColor: wuxingTheme.glow }]} />
       <View style={styles.header}>
         <Text style={styles.title}>{tx('🔮 测字问心', '🔮 Character Insight', '🔮 測字問心')}</Text>
-        <Text style={styles.subtitle}>{tx('字是心画，写一字可窥心', 'A single character mirrors your inner state', '字是心畫，寫一字可窺心')}</Text>
+        <Text style={styles.subtitle}>{tx('说不清的时候，先用一个字看状态', 'When words are unclear, start with one character', '說不清的時候，先用一個字看狀態')}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -786,7 +786,7 @@ export default function ZiScreen() {
               styles.modeButtonText,
               !isHandwritingMode && styles.modeButtonTextActive,
             ]}>
-              {tx('⌨️ 打字输入', '⌨️ Type Input', '⌨️ 打字輸入')}
+              {tx('⌨️ 打字', '⌨️ Type', '⌨️ 打字')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -800,7 +800,7 @@ export default function ZiScreen() {
               styles.modeButtonText,
               isHandwritingMode && styles.modeButtonTextActive,
             ]}>
-              {tx('✍️ 手写输入', '✍️ Handwriting', '✍️ 手寫輸入')}
+              {tx('✍️ 手写', '✍️ Handwrite', '✍️ 手寫')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -808,17 +808,17 @@ export default function ZiScreen() {
         {/* 输入区域 - 书写框优先展示 */}
         <View style={styles.inputSection}>
           <Text style={styles.sectionTitle}>
-            {isHandwritingMode ? tx('请在手写板写字', 'Write a character on board', '請在手寫板寫字') : tx('请写一字', 'Write one character', '請寫一字')}
+            {isHandwritingMode ? tx('写下一个字', 'Write one character', '寫下一個字') : tx('输入一个字', 'Type one character', '輸入一個字')}
           </Text>
           <Text style={styles.hint}>
             {isHandwritingMode 
-              ? tx('在下方手写板上写下你想测的汉字', 'Write the character you want to read below', '在下方手寫板寫下你想測的漢字')
-              : tx('根据《测字有术》，字如其人。心有所想，字有所现。', 'A character reveals your present focus and rhythm.', '根據《測字有術》，字如其人。心有所想，字有所現。')}
+              ? tx('把此刻最有感觉的汉字写下来，不用追求好看。', 'Write the character that feels right now. It does not need to look perfect.', '把此刻最有感覺的漢字寫下來，不用追求好看。')
+              : tx('选一个最贴近你当下状态的汉字，我先给你一句结论。', 'Pick one character that matches your current state. I will start with one conclusion.', '選一個最貼近你當下狀態的漢字，我先給你一句結論。')}
           </Text>
           <View style={styles.billingPreviewBar}>
             <Text style={styles.billingPreviewText}>
               {!user
-                ? tx('游客可先免费体验一次，登录后可保存解读记录。', 'Try once as a guest. Log in afterward to save the reading.', '遊客可先免費體驗一次，登入後可保存解讀記錄。')
+                ? tx('游客可先免费测一次，结果出来后再决定是否登录保存。', 'Try once as a guest. Log in afterward to save the reading.', '遊客可先免費測一次，結果出來後再決定是否登入保存。')
                 : t('reading.form.billingPreview', '本次将扣：{cost} 积分{memberFree} · 当前余额：{balance}')
                     .replace('{cost}', String(displayZiCost))
                     .replace('{memberFree}', isVip ? t('reading.form.memberFreeSuffix', '（会员免扣）') : '')
@@ -828,7 +828,7 @@ export default function ZiScreen() {
           {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
           {showSmartCta && !isVip && (
             <View style={styles.smartCtaWrap}>
-              <Text style={styles.smartCtaTitle}>{tx('余额不足，建议优先补充权益', 'Low balance, top up first', '餘額不足，建議優先補充權益')}</Text>
+              <Text style={styles.smartCtaTitle}>{tx('积分不够，先选一个补充方式', 'Not enough points. Choose one way to continue.', '積分不夠，先選一個補充方式')}</Text>
                 <Text style={styles.smartCtaHint}>
                   {tx(
                     `按每周约 5 次测算，测字本月约需 ${projectedMonthlyPoints} 积分（约 ${projectedCheckinDays} 天签到）。`,
@@ -838,10 +838,10 @@ export default function ZiScreen() {
                 </Text>
               <View style={styles.smartCtaActions}>
                 <TouchableOpacity style={styles.smartCtaPrimary} onPress={goPointsMall}>
-                  <Text style={styles.smartCtaPrimaryText}>{tx('去充值积分', 'Top up points', '去儲值積分')}</Text>
+                  <Text style={styles.smartCtaPrimaryText}>{tx('买积分包', 'Buy points pack', '買積分包')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.smartCtaSecondary} onPress={goVipPlan}>
-                  <Text style={styles.smartCtaSecondaryText}>{tx('开会员更划算', 'Upgrade membership', '開會員更划算')}</Text>
+                  <Text style={styles.smartCtaSecondaryText}>{tx('开会员更省心', 'Get membership', '開會員更省心')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -862,12 +862,12 @@ export default function ZiScreen() {
               {/* 静心提示 - 放在书写框下方 */}
               {!ritualReady && (
                 <View style={styles.ritualCountdownCard}>
-                  <Text style={styles.ritualCountdownTitle}>{tx('🫧 写字前先静心', '🫧 Center yourself first', '🫧 寫字前先靜心')}</Text>
+                  <Text style={styles.ritualCountdownTitle}>{tx('🫧 写字前先定一个问题', '🫧 Center on one question first', '🫧 寫字前先定一個問題')}</Text>
                   <Text style={styles.ritualCountdownText}>
                     {tx(
-                      '把注意力放在你此刻最想问的一件事上，再落笔，解读会更聚焦。你也可以直接写，不受限制。',
-                      'Focus on one question first, then write. This makes the reading more accurate.',
-                      '把注意力放在你此刻最想問的一件事上，再落筆，解讀會更聚焦。你也可以直接寫，不受限制。',
+                      '把注意力放在此刻最想问的一件事上，再落笔。也可以直接写，不影响体验。',
+                      'Focus on one question first, then write. You can also write directly.',
+                      '把注意力放在此刻最想問的一件事上，再落筆。也可以直接寫，不影響體驗。',
                     )}
                   </Text>
                   {ritualCountdown > 0 && (

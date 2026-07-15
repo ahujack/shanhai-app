@@ -61,7 +61,7 @@ export default function ProfileScreen() {
       const referralCode = user.referralCode || user.id;
       const shareUrl = `https://www.shanhai.app/register?ref=${referralCode}`;
       const shareMessage = tx(
-        `🔮 山海灵境 - 探索你的命运之旅\n\n邀请码: ${referralCode}\n使用我的邀请链接注册，你得50积分，我也得50积分！\n\n立即注册: ${shareUrl}`,
+        `🔮 我在山海灵境做解读\n\n邀请码: ${referralCode}\n用我的链接注册，你我各得 50 积分。\n\n立即体验: ${shareUrl}`,
         `🔮 Shanhai Realm - Explore your destiny\n\nInvite Code: ${referralCode}\nUse my invite link to register. We both get +50 points!\n\nRegister now: ${shareUrl}`,
         `🔮 山海靈境 - 探索你的命運之旅\n\n邀請碼: ${referralCode}\n使用我的邀請連結註冊，你我都可獲得 +50 積分！\n\n立即註冊: ${shareUrl}`,
       );
@@ -496,15 +496,15 @@ export default function ProfileScreen() {
               <Text style={styles.membershipIcon}>{isVip ? '👑' : '✨'}</Text>
               <View style={styles.membershipInfo}>
                 <Text style={styles.membershipCardTitle}>
-                  {isVip ? `${membershipLabel} · ${tx('已开通', 'Active', '已開通')}` : tx('开通会员解锁完整能力', 'Unlock full features with membership', '開通會員解鎖完整能力')}
+                  {isVip ? `${membershipLabel} · ${tx('已开通', 'Active', '已開通')}` : tx('开通会员，适合持续追问', 'Membership for ongoing follow-ups', '開通會員，適合持續追問')}
                 </Text>
                 <Text style={styles.membershipCardDesc}>
-                  {isVip ? tx('查看会员权益与状态管理', 'Manage membership benefits', '查看會員權益與狀態管理') : tx('无限次AI解读、专属内容、更多高级能力', 'Unlimited AI readings and premium content', '無限次 AI 解讀、專屬內容、更多高級能力')}
+                  {isVip ? tx('查看会员权益与状态', 'Manage membership benefits', '查看會員權益與狀態') : tx('深度解读、连续追问、会员期内按规则免扣积分', 'Deep readings, follow-ups, and member benefits', '深度解讀、連續追問、會員期內按規則免扣積分')}
                 </Text>
               </View>
             </View>
             <View style={styles.membershipActionPill}>
-              <Text style={styles.membershipActionText}>{isVip ? tx('管理会员', 'Manage', '管理會員') : tx('立即订阅', 'Subscribe', '立即訂閱')}</Text>
+              <Text style={styles.membershipActionText}>{isVip ? tx('管理会员', 'Manage', '管理會員') : tx('查看会员', 'View plans', '查看會員')}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -513,8 +513,8 @@ export default function ProfileScreen() {
           <>
             <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
               <View>
-                <Text style={styles.mallEntryTitle}>{tx('🎁 积分商城', '🎁 Points Mall', '🎁 積分商城')}</Text>
-                <Text style={styles.mallEntryDesc}>{tx('兑换权益、查看任务、管理积分资产', 'Redeem benefits and manage points', '兌換權益、查看任務、管理積分資產')}</Text>
+                <Text style={styles.mallEntryTitle}>{tx('🎁 积分与会员', '🎁 Points & Membership', '🎁 積分與會員')}</Text>
+                <Text style={styles.mallEntryDesc}>{tx('买积分包、看会员权益、查积分流水', 'Buy points, view membership, check ledger', '買積分包、看會員權益、查積分流水')}</Text>
               </View>
               <Text style={styles.mallEntryAction}>{tx('去看看 ›', 'Open ›', '去看看 ›')}</Text>
             </TouchableOpacity>
@@ -1052,15 +1052,15 @@ export default function ProfileScreen() {
             <Text style={styles.membershipIcon}>{isVip ? '👑' : '✨'}</Text>
             <View style={styles.membershipInfo}>
               <Text style={styles.membershipCardTitle}>
-                {isVip ? `${membershipLabel} · ${tx('已开通', 'Active', '已開通')}` : tx('开通会员解锁完整能力', 'Unlock full features with membership', '開通會員解鎖完整能力')}
+                {isVip ? `${membershipLabel} · ${tx('已开通', 'Active', '已開通')}` : tx('开通会员，适合持续追问', 'Membership for ongoing follow-ups', '開通會員，適合持續追問')}
               </Text>
               <Text style={styles.membershipCardDesc}>
-                {isVip ? tx('查看会员权益与状态管理', 'Manage membership benefits', '查看會員權益與狀態管理') : tx('无限次AI解读、专属内容、更多高级能力', 'Unlimited AI readings and premium content', '無限次 AI 解讀、專屬內容、更多高級能力')}
+                {isVip ? tx('查看会员权益与状态', 'Manage membership benefits', '查看會員權益與狀態') : tx('深度解读、连续追问、会员期内按规则免扣积分', 'Deep readings, follow-ups, and member benefits', '深度解讀、連續追問、會員期內按規則免扣積分')}
               </Text>
             </View>
           </View>
           <View style={styles.membershipActionPill}>
-            <Text style={styles.membershipActionText}>{isVip ? tx('管理会员', 'Manage', '管理會員') : tx('立即订阅', 'Subscribe', '立即訂閱')}</Text>
+            <Text style={styles.membershipActionText}>{isVip ? tx('管理会员', 'Manage', '管理會員') : tx('查看会员', 'View plans', '查看會員')}</Text>
           </View>
         </TouchableOpacity>
       )}
@@ -1069,8 +1069,8 @@ export default function ProfileScreen() {
         <>
           <TouchableOpacity style={styles.mallEntryCard} onPress={handleOpenPointsMall} activeOpacity={0.9}>
             <View>
-              <Text style={styles.mallEntryTitle}>{tx('🎁 积分商城', '🎁 Points Mall', '🎁 積分商城')}</Text>
-              <Text style={styles.mallEntryDesc}>{tx('兑换权益、查看任务、管理积分资产', 'Redeem benefits and manage points', '兌換權益、查看任務、管理積分資產')}</Text>
+              <Text style={styles.mallEntryTitle}>{tx('🎁 积分与会员', '🎁 Points & Membership', '🎁 積分與會員')}</Text>
+              <Text style={styles.mallEntryDesc}>{tx('买积分包、看会员权益、查积分流水', 'Buy points, view membership, check ledger', '買積分包、看會員權益、查積分流水')}</Text>
             </View>
             <Text style={styles.mallEntryAction}>{tx('去看看 ›', 'Open ›', '去看看 ›')}</Text>
           </TouchableOpacity>
@@ -1119,7 +1119,7 @@ export default function ProfileScreen() {
       {/* 未登录提示 */}
       {!isLoggedIn && (
         <View style={[styles.loginPrompt, { backgroundColor: colors.surface }]}>
-          <Text style={styles.loginTitle}>{tx('🔮 开启你的命运之旅', '🔮 Begin your journey', '🔮 開啟你的命運之旅')}</Text>
+          <Text style={styles.loginTitle}>{tx('🔮 登录后保存每次解读', '🔮 Sign in to save your readings', '🔮 登入後保存每次解讀')}</Text>
           <Text style={styles.loginDesc}>{tx('登录后可保存命盘、查看历史记录、享受个性化服务', 'Log in to save charts and unlock personalized service', '登入後可保存命盤、查看歷史記錄、享受個性化服務')}</Text>
           <TouchableOpacity 
             style={styles.loginButton}

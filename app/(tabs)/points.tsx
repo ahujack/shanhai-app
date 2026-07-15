@@ -477,7 +477,7 @@ export default function PointsMallScreen() {
           }}
         >
           <Text style={[styles.tabText, activeTab === 'subscription' && styles.tabTextActive]}>
-            {t('points.tab.subscription', '👑 订阅')}
+            {t('points.tab.subscription', '👑 会员')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -488,7 +488,7 @@ export default function PointsMallScreen() {
           }}
         >
           <Text style={[styles.tabText, activeTab === 'mall' && styles.tabTextActive]}>
-            {t('points.tab.mall', '🎁 积分商城')}
+            {t('points.tab.mall', '🎁 积分包')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -503,11 +503,11 @@ export default function PointsMallScreen() {
           <Text style={styles.topHintText}>
             {activeTab === 'subscription'
               ? growthConfig?.pointsTopHintVariant === 'price_first'
-                ? t('points.hint.sub.priceFirst', '先看回本阈值再决策：高频订阅更省，低频积分更灵活。')
-                : t('points.hint.sub.frequencyFirst', '先看适配频率，再选方案：高频更建议订阅，省去每次决策与扣分焦虑。')
+                ? t('points.hint.sub.priceFirst', '先看使用频率：经常解读和追问，会员更省心。')
+                : t('points.hint.sub.frequencyFirst', '适合高频使用：不用每次计算积分，也更适合连续追问。')
               : growthConfig?.pointsTopHintVariant === 'price_first'
-                ? t('points.hint.mall.priceFirst', '积分适合先验证价值：小额按次，后续再按频率升级。')
-                : t('points.hint.mall.frequencyFirst', '低频先走积分最稳妥：按次付费、小额验证，觉得有价值再升级。')}
+                ? t('points.hint.mall.priceFirst', '适合先体验：按次解锁，用多少买多少。')
+                : t('points.hint.mall.frequencyFirst', '偶尔使用先选积分包，觉得有价值再升级会员。')}
           </Text>
         </View>
 
@@ -537,7 +537,7 @@ export default function PointsMallScreen() {
                         : t('points.vip.effective', '会员权益生效中')
                       : expiredTier
                         ? t('points.vip.renewNudge', '请于下方续费以恢复 VIP 权益')
-                        : t('points.vip.openNow', '开通VIP，解锁全部功能')}
+                        : t('points.vip.openNow', '开通会员，持续解锁深度解读')}
                   </Text>
                 </View>
               </View>
@@ -556,7 +556,7 @@ export default function PointsMallScreen() {
             <View style={styles.renewalCard}>
               <Text style={styles.renewalTitle}>{t('points.renewal.title', '续费说明')}</Text>
               <Text style={styles.renewalBody}>
-                当前为单次购买：支付成功后获得对应时长，到期前需手动续订。支付平台侧「自动扣款 / 自动续订」若后续开放，将在此处提供开关。
+                当前为单次购买：支付成功后获得对应时长，到期前可按需手动续订，不会自动扣款。
               </Text>
               <View style={styles.renewalRow}>
                 <View style={styles.renewalRowTextWrap}>
@@ -575,9 +575,9 @@ export default function PointsMallScreen() {
             <View style={styles.memberValueCard}>
               <Text style={styles.memberValueTitle}>{t('points.member.title', '🌟 会员专属价值')}</Text>
               <View style={styles.memberValueList}>
-                <Text style={styles.memberValueItem}>• 八字老师傅批注（会员专属，当前不支持单次积分解锁）</Text>
-                <Text style={styles.memberValueItem}>• 测字甲骨文完整异体图与差异解读（会员可解锁）</Text>
-                <Text style={styles.memberValueItem}>• 在会员有效期内：测字/深度解签按规则 0 积分/次（免扣）</Text>
+                <Text style={styles.memberValueItem}>• 八字深度批注：看格局、流年和近期重点</Text>
+                <Text style={styles.memberValueItem}>• 测字深度版：更多字形线索、避坑提醒和行动建议</Text>
+                <Text style={styles.memberValueItem}>• 会员期内：测字/深度解签按规则免扣积分</Text>
               </View>
               <Text style={styles.memberValueFootnote}>
                 参考：若每周约 5 次深度解签，月均约需 {monthlyReadingPoints} 积分（约 {monthlyReadingCheckinDays} 天签到）。
@@ -603,11 +603,11 @@ export default function PointsMallScreen() {
               onLayout={(event) => setVipSectionY(event.nativeEvent.layout.y)}
             >
               <Text style={styles.sectionTitle}>{t('points.section.vip', '⭐ VIP 会员')}</Text>
-              <Text style={styles.sectionSubtitle}>{t('points.section.vipSub', '开通VIP，享无限次AI解读')}</Text>
+              <Text style={styles.sectionSubtitle}>{t('points.section.vipSub', '适合经常咨询、需要连续追问的用户')}</Text>
               <View style={styles.decisionCard}>
                 <Text style={styles.decisionTitle}>{t('points.decision.title', '如何判断现在适合订阅？')}</Text>
                 <Text style={styles.decisionLine}>
-                  过去 7 天若你有 3 次以上深度解读需求，订阅通常比按次补积分更省心。
+                  如果你一周会问 3 次以上，会员通常比按次买积分更省心。
                 </Text>
                 <Text style={styles.decisionLine}>
                   你也可以先选月卡验证，再决定是否切年卡，避免一次性决策压力。
@@ -618,7 +618,7 @@ export default function PointsMallScreen() {
                 <View style={styles.emptyStateCard}>
                   <Text style={styles.emptyStateTitle}>订阅商品准备中</Text>
                   <Text style={styles.emptyStateBody}>
-                    当前暂无可售订阅，请稍后下拉刷新或联系客服 support@shanhai.app。
+                    当前暂无可售会员方案，请稍后刷新或联系客服 support@shanhai.app。
                   </Text>
                 </View>
               ) : (
@@ -659,7 +659,7 @@ export default function PointsMallScreen() {
                         <ActivityIndicator color="#fff" size="small" />
                       ) : (
                         <Text style={styles.subscribeButtonText}>
-                          {!user ? t('common.loginFirst', '请先登录') : membershipActive ? t('points.vip.keep', '续费并保持权益') : t('points.vip.upgrade', '升级解锁专业能力')}
+                          {!user ? t('common.loginFirst', '请先登录') : membershipActive ? t('points.vip.keep', '续费保持权益') : t('points.vip.upgrade', '开通会员')}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -742,15 +742,15 @@ export default function PointsMallScreen() {
             ) : null}
 
             <View style={styles.mallExplainCard}>
-              <Text style={styles.mallExplainTitle}>{t('points.guide.title', '订阅 和 积分 怎么选？')}</Text>
+              <Text style={styles.mallExplainTitle}>{t('points.guide.title', '会员和积分包怎么选？')}</Text>
               <Text style={styles.mallExplainBody}>
-                <Text style={styles.mallExplainEm}>VIP 订阅</Text>
-                ：在会员有效期内，测字/深度解签按规则 0 积分/次，且可解锁部分会员专属能力，适合高频用户。
+                <Text style={styles.mallExplainEm}>会员</Text>
+                ：适合经常问、需要连续追问的人。会员期内，测字/深度解签按规则免扣积分。
                 {'\n\n'}
-                <Text style={styles.mallExplainEm}>积分充值</Text>
-                ：单次付费、按次扣积分，灵活但高频成本会逐步上升；适合偶尔使用或临时补单。
+                <Text style={styles.mallExplainEm}>积分包</Text>
+                ：适合偶尔使用，按次扣积分，用多少买多少。
                 {'\n\n'}
-                积分包需在支付平台（Creem）里各建一个「一次性付款」商品，并把产品 ID 配到服务器环境变量后，下方购买才会跳转收银台。
+                不确定选哪个时，先用积分包体验；如果开始频繁追问，再升级会员。
               </Text>
             </View>
 
@@ -775,7 +775,7 @@ export default function PointsMallScreen() {
 
             {/* 积分获取 */}
             <View style={styles.pointsCard}>
-              <Text style={styles.pointsTitle}>{t('points.earn.title', '📝 积分获取方式')}</Text>
+              <Text style={styles.pointsTitle}>{t('points.earn.title', '📝 免费获取积分')}</Text>
               <View style={styles.pointsList}>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>📅</Text>
@@ -787,14 +787,14 @@ export default function PointsMallScreen() {
                 </View>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>👥</Text>
-                  <Text style={styles.pointText}>邀请好友 +50 积分</Text>
+                  <Text style={styles.pointText}>邀请好友注册 +50 积分</Text>
                 </View>
               </View>
             </View>
 
             {/* 积分消耗说明 */}
             <View style={styles.pointsCard}>
-              <Text style={styles.pointsTitle}>{t('points.cost.title', '💡 积分消耗规则')}</Text>
+              <Text style={styles.pointsTitle}>{t('points.cost.title', '💡 每次大约消耗多少')}</Text>
               <View style={styles.pointsList}>
                 <View style={styles.pointItem}>
                   <Text style={styles.pointIcon}>✍️</Text>
@@ -815,7 +815,7 @@ export default function PointsMallScreen() {
                 {!billingRules?.gateEnabled && (
                   <View style={styles.pointItem}>
                     <Text style={styles.pointIcon}>🧪</Text>
-                    <Text style={styles.pointText}>当前积分门闸处于测试关闭状态，实际不会扣积分。</Text>
+                    <Text style={styles.pointText}>当前处于体验期，部分功能暂不扣积分。</Text>
                   </View>
                 )}
               </View>
@@ -823,13 +823,13 @@ export default function PointsMallScreen() {
 
             {/* 积分包购买 */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('points.buy.title', '🛒 购买积分')}</Text>
-              <Text style={styles.sectionSubtitle}>{t('points.buy.sub', '充值积分，解锁更多解读')}</Text>
+              <Text style={styles.sectionTitle}>{t('points.buy.title', '🛒 积分包')}</Text>
+              <Text style={styles.sectionSubtitle}>{t('points.buy.sub', '适合偶尔使用，按次解锁更灵活')}</Text>
               {pointsProducts.length === 0 ? (
                 <View style={styles.emptyStateCard}>
                   <Text style={styles.emptyStateTitle}>积分包暂未上架</Text>
                   <Text style={styles.emptyStateBody}>
-                    可以先通过签到和邀请获取积分，或稍后再来购买积分包。
+                    可以先通过签到和邀请获取积分，或稍后再来选择积分包。
                   </Text>
                 </View>
               ) : (
@@ -871,7 +871,7 @@ export default function PointsMallScreen() {
 
         {!loading && creemConfigured === false && (
           <View style={styles.warningBanner}>
-            <Text style={styles.warningText}>{t('points.warning', '⚠️ Creem 未配置，当前为测试模式')}</Text>
+            <Text style={styles.warningText}>{t('points.warning', '⚠️ 支付暂未开启，请稍后再试或联系客服')}</Text>
           </View>
         )}
 

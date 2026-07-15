@@ -231,10 +231,10 @@ export default function RegisterScreen() {
         <View style={styles.header}>
           <Text style={styles.logo}>🏔️</Text>
           <Text style={styles.title}>{tx('山海灵境', 'Shanhai Realm', '山海靈境')}</Text>
-          <Text style={styles.subtitle}>{tx('创建您的账号', 'Create your account', '建立您的帳號')}</Text>
+          <Text style={styles.subtitle}>{tx('保存你的解读，让下次追问接得上', 'Save readings and continue later', '保存你的解讀，讓下次追問接得上')}</Text>
           {referralCode ? (
             <Text style={styles.referralHint}>
-              {tx('邀请码已识别：{code}', 'Referral code detected: {code}', '已識別邀請碼：{code}').replace('{code}', referralCode)}
+              {tx('已带入邀请码：{code}', 'Referral code detected: {code}', '已帶入邀請碼：{code}').replace('{code}', referralCode)}
             </Text>
           ) : null}
         </View>
@@ -244,7 +244,7 @@ export default function RegisterScreen() {
           {/* 用户名 */}
           <TextInput
             style={styles.input}
-            placeholder={tx('请输入昵称（可选）', 'Enter nickname (optional)', '請輸入暱稱（可選）')}
+            placeholder={tx('昵称（可选）', 'Nickname (optional)', '暱稱（可選）')}
             placeholderTextColor="#6F6287"
             value={name}
             onChangeText={setName}
@@ -255,7 +255,7 @@ export default function RegisterScreen() {
           {/* 邮箱 */}
           <TextInput
             style={styles.input}
-            placeholder={tx('请输入邮箱', 'Enter email address', '請輸入郵箱')}
+            placeholder={tx('邮箱地址', 'Email address', '郵箱地址')}
             placeholderTextColor="#6F6287"
             value={email}
             onChangeText={(text) => {
@@ -271,7 +271,7 @@ export default function RegisterScreen() {
           <View style={styles.codeRow}>
             <TextInput
               style={[styles.input, styles.codeInput]}
-              placeholder={tx('请输入验证码', 'Enter verification code', '請輸入驗證碼')}
+              placeholder={tx('6 位验证码', '6-digit code', '6 位驗證碼')}
               placeholderTextColor="#6F6287"
               value={code}
               onChangeText={setCode}

@@ -286,7 +286,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
           <Text style={styles.logo}>🏔️</Text>
           <Text style={styles.title}>{tx('山海灵境', 'Shanhai Realm', '山海靈境')}</Text>
-          <Text style={styles.subtitle}>{tx('探索你的命运之旅', 'Explore your destiny journey', '探索你的命運之旅')}</Text>
+          <Text style={styles.subtitle}>{tx('登录后保存解读、积分和会员权益', 'Save readings, points, and benefits', '登入後保存解讀、積分和會員權益')}</Text>
         </View>
 
         {/* 登录方式切换 */}
@@ -301,7 +301,7 @@ export default function LoginScreen() {
             }}
           >
             <Text style={[styles.methodButtonText, loginMethod === 'password' && styles.methodButtonTextActive]}>
-              {tx('密码登录', 'Password Login', '密碼登入')}
+              {tx('密码登录', 'Password', '密碼登入')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -314,7 +314,7 @@ export default function LoginScreen() {
             }}
           >
             <Text style={[styles.methodButtonText, loginMethod === 'code' && styles.methodButtonTextActive]}>
-              {tx('验证码登录', 'Code Login', '驗證碼登入')}
+              {tx('邮箱验证码', 'Email code', '郵箱驗證碼')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -467,7 +467,7 @@ export default function LoginScreen() {
 
         {/* 游客模式 */}
         <TouchableOpacity style={[styles.guestButton, styles.webCursor]} onPress={handleGuestMode} activeOpacity={0.7}>
-          <Text style={styles.guestText}>{tx('暂不登录，先逛逛', 'Skip for now', '暫不登入，先逛逛')}</Text>
+          <Text style={styles.guestText}>{tx('先不登录，直接体验', 'Continue as guest', '先不登入，直接體驗')}</Text>
         </TouchableOpacity>
 
         <SiteComplianceFooter variant="full" />
