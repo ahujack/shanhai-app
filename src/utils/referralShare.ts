@@ -2,7 +2,7 @@ import { Alert, Platform, Share } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import type { AppLanguage } from '../i18n/translations';
 
-export const REFERRAL_REGISTER_BASE = 'https://www.shanhai.app/register';
+export const REFERRAL_INVITE_BASE = 'https://www.shanhai.app/invite';
 
 export type ResultShareKind = 'zi' | 'reading' | 'bazi' | 'fortune';
 
@@ -71,7 +71,7 @@ function pickCopy(language: AppLanguage, kind: ResultShareKind): { label: string
 
 export function buildReferralUrl(referralCode: string): string {
   const code = String(referralCode || '').trim();
-  return `${REFERRAL_REGISTER_BASE}?ref=${encodeURIComponent(code)}`;
+  return `${REFERRAL_INVITE_BASE}?ref=${encodeURIComponent(code)}`;
 }
 
 export function buildResultShareCopy(params: {

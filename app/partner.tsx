@@ -81,7 +81,7 @@ export default function PartnerPortalScreen() {
 
   const shareLink = useMemo(() => {
     if (!data?.partner.code) return '';
-    return `${SEO_SITE.url}/register?ref=${encodeURIComponent(data.partner.code)}`;
+    return `${SEO_SITE.url}/invite?ref=${encodeURIComponent(data.partner.code)}`;
   }, [data?.partner.code]);
 
   const pending = data?.summary.pending;

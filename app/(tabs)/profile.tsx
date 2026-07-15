@@ -12,6 +12,7 @@ import { localizeAuthMessage } from '../../src/utils/authMessage';
 import * as Clipboard from 'expo-clipboard';
 import { useI18nStore } from '../../src/store/i18n';
 import { normalizeBackendText } from '../../src/utils/backendText';
+import { buildReferralUrl } from '../../src/utils/referralShare';
 import type { AppLanguage } from '../../src/i18n/translations';
 
 const colors = theme.dark;
@@ -59,7 +60,7 @@ export default function ProfileScreen() {
     try {
       // 使用 referralCode 生成邀请链接
       const referralCode = user.referralCode || user.id;
-      const shareUrl = `https://www.shanhai.app/register?ref=${referralCode}`;
+      const shareUrl = buildReferralUrl(referralCode);
       const shareMessage = tx(
         `🔮 我在山海灵境做解读\n\n邀请码: ${referralCode}\n用我的链接注册，你我各得 50 积分。\n\n立即体验: ${shareUrl}`,
         `🔮 Shanhai Realm - Explore your destiny\n\nInvite Code: ${referralCode}\nUse my invite link to register. We both get +50 points!\n\nRegister now: ${shareUrl}`,
@@ -85,7 +86,7 @@ export default function ProfileScreen() {
       // 尝试回退到剪贴板
       try {
         const referralCode = user.referralCode || user.id;
-        const shareUrl = `https://www.shanhai.app/register?ref=${referralCode}`;
+        const shareUrl = buildReferralUrl(referralCode);
         await Clipboard.setStringAsync(shareUrl);
         Alert.alert(
           tx('✅ 复制成功', '✅ Copied', '✅ 複製成功'),
