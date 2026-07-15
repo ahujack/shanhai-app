@@ -25,17 +25,17 @@ export default function TabLayout() {
       key={language}
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: '#130B1F',
-          borderTopColor: '#2C1D3C',
-          paddingTop: 10,
-          height: 80,
+          backgroundColor: '#080A0F',
+          borderTopColor: 'rgba(214, 179, 106, 0.14)',
+          paddingTop: 9,
+          height: 76,
         },
         tabBarIconStyle: {
           marginBottom: 2,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
+          fontSize: 11,
+          fontWeight: '700',
         },
         tabBarActiveTintColor: currentTheme.tabIconSelected,
         tabBarInactiveTintColor: currentTheme.tabIconDefault,

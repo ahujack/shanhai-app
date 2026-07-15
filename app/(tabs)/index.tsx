@@ -35,6 +35,8 @@ const D1_RETURN_KEY = 'analytics_last_active_date';
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const screenWidth = Dimensions.get('window').width;
+  const isCompactLayout = Platform.OS === 'web' || screenWidth < 560;
   const params = useLocalSearchParams<{ skipZiNudgeUntil?: string }>();
   const { active: persona, personas, setActive } = usePersonaStore();
   const t = useI18nStore((state) => state.t);
@@ -901,10 +903,10 @@ export default function HomeScreen() {
         <View style={[styles.viewport, Platform.OS === 'web' && styles.viewportWeb]}>
         {/* 顶部标题 */}
         <View style={styles.header}>
-          <View style={styles.headerInner}>
+          <View style={[styles.headerInner, isCompactLayout && styles.headerInnerCompact]}>
             <View style={styles.headerTop}>
               <TouchableOpacity
-                style={styles.personaChip}
+                style={[styles.personaChip, isCompactLayout && styles.personaChipCompact]}
                 onPress={() => setShowPersonaPicker(true)}
                 accessibilityLabel={t('home.persona.switchA11y', '切换灵伴，当前为 {name}').replace('{name}', localizedPersona.name)}
                 accessibilityRole="button"
@@ -923,10 +925,12 @@ export default function HomeScreen() {
                   ⌄
                 </Text>
               </TouchableOpacity>
-              <View style={styles.titleCenter}>
-                <Text style={styles.title}>{t('home.appTitle', '山海灵境')}</Text>
-              </View>
-              <View style={styles.headerRight}>
+              {!isCompactLayout ? (
+                <View style={styles.titleCenter}>
+                  <Text style={styles.title}>{t('home.appTitle', '山海灵境')}</Text>
+                </View>
+              ) : null}
+              <View style={[styles.headerRight, isCompactLayout && styles.headerRightCompact]}>
                 <TouchableOpacity
                   ref={languageButtonRef}
                   style={[styles.languageButton, showLanguageMenu && styles.languageButtonActive]}
@@ -1002,6 +1006,7 @@ export default function HomeScreen() {
                   </View>
                   <Text style={styles.welcomePersonaName}>{localizedPersona.name}</Text>
                 </View>
+                <View style={styles.heroRule} />
                 <Text style={styles.welcomeTag}>{t('home.welcome.tag', '先把一件事说清楚')}</Text>
                 <Text style={styles.welcomeText}>
                   {t('home.welcome.hero', '把最近困住你的关系、工作或人生选择说出来。{name} 会先给一句结论，再用东方命理帮你拆依据和下一步。').replace('{name}', localizedPersona.name)}
@@ -1047,11 +1052,6 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
-              <View style={styles.emptyRitualWrap}>
-                <Text style={styles.emptyRitualText}>
-                  {t('home.empty.ritual', '说出你此刻最在意的一件事，我先给你一句结论。')}
-                </Text>
               </View>
             </>
           )}
@@ -1120,7 +1120,7 @@ export default function HomeScreen() {
                 <Text style={styles.entryActionPrimaryText}>{t('home.entry.start', '先给我结论')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.entryActionBtn, styles.entryActionSecondary]}
+                style={styles.entryActionSecondary}
                 onPress={openDrawModal}
                 activeOpacity={0.85}
               >
@@ -1149,7 +1149,7 @@ export default function HomeScreen() {
                     ? t('home.input.web', '说出卡住你的那件事，例如：这段关系还要继续吗？')
                     : t('home.input.mobile', '说出卡住你的那件事...')
                 }
-                placeholderTextColor="#6F6287"
+                placeholderTextColor="#697386"
                 value={inputText}
                 onChangeText={setInputText}
                 multiline
@@ -2019,7 +2019,7 @@ function FortuneResultAnimation({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0D14',
+    backgroundColor: '#080A0F',
     position: 'relative',
   },
   viewport: {
@@ -2029,24 +2029,30 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   viewportWeb: {
-    maxWidth: 880,
+    maxWidth: 430,
+    width: '100%',
   },
   contentRail: {
     flex: 1,
     width: '100%',
-    maxWidth: 840,
+    maxWidth: 430,
     alignSelf: 'center',
   },
   header: {
     borderBottomWidth: 1,
-    borderBottomColor: '#2A3448',
+    borderBottomColor: 'rgba(214, 179, 106, 0.12)',
+    backgroundColor: '#080A0F',
   },
   headerInner: {
     width: '100%',
-    maxWidth: 840,
+    maxWidth: 430,
     alignSelf: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
+  },
+  headerInnerCompact: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   headerTop: {
     flexDirection: 'row',
@@ -2058,26 +2064,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    minWidth: 116,
+    minWidth: 112,
     maxWidth: 168,
-    minHeight: 42,
+    minHeight: 38,
     paddingRight: 6,
     paddingVertical: 3,
     paddingLeft: 4,
-    borderRadius: 20,
-    backgroundColor: '#121827',
+    borderRadius: 8,
+    backgroundColor: '#10131D',
     borderWidth: 1,
-    borderColor: '#2A3448',
+    borderColor: 'rgba(214, 179, 106, 0.18)',
     gap: 8,
   },
+  personaChipCompact: {
+    minWidth: 104,
+    maxWidth: 132,
+    minHeight: 36,
+  },
   personaAvatarWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#2A3448',
-    backgroundColor: '#1A2233',
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.35)',
+    backgroundColor: '#17120D',
   },
   personaAvatar: {
     width: '100%',
@@ -2089,14 +2100,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   personaChipLabel: {
-    color: '#94A0B8',
+    color: '#8F9AAE',
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1,
   },
   personaChipName: {
-    color: '#E8ECF3',
-    fontSize: 14,
+    color: '#F4EBDC',
+    fontSize: 13,
     fontWeight: '800',
     marginTop: 1,
   },
@@ -2114,12 +2125,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   loginButton: {
-    backgroundColor: '#1A2233',
-    minWidth: 76,
-    height: 34,
-    borderRadius: 20,
+    backgroundColor: '#10131D',
+    minWidth: 58,
+    height: 32,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#2A3448',
+    borderColor: 'rgba(214, 179, 106, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2129,10 +2140,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#D6B36A',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
   headerRight: {
     flex: 1,
@@ -2143,13 +2154,18 @@ const styles = StyleSheet.create({
     maxWidth: '46%',
     minWidth: 0,
   },
+  headerRightCompact: {
+    flex: 0,
+    maxWidth: 'none',
+    gap: 6,
+  },
   checkInButton: {
-    backgroundColor: '#1A2233',
-    minWidth: 76,
-    height: 34,
-    borderRadius: 20,
+    backgroundColor: '#10131D',
+    minWidth: 62,
+    height: 32,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#2A3448',
+    borderColor: 'rgba(214, 179, 106, 0.16)',
     zIndex: 100,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2163,17 +2179,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#1A2233',
-    minWidth: 62,
-    height: 34,
-    borderRadius: 20,
+    backgroundColor: '#10131D',
+    minWidth: 50,
+    height: 32,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#2A3448',
+    borderColor: 'rgba(214, 179, 106, 0.16)',
     justifyContent: 'center',
   },
   languageButtonActive: {
-    borderColor: '#4A5E85',
-    backgroundColor: '#202B42',
+    borderColor: 'rgba(214, 179, 106, 0.38)',
+    backgroundColor: '#171A25',
   },
   languageButtonText: {
     color: '#D6B36A',
@@ -2232,24 +2248,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingTop: 22,
     paddingBottom: 18,
   },
   welcomeCard: {
-    backgroundColor: '#121827',
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#2A3448',
+    paddingHorizontal: 0,
+    paddingTop: 6,
+    paddingBottom: 8,
+    marginBottom: 8,
   },
   welcomePersonaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
     gap: 8,
   },
   welcomePersonaAvatarWrap: {
@@ -2258,89 +2271,90 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(248, 208, 95, 0.45)',
-    backgroundColor: '#2B2342',
+    borderColor: 'rgba(214, 179, 106, 0.5)',
+    backgroundColor: '#17120D',
   },
   welcomePersonaAvatar: {
     width: '100%',
     height: '100%',
   },
   welcomePersonaName: {
-    color: '#E8ECF3',
+    color: '#F4EBDC',
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  heroRule: {
+    width: 34,
+    height: 1,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(214, 179, 106, 0.42)',
+    marginBottom: 14,
+  },
   welcomeTag: {
     alignSelf: 'center',
-    color: '#D6B36A',
-    fontSize: 12,
+    color: '#C9A963',
+    fontSize: 11,
     fontWeight: '700',
-    marginBottom: 8,
-    letterSpacing: 1,
+    marginBottom: 12,
+    letterSpacing: 1.4,
   },
   welcomeText: {
-    fontSize: 17,
-    color: '#E8ECF3',
-    lineHeight: 25,
-    marginBottom: 10,
+    fontSize: 24,
+    color: '#F4EBDC',
+    lineHeight: 33,
+    marginBottom: 14,
     textAlign: 'center',
-    fontWeight: '700',
+    fontWeight: '800',
   },
   welcomeHint: {
     fontSize: 13,
-    color: '#AAB3C5',
+    color: '#A7B0C1',
     textAlign: 'center',
-    marginBottom: 4,
-    lineHeight: 19,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   valueProofRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-    marginBottom: 6,
+    marginTop: 16,
+    marginBottom: 8,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.12)',
   },
   valueProofItem: {
     flex: 1,
-    minHeight: 58,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#33415A',
-    backgroundColor: '#1A2233',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 0,
     justifyContent: 'center',
   },
   valueProofKicker: {
-    color: '#94A0B8',
-    fontSize: 11,
-    marginBottom: 3,
+    color: '#7F889A',
+    fontSize: 10,
+    marginBottom: 4,
     textAlign: 'center',
   },
   valueProofText: {
-    color: '#F1D188',
-    fontSize: 13,
+    color: '#E6C77B',
+    fontSize: 12,
     lineHeight: 17,
     fontWeight: '700',
     textAlign: 'center',
   },
   suggestedTitle: {
-    color: '#D6B36A',
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 8,
+    color: '#C9A963',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 18,
+    marginBottom: 10,
+    letterSpacing: 0.2,
   },
   loginHintBar: {
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: 10,
+    marginBottom: 2,
     alignSelf: 'center',
-    backgroundColor: '#1A2233',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#2A3448',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   loginHintText: {
     color: '#B9C1CF',
@@ -2358,27 +2372,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   suggestedChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
+    rowGap: 8,
   },
   suggestedChip: {
-    backgroundColor: '#1A2233',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 16,
+    backgroundColor: 'rgba(18, 23, 34, 0.56)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#33415A',
-    minWidth: 96,
+    borderColor: 'rgba(154, 167, 190, 0.18)',
+    minHeight: 54,
   },
   suggestedChipLabel: {
-    color: '#E8ECF3',
-    fontSize: 12,
+    color: '#F4EBDC',
+    fontSize: 13,
     fontWeight: '700',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   suggestedChipText: {
-    color: '#B8C0D0',
+    color: '#99A4B7',
     fontSize: 12,
     lineHeight: 16,
   },
@@ -2393,7 +2406,7 @@ const styles = StyleSheet.create({
   },
   bubble: {
     padding: 14,
-    borderRadius: 18,
+    borderRadius: 8,
   },
   bubbleWeb: {
     maxWidth: '78%',
@@ -2402,12 +2415,14 @@ const styles = StyleSheet.create({
     maxWidth: '88%',
   },
   userBubble: {
-    backgroundColor: '#F8D05F',
-    borderBottomRightRadius: 4,
+    backgroundColor: '#D6B36A',
+    borderBottomRightRadius: 3,
   },
   assistantBubble: {
-    backgroundColor: '#1A2233',
-    borderBottomLeftRadius: 4,
+    backgroundColor: '#101722',
+    borderBottomLeftRadius: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.14)',
   },
   bubbleText: {
     fontSize: 15,
@@ -2417,18 +2432,18 @@ const styles = StyleSheet.create({
     color: '#1A0A18',
   },
   assistantBubbleText: {
-    color: '#E8ECF3',
+    color: '#E9EDF5',
   },
   artifactCard: {
-    backgroundColor: '#16202F',
-    borderRadius: 12,
+    backgroundColor: '#0E111A',
+    borderRadius: 8,
     padding: 12,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#2A3448',
+    borderColor: 'rgba(214, 179, 106, 0.18)',
   },
   artifactTitle: {
-    color: '#D6B36A',
+    color: '#E6C77B',
     fontSize: 13,
     fontWeight: 'bold',
     marginBottom: 6,
@@ -2470,10 +2485,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   actionButton: {
-    backgroundColor: '#1A2233',
+    backgroundColor: '#121722',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.16)',
   },
   actionButtonText: {
     color: '#E8ECF3',
@@ -2493,28 +2510,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   inputContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 10,
-    backgroundColor: '#0B0D14',
+    backgroundColor: '#080A0F',
     borderTopWidth: 1,
-    borderTopColor: '#2A3448',
+    borderTopColor: 'rgba(214, 179, 106, 0.12)',
   },
   entryActionRow: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 9,
   },
   entryActionBtn: {
-    borderRadius: 12,
-    paddingVertical: 9,
+    borderRadius: 8,
+    paddingVertical: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
   entryActionPrimary: {
-    flex: 1.2,
+    flex: 1,
     backgroundColor: '#D6B36A',
     borderWidth: 1,
-    borderColor: '#F1D188',
+    borderColor: '#E8C978',
   },
   entryActionPrimaryText: {
     color: '#1A0A18',
@@ -2522,15 +2540,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   entryActionSecondary: {
-    flex: 1,
-    backgroundColor: '#121827',
-    borderWidth: 1,
-    borderColor: '#2A3448',
+    paddingHorizontal: 4,
+    paddingVertical: 8,
   },
   entryActionSecondaryText: {
-    color: '#E8ECF3',
-    fontSize: 13,
-    fontWeight: '600',
+    color: '#A7B0C1',
+    fontSize: 12,
+    fontWeight: '700',
   },
   processHint: {
     color: '#94A0B8',
@@ -2561,33 +2577,35 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: '#121827',
-    borderRadius: 24,
-    paddingHorizontal: 16,
+    backgroundColor: '#101522',
+    borderRadius: 10,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#33415A',
+    borderColor: 'rgba(214, 179, 106, 0.26)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    elevation: 4,
   },
   input: {
     flex: 1,
-    color: '#E8ECF3',
-    fontSize: 15,
-    maxHeight: 100,
+    color: '#F4EBDC',
+    fontSize: 16,
+    lineHeight: 22,
+    minHeight: 42,
+    maxHeight: 112,
     paddingVertical: 4,
   },
   sendButton: {
     backgroundColor: '#D6B36A',
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 16,
-    marginLeft: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginLeft: 8,
     borderWidth: 1,
-    borderColor: '#F1D188',
+    borderColor: '#E8C978',
     shadowColor: '#D6B36A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35,
@@ -2595,8 +2613,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sendButtonDisabled: {
-    backgroundColor: '#4A4A5A',
-    borderColor: '#4A4A5A',
+    backgroundColor: '#4C4E5B',
+    borderColor: '#4C4E5B',
     shadowOpacity: 0,
   },
   sendButtonText: {
@@ -2606,12 +2624,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   voiceButton: {
-    backgroundColor: '#1A2233',
+    backgroundColor: '#121722',
     borderWidth: 1,
-    borderColor: '#2A3448',
+    borderColor: 'rgba(214, 179, 106, 0.16)',
     minWidth: 52,
-    height: 36,
-    borderRadius: 18,
+    height: 38,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
@@ -2684,7 +2702,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A2233',
     paddingVertical: 9,
     paddingHorizontal: 14,
-    borderRadius: 999,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#0F0A1D',
