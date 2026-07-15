@@ -711,6 +711,25 @@ export default function ZiScreen() {
       : ritualCountdown >= 2
       ? tx(`吸气... ${ritualCountdown}`, `Inhale... ${ritualCountdown}`, `吸氣... ${ritualCountdown}`)
       : tx('呼气... 1', 'Exhale... 1', '呼氣... 1');
+
+  const buildZiShareHeadline = (zi: string) => {
+    const cleanZi = zi.trim().charAt(0);
+    const focus = getFocusAspect();
+    if (focus) {
+      return tx(`我测到的字：${cleanZi} · ${focus}`, `My character: ${cleanZi} · ${focus}`, `我測到的字：${cleanZi} · ${focus}`);
+    }
+    return tx(`我测到的字：${cleanZi}`, `My character: ${cleanZi}`, `我測到的字：${cleanZi}`);
+  };
+
+  const buildZiShareSummary = (data: ZiResult) => {
+    const focusSummary = data.interpretation.focusReading?.summary?.trim();
+    const overall = normalizeZiText(data.interpretation.overall).trim();
+    const cold = normalizeZiText(data.coldReadings?.[0]).trim();
+    const advice = normalizeZiText(data.interpretation.advice?.[0]).trim();
+    const raw = focusSummary || overall || cold || advice;
+    if (!raw) return '';
+    return tx(`这个字给出的提醒是：${raw}`, `The reading says: ${raw}`, `這個字給出的提醒是：${raw}`);
+  };
   
   // 点击继续聊聊，AI自动发送一个问题，等待用户回答
   const handleFollowUpQuestion = async (_question: string) => {
@@ -1420,13 +1439,8 @@ export default function ZiScreen() {
             {!isPreviewStage && (
               <ResultShareCard
                 kind="zi"
-                headline={`「${result.zi.zi}」${getFocusAspect() ? ` · ${getFocusAspect()}` : ''}`}
-                summary={
-                  result.interpretation.focusReading?.summary ||
-                  result.coldReadings?.[0] ||
-                  result.interpretation.advice?.[0] ||
-                  ''
-                }
+                headline={buildZiShareHeadline(result.zi.zi)}
+                summary={buildZiShareSummary(result)}
                 badge={ziTierLabel}
                 referralCode={user?.referralCode || (user?.id ?? null)}
               />

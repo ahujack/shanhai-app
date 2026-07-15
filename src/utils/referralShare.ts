@@ -52,10 +52,9 @@ export function buildResultShareCopy(params: {
     return {
       title: 'Shanhai Realm',
       body: [
-        '🔮 Shanhai Realm',
-        `✨ ${label}`,
-        safeHeadline ? `📌 ${safeHeadline}` : '',
-        safeSummary ? `💬 ${safeSummary}` : '',
+        `🔮 I just tried ${label} on Shanhai Realm`,
+        safeHeadline ? `📌 Result: ${safeHeadline}` : '',
+        safeSummary ? `💬 It read: ${safeSummary}` : '',
         referralCode ? `\nInvite code: ${referralCode}` : '',
         inviteLine,
         `\nTry it: ${url}`,
@@ -68,17 +67,23 @@ export function buildResultShareCopy(params: {
   }
 
   const brand = language === 'zh-TW' ? '山海靈境' : '山海灵境';
+  const intro = language === 'zh-TW'
+    ? `🔮 我剛在${brand}做了一次${label}`
+    : `🔮 我刚在${brand}做了一次${label}`;
+  const resultLabel = language === 'zh-TW' ? '📌 結果：' : '📌 结果：';
+  const summaryLabel = language === 'zh-TW' ? '💬 解讀說：' : '💬 解读说：';
+  const tryLabel = language === 'zh-TW' ? '立即體驗：' : '立即体验：';
+  const disclaimer = language === 'zh-TW' ? '僅供娛樂參考，不構成專業建議。' : '仅供娱乐参考，不构成专业建议。';
   return {
     title: brand,
     body: [
-      `🔮 ${brand}`,
-      `✨ ${label}`,
-      safeHeadline ? `📌 ${safeHeadline}` : '',
-      safeSummary ? `💬 ${safeSummary}` : '',
+      intro,
+      safeHeadline ? `${resultLabel}${safeHeadline}` : '',
+      safeSummary ? `${summaryLabel}${safeSummary}` : '',
       referralCode ? `\n邀请码：${referralCode}` : '',
       inviteLine,
-      `\n立即体验：${url}`,
-      '\n仅供娱乐参考，不构成专业建议。',
+      `\n${tryLabel}${url}`,
+      `\n${disclaimer}`,
     ]
       .filter(Boolean)
       .join('\n'),

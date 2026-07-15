@@ -56,6 +56,7 @@ export default function ResultShareCard({
   const t = useI18nStore((state) => state.t);
   const shotRef = useRef<ViewShot | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const tx = (zh: string, en: string, tw: string) =>
     language === 'en-US' ? en : language === 'zh-TW' ? tw : zh;
@@ -108,6 +109,10 @@ export default function ResultShareCard({
         referralCode,
       });
 
+      if (ok) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2600);
+      }
       if (Platform.OS === 'web' && ok) {
         showShareSuccessAlert(language, !!referralCode);
       }
@@ -178,6 +183,11 @@ export default function ResultShareCard({
           </Text>
         )}
       </TouchableOpacity>
+      {copied ? (
+        <Text style={styles.copySuccessText}>
+          {tx('已复制，可直接粘贴分享给好友', 'Copied. Paste it to share with friends.', '已複製，可直接貼上分享給好友')}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -289,6 +299,14 @@ const styles = StyleSheet.create({
   shareBtnText: {
     color: '#1A1230',
     fontSize: 15,
+    fontWeight: '700',
+  },
+  copySuccessText: {
+    color: colors.tabIconSelected,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8,
+    textAlign: 'center',
     fontWeight: '700',
   },
 });
