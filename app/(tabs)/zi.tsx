@@ -797,10 +797,12 @@ export default function ZiScreen() {
           </Text>
           <View style={styles.billingPreviewBar}>
             <Text style={styles.billingPreviewText}>
-              {t('reading.form.billingPreview', '本次将扣：{cost} 积分{memberFree} · 当前余额：{balance}')
-                .replace('{cost}', String(displayZiCost))
-                .replace('{memberFree}', isVip ? t('reading.form.memberFreeSuffix', '（会员免扣）') : '')
-                .replace('{balance}', String(availablePoints ?? '--'))}
+              {!user
+                ? tx('游客可先免费体验一次，登录后可保存解读记录。', 'Try once as a guest. Log in afterward to save the reading.', '遊客可先免費體驗一次，登入後可保存解讀記錄。')
+                : t('reading.form.billingPreview', '本次将扣：{cost} 积分{memberFree} · 当前余额：{balance}')
+                    .replace('{cost}', String(displayZiCost))
+                    .replace('{memberFree}', isVip ? t('reading.form.memberFreeSuffix', '（会员免扣）') : '')
+                    .replace('{balance}', String(availablePoints ?? '--'))}
             </Text>
           </View>
           {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
@@ -951,7 +953,14 @@ export default function ZiScreen() {
             <View style={styles.tierCard}>
               <Text style={styles.tierTitle}>{tx('当前解读档位：', 'Current tier: ', '當前解讀檔位：')}{ziTierLabel}</Text>
               <Text style={styles.tierDesc}>{ziTierDesc}</Text>
-              {!isVip && (
+              {!user ? (
+                <TouchableOpacity
+                  style={styles.tierUpgradeBtn}
+                  onPress={() => router.push('/login')}
+                >
+                  <Text style={styles.tierUpgradeBtnText}>{tx('登录保存这次解读', 'Log in to save this reading', '登入保存這次解讀')}</Text>
+                </TouchableOpacity>
+              ) : !isVip && (
                 <TouchableOpacity
                   style={styles.tierUpgradeBtn}
                   onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
