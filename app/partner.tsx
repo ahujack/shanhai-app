@@ -48,6 +48,12 @@ function statusLabel(status: string) {
   return '待结算';
 }
 
+function shortId(id?: string | null) {
+  const text = String(id || '');
+  if (text.length <= 12) return text || '—';
+  return `${text.slice(0, 8)}…${text.slice(-4)}`;
+}
+
 export default function PartnerPortalScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -160,6 +166,30 @@ export default function PartnerPortalScreen() {
                 <Summary label="已结算" count={paid?.orderCount || 0} amount={paid?.commissionAmount || 0} />
               </View>
 
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>注册用户</Text>
+                <Text style={styles.sectionMeta}>最近 {data.registeredUsers.length} 个</Text>
+              </View>
+              {data.registeredUsers.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>暂无注册用户。用户通过你的推广链接注册后，这里会显示 userId。</Text>
+                </View>
+              ) : (
+                <View style={styles.userList}>
+                  {data.registeredUsers.slice(0, 20).map((user) => (
+                    <View key={user.id} style={styles.userRow}>
+                      <View style={styles.userMain}>
+                        <Text style={styles.userId} selectable>{shortId(user.id)}</Text>
+                        <Text style={styles.userDate}>{dateLabel(user.createdAt)}</Text>
+                      </View>
+                      <Text style={[styles.userStatus, user.paid && styles.userStatusPaid]}>
+                        {user.paid ? '已付费' : '未付费'}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               <Text style={styles.sectionTitle}>最近订单</Text>
               {data.commissions.length === 0 ? (
                 <View style={styles.emptyCard}>
@@ -177,6 +207,7 @@ export default function PartnerPortalScreen() {
                     <Text style={styles.orderMeta}>
                       成交 {money(item.grossAmount, item.currency)} · 佣金 {money(item.commissionAmount, item.currency)}
                     </Text>
+                    <Text style={styles.orderUser} selectable>付费用户：{shortId(item.user?.id)}</Text>
                     <Text style={styles.orderDate}>{dateLabel(item.completedAt || item.createdAt)}</Text>
                   </View>
                 ))
@@ -392,6 +423,59 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginBottom: 10,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 2,
+  },
+  sectionMeta: {
+    color: ui.muted,
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  userList: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: ui.border,
+    backgroundColor: ui.surface,
+    marginBottom: 18,
+    overflow: 'hidden',
+  },
+  userRow: {
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(42, 52, 72, 0.72)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  userMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  userId: {
+    color: ui.text,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  userDate: {
+    color: ui.muted,
+    fontSize: 11,
+    marginTop: 3,
+  },
+  userStatus: {
+    color: ui.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  userStatusPaid: {
+    color: ui.green,
+  },
   orderCard: {
     borderRadius: 8,
     backgroundColor: ui.surface,
@@ -424,6 +508,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 8,
+  },
+  orderUser: {
+    color: ui.gold,
+    fontSize: 11,
+    marginTop: 5,
+    fontWeight: '800',
   },
   orderDate: {
     color: ui.muted,

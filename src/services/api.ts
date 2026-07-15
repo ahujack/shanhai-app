@@ -267,6 +267,11 @@ export type AffiliatePortalSummary = {
   >;
   commissions: Array<{
     id: string;
+    user: {
+      id: string;
+      email?: string | null;
+      name?: string | null;
+    };
     productName: string;
     productCode: string;
     grossAmount: number;
@@ -276,6 +281,13 @@ export type AffiliatePortalSummary = {
     status: string;
     completedAt: string | null;
     createdAt: string;
+  }>;
+  registeredUsers: Array<{
+    id: string;
+    email?: string | null;
+    name?: string | null;
+    createdAt: string;
+    paid: boolean;
   }>;
 };
 
