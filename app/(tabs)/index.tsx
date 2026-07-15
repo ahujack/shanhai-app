@@ -1004,10 +1004,10 @@ export default function HomeScreen() {
                 <View style={styles.heroRule} />
                 <Text style={styles.welcomeTag}>{t('home.welcome.tag', '先把一件事说清楚')}</Text>
                 <Text style={styles.welcomeText}>
-                  {t('home.welcome.hero', '把最近困住你的关系、工作或人生选择说出来。{name} 会先给一句结论，再用东方命理帮你拆依据和下一步。').replace('{name}', localizedPersona.name)}
+                  {t('home.welcome.hero', '卡住的事，先听结论。')}
                 </Text>
                 <Text style={styles.welcomeHint}>
-                  {t('home.welcome.hint', '适合海外生活里那些不方便问别人、但又一直压在心里的事。').replace('{name}', localizedPersona.name)}
+                  {t('home.welcome.hint', '再帮你拆依据、风险和下一步。')}
                 </Text>
                 {/* 试试问我 - 示例问题 */}
                 <Text style={styles.suggestedTitle}>{t('home.quick.title', '不知道怎么问，就从这里开始')}</Text>

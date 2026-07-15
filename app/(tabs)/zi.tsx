@@ -1584,7 +1584,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    marginHorizontal: 16,
   },
   ritualHintCard: {
     backgroundColor: '#1A2238',
@@ -1617,6 +1617,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
+    minWidth: 0,
   },
   modeButtonActive: {
     backgroundColor: '#FFD700',
@@ -1625,6 +1626,7 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
   },
   modeButtonTextActive: {
     color: '#1a1a2e',

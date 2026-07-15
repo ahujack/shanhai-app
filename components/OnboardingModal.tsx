@@ -13,6 +13,7 @@ const slides = [
 export default function OnboardingModal() {
   const [visible, setVisible] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
+  const cardWidth = Math.min(Dimensions.get('window').width - 48, 340);
 
   useEffect(() => {
     const check = async () => {
@@ -52,7 +53,7 @@ export default function OnboardingModal() {
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.overlay}>
-        <View style={styles.card}>
+        <View style={[styles.card, { width: cardWidth }]}>
           <Text style={styles.emoji}>{slide.emoji}</Text>
           <Text style={styles.title}>{slide.title}</Text>
           <Text style={styles.desc}>{slide.desc}</Text>
@@ -86,17 +87,15 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#1A1328',
-    borderRadius: 24,
-    padding: 28,
-    width: '100%',
-    maxWidth: 340,
+    borderRadius: 20,
+    padding: 24,
     borderWidth: 2,
     borderColor: '#F8D05F',
     alignItems: 'center',
   },
   emoji: {
-    fontSize: 56,
-    marginBottom: 20,
+    fontSize: 52,
+    marginBottom: 18,
   },
   title: {
     fontSize: 22,
