@@ -197,9 +197,28 @@ export default function RegisterScreen() {
       await AsyncStorage.setItem('agreedToTerms', 'true');
       Alert.alert(
         tx('注册成功', 'Registration successful', '註冊成功'),
-        tx('欢迎加入山海灵境！', 'Welcome to Shanhai Realm!', '歡迎加入山海靈境！'),
+        referralCode
+          ? tx(
+              '欢迎加入山海灵境。邀请码已生效，你可以先用奖励积分测一次字或问一件事。',
+              'Welcome to Shanhai Realm. Your invite code is applied. You can use the reward points for a character reading or one question.',
+              '歡迎加入山海靈境。邀請碼已生效，你可以先用獎勵積分測一次字或問一件事。',
+            )
+          : tx(
+              '欢迎加入山海灵境。你可以先测一个字，或直接说出最想理清的一件事。',
+              'Welcome to Shanhai Realm. Start with one character reading, or ask the one thing you want to clarify.',
+              '歡迎加入山海靈境。你可以先測一個字，或直接說出最想理清的一件事。',
+            ),
+        [
+          {
+            text: tx('先测字', 'Try character reading', '先測字'),
+            onPress: () => router.replace('/(tabs)/zi'),
+          },
+          {
+            text: tx('去首页提问', 'Ask on home', '去首頁提問'),
+            onPress: () => router.replace('/(tabs)'),
+          },
+        ],
       );
-      router.replace('/(tabs)');
     } else {
       const msg = localizeAuthMessage({
         rawMessage: result?.message,
