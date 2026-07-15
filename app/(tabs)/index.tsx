@@ -100,7 +100,7 @@ export default function HomeScreen() {
     ],
     [t, language],
   );
-  const visibleQuickStartPrompts = quickStartPrompts.slice(0, 2);
+  const visibleQuickStartPrompts = quickStartPrompts.slice(0, 3);
   const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
   const languageLabelShort: Record<AppLanguage, string> = {
