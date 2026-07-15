@@ -121,13 +121,15 @@ export default function ReadingScreen() {
     : t('reading.form.tier.singleDesc', '已包含核心解读，升级会员可解锁「无限次深度解读 + 追问模式」');
   const displayPointsCost = isVip ? 0 : readingPointsCost;
   const memberFreeSuffix = isVip ? t('reading.form.memberFreeSuffix', '（会员免扣）') : '';
-  const billingPreviewText = t(
-    'reading.form.billingPreview',
-    '本次将扣：{cost} 积分{memberFree} · 当前余额：{balance}',
-  )
-    .replace('{cost}', String(displayPointsCost))
-    .replace('{memberFree}', memberFreeSuffix)
-    .replace('{balance}', String(availablePoints ?? '--'));
+  const billingPreviewText = !user
+    ? t('reading.form.guestPreview', '游客可先免费体验一次，结果出来后再登录保存。')
+    : t(
+        'reading.form.billingPreview',
+        '本次将扣：{cost} 积分{memberFree} · 当前余额：{balance}',
+      )
+        .replace('{cost}', String(displayPointsCost))
+        .replace('{memberFree}', memberFreeSuffix)
+        .replace('{balance}', String(availablePoints ?? '--'));
   const membershipExpiredHint =
     hasMembershipTier && !isVip ? t('reading.form.membershipExpired', '会员权益已过期，当前按积分扣费。') : '';
 
@@ -497,7 +499,12 @@ export default function ReadingScreen() {
             onPress: handleDeepConversation,
           }}
           secondary={
-            !isVip
+            !user
+              ? {
+                  label: t('reading.result.delivery.loginSave', '登录保存结果'),
+                  onPress: () => router.push('/login'),
+                }
+              : !isVip
               ? {
                   label: t('reading.result.delivery.upgrade', '解锁深度追问'),
                   onPress: openVipPlanWithTrack,
@@ -695,6 +702,8 @@ export default function ReadingScreen() {
           {`${t('reading.form.inputHint', '将心中困惑如实道来，字数不限，可附加时间、人物或地点，以便匹配更精准的卦象。')}${
             isVip
               ? t('reading.form.cost.free', '当前会员有效期内免扣积分（本次扣 0 积分）。')
+              : !user
+              ? t('reading.form.guestPreviewInline', '游客可先体验一次，结果出来后再登录保存。')
               : t('reading.form.cost.guestInline', '免费用户本次 {cost} 积分。').replace(
                   '{cost}',
                   String(readingPointsCost),
