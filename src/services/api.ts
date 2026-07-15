@@ -246,6 +246,8 @@ export type AffiliatePortalSummary = {
     code: string;
     name: string;
     commissionRate: number;
+    parentPartner?: { id: string; code: string; name: string } | null;
+    overrideCommissionRate: number;
     settlementCycle: 'weekly' | 'monthly' | string;
     minimumPayout: number;
     nextSettlementAt: string;
@@ -265,6 +267,24 @@ export type AffiliatePortalSummary = {
       commissionAmount: number;
     }
   >;
+  overrideSummary: Record<
+    'pending' | 'approved' | 'paid',
+    {
+      orderCount: number;
+      grossAmount: number;
+      netAmount: number;
+      baseCommissionAmount: number;
+      overrideAmount: number;
+    }
+  >;
+  subPartners: Array<{
+    id: string;
+    code: string;
+    name: string;
+    commissionRate: number;
+    overrideCommissionRate: number;
+    isActive: boolean;
+  }>;
   commissions: Array<{
     id: string;
     user: {
@@ -288,6 +308,26 @@ export type AffiliatePortalSummary = {
     name?: string | null;
     createdAt: string;
     paid: boolean;
+  }>;
+  overrideCommissions: Array<{
+    id: string;
+    childPartner: { id: string; code: string; name: string };
+    user: {
+      id: string;
+      email?: string | null;
+      name?: string | null;
+    };
+    productName: string;
+    productCode: string;
+    grossAmount: number;
+    netAmount: number;
+    baseCommissionAmount: number;
+    overrideRate: number;
+    overrideAmount: number;
+    currency: string;
+    status: string;
+    completedAt: string | null;
+    createdAt: string;
   }>;
 };
 

@@ -93,7 +93,11 @@ export default function PartnerPortalScreen() {
   const pending = data?.summary.pending;
   const paid = data?.summary.paid;
   const approved = data?.summary.approved;
+  const overridePending = data?.overrideSummary.pending;
+  const overridePaid = data?.overrideSummary.paid;
+  const overrideApproved = data?.overrideSummary.approved;
   const payable = (pending?.commissionAmount || 0) + (approved?.commissionAmount || 0);
+  const overridePayable = (overridePending?.overrideAmount || 0) + (overrideApproved?.overrideAmount || 0);
 
   return (
     <>
@@ -165,6 +169,60 @@ export default function PartnerPortalScreen() {
                 <Summary label="待打款" count={approved?.orderCount || 0} amount={approved?.commissionAmount || 0} />
                 <Summary label="已结算" count={paid?.orderCount || 0} amount={paid?.commissionAmount || 0} />
               </View>
+
+              {data.subPartners.length > 0 || data.overrideCommissions.length > 0 ? (
+                <>
+                  <View style={styles.settlementCard}>
+                    <View>
+                      <Text style={styles.cardLabel}>二级代理分润</Text>
+                      <Text style={styles.moneyText}>{money(overridePayable)}</Text>
+                    </View>
+                    <View style={styles.settlementRight}>
+                      <Text style={styles.settlementLine}>下级 {data.subPartners.length} 个</Text>
+                      <Text style={styles.settlementSub}>默认按下级佣金的 {(data.partner.overrideCommissionRate * 100).toFixed(0)}%</Text>
+                      <Text style={styles.settlementSub}>已结算：{money(overridePaid?.overrideAmount || 0)}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.sectionTitle}>下级推广员</Text>
+                  <View style={styles.userList}>
+                    {data.subPartners.map((item) => (
+                      <View key={item.id} style={styles.userRow}>
+                        <View style={styles.userMain}>
+                          <Text style={styles.userId}>{item.name}</Text>
+                          <Text style={styles.userDate}>推广码 {item.code} · 佣金 {(item.commissionRate * 100).toFixed(0)}%</Text>
+                        </View>
+                        <Text style={[styles.userStatus, item.isActive && styles.userStatusPaid]}>
+                          {item.isActive ? '启用' : '停用'}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <Text style={styles.sectionTitle}>二级分润记录</Text>
+                  {data.overrideCommissions.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                      <Text style={styles.emptyText}>暂无二级分润。下级推广员产生付费订单后，这里会显示分润记录。</Text>
+                    </View>
+                  ) : (
+                    data.overrideCommissions.map((item) => (
+                      <View key={item.id} style={styles.orderCard}>
+                        <View style={styles.orderTop}>
+                          <Text style={styles.orderName}>{item.childPartner.name}</Text>
+                          <Text style={[styles.status, item.status === 'paid' && styles.statusPaid]}>
+                            {statusLabel(item.status)}
+                          </Text>
+                        </View>
+                        <Text style={styles.orderMeta}>
+                          基础佣金 {money(item.baseCommissionAmount, item.currency)} · 二级分润 {money(item.overrideAmount, item.currency)}
+                        </Text>
+                        <Text style={styles.orderUser} selectable>付费用户：{shortId(item.user?.id)}</Text>
+                        <Text style={styles.orderDate}>{dateLabel(item.completedAt || item.createdAt)}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              ) : null}
 
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>注册用户</Text>
