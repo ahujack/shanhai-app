@@ -69,6 +69,7 @@ export default function PersonaPicker({
                 <View style={styles.personaInfo}>
                   <Text style={styles.personaName}>{persona.name}</Text>
                   <Text style={styles.personaTitle}>{persona.title}</Text>
+                  <Text style={styles.personaDesc} numberOfLines={2}>{persona.description}</Text>
                   <View style={styles.tagContainer}>
                     {persona.toneTags.map((tag) => (
                       <View key={tag} style={styles.tag}>
@@ -159,6 +160,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#B2B4C8',
     marginTop: 2,
+  },
+  personaDesc: {
+    color: '#8F9AAE',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 5,
   },
   tagContainer: {
     flexDirection: 'row',

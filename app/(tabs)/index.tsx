@@ -1023,6 +1023,21 @@ export default function HomeScreen() {
               <View style={styles.welcomeCard}>
                 <Text style={styles.welcomeWatermark}>山海</Text>
                 <View style={styles.heroRule} />
+                <TouchableOpacity
+                  style={styles.welcomePersonaPanel}
+                  onPress={() => setShowPersonaPicker(true)}
+                  activeOpacity={0.82}
+                >
+                  <View style={styles.welcomePersonaGlow}>
+                    <Image source={personaAvatarSource} style={styles.welcomePersonaAvatar as ImageStyle} resizeMode="cover" />
+                  </View>
+                  <View style={styles.welcomePersonaCopy}>
+                    <Text style={styles.welcomePersonaKicker}>{t('home.persona.present', '{name} 已入席').replace('{name}', localizedPersona.name)}</Text>
+                    <Text style={styles.welcomePersonaLine} numberOfLines={2}>
+                      {localizedPersona.greeting}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
                 <Text style={styles.welcomeTag}>{t('home.welcome.tag', '中国传统玄学 AI 陪伴')}</Text>
                 <Text style={styles.welcomeText}>
                   {t('home.welcome.hero', '问一件事，取一个象。')}
@@ -2272,12 +2287,53 @@ const styles = StyleSheet.create({
   welcomePersonaAvatar: {
     width: '100%',
     height: '100%',
+    borderRadius: 25,
   },
   welcomePersonaName: {
     color: '#F4EBDC',
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  welcomePersonaPanel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.22)',
+    backgroundColor: 'rgba(18, 23, 34, 0.72)',
+  },
+  welcomePersonaGlow: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.52)',
+    backgroundColor: 'rgba(214, 179, 106, 0.09)',
+    shadowColor: '#D6B36A',
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  welcomePersonaCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  welcomePersonaKicker: {
+    color: '#E6C77B',
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  welcomePersonaLine: {
+    color: '#AAB3C5',
+    fontSize: 12,
+    lineHeight: 18,
   },
   heroRule: {
     width: 42,
