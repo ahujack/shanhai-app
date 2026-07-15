@@ -53,7 +53,9 @@ export default function InviteLandingPage() {
     });
     router.push({
       pathname: '/(tabs)/zi',
-      params: referralCode ? { ref: referralCode } : undefined,
+      params: referralCode
+        ? { ref: referralCode, invitePreview: '1' }
+        : { invitePreview: '1' },
     });
   };
 

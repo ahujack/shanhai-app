@@ -46,8 +46,12 @@ function OracleGlyphImage({ uri, ziChar, style }: { uri: string; ziChar: string;
 export default function ZiScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ prefillZi?: string; fromChat?: string; userQuestion?: string }>();
+  const params = useLocalSearchParams<{ prefillZi?: string; fromChat?: string; userQuestion?: string; invitePreview?: string; ref?: string }>();
   const fromChat = (Array.isArray(params.fromChat) ? params.fromChat[0] : params.fromChat) === '1';
+  const referralParam = (Array.isArray(params.ref) ? params.ref[0] : params.ref || '').trim();
+  const isInvitePreview =
+    (Array.isArray(params.invitePreview) ? params.invitePreview[0] : params.invitePreview) === '1' ||
+    !!referralParam;
   const [inputZi, setInputZi] = useState('');
   const [result, setResult] = useState<ZiResult | null>(null);
   const [resultStage, setResultStage] = useState<'idle' | 'preview' | 'full'>('idle');
@@ -358,7 +362,7 @@ export default function ZiScreen() {
       Alert.alert(t('common.notice', '提示'), tx('请输入一个有效的汉字', 'Please input a valid Chinese character', '請輸入一個有效的漢字'));
       return false;
     }
-    if (user && !isVip) {
+    if (user && !isVip && !isInvitePreview) {
       try {
         const checkRes = await pointsApi.check(ziPointsCost);
         // 仅当明确 false 才拦截；避免 hasEnough 缺失或与门闸关闭时后端行为不一致导致误判
@@ -381,7 +385,7 @@ export default function ZiScreen() {
     setResult(buildPreviewResult(zi, focusAspect));
     setResultStage('preview');
     try {
-      const data = await ziApi.analyze(zi, focusAspect, undefined, normalizedQuestion || undefined);
+      const data = await ziApi.analyze(zi, focusAspect, undefined, normalizedQuestion || undefined, isInvitePreview);
       setResult(data);
       setResultStage('full');
       setShowLanguageRefreshHint(false);
@@ -819,6 +823,8 @@ export default function ZiScreen() {
             <Text style={styles.billingPreviewText}>
               {!user
                 ? tx('游客可先免费测一次，结果出来后再决定是否登录保存。', 'Try once as a guest. Log in afterward to save the reading.', '遊客可先免費測一次，結果出來後再決定是否登入保存。')
+                : isInvitePreview
+                ? tx('邀请体验可先测一次，本次不扣积分；结果满意后再注册/补充积分继续深聊。', 'Invite preview: try once without points. Continue after registering or topping up.', '邀請體驗可先測一次，本次不扣積分；結果滿意後再註冊/補充積分繼續深聊。')
                 : t('reading.form.billingPreview', '本次将扣：{cost} 积分{memberFree} · 当前余额：{balance}')
                     .replace('{cost}', String(displayZiCost))
                     .replace('{memberFree}', isVip ? t('reading.form.memberFreeSuffix', '（会员免扣）') : '')

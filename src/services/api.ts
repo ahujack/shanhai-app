@@ -699,12 +699,12 @@ const ZI_ANALYZE_HANDWRITING_TIMEOUT_MS = 180_000;
 const ZI_TEXT_ANALYZE_TIMEOUT_MS = 120_000;
 
 export const ziApi = {
-  analyze: (zi: string, focusAspect?: string, handwriting?: object, userQuestion?: string) =>
+  analyze: (zi: string, focusAspect?: string, handwriting?: object, userQuestion?: string, invitePreview?: boolean) =>
     request<ZiResult>(
       '/zi/analyze',
       {
         method: 'POST',
-        body: JSON.stringify({ zi, focusAspect, handwriting, userQuestion }),
+        body: JSON.stringify({ zi, focusAspect, handwriting, userQuestion, invitePreview }),
       },
       { timeoutMs: ZI_TEXT_ANALYZE_TIMEOUT_MS },
     ),
