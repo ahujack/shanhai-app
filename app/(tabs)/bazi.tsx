@@ -902,6 +902,26 @@ export default function BaziScreen() {
   const c = effectiveChart;
   const readingTier = resolveReadingTier(c);
   const userAccessTier = resolveUserAccessTier(user);
+  const wuxingBars = [
+    { key: 'wood', label: tx('木', 'Wood', '木'), value: c.wuxingStrength?.wood || 0, color: '#47C789' },
+    { key: 'fire', label: tx('火', 'Fire', '火'), value: c.wuxingStrength?.fire || 0, color: '#F05B5B' },
+    { key: 'earth', label: tx('土', 'Earth', '土'), value: c.wuxingStrength?.earth || 0, color: '#D5A45F' },
+    { key: 'metal', label: tx('金', 'Metal', '金'), value: c.wuxingStrength?.metal || 0, color: '#F1C46B' },
+    { key: 'water', label: tx('水', 'Water', '水'), value: c.wuxingStrength?.water || 0, color: '#5AA8FF' },
+  ];
+  const dominantWuxing = [...wuxingBars].sort((a, b) => b.value - a.value)[0];
+  const tenGodValues = [c.tenGods?.year, c.tenGods?.month, c.tenGods?.day, c.tenGods?.hour].filter(Boolean) as string[];
+  const tenGodStats = Array.from(new Set(tenGodValues)).map((name) => ({
+    name,
+    pct: Math.round((tenGodValues.filter((item) => item === name).length / Math.max(tenGodValues.length, 1)) * 100),
+  }));
+  const luckBars = (c.detailedReading?.luckCycles?.cycles || []).slice(0, 6).map((cycle, idx) => {
+    const seed = Array.from(cycle.ganZhi || '').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    return {
+      ...cycle,
+      score: 50 + ((seed + idx * 13) % 49),
+    };
+  });
 
   return (
     <ScrollView
@@ -946,6 +966,74 @@ export default function BaziScreen() {
         <Text style={styles.body}>{normalizeChartText(c.conclusion?.overall) || tx('你的命盘呈现稳中有进的结构。', 'Your chart shows a steady-upward pattern.', '你的命盤呈現穩中有進的結構。')}</Text>
         <Text style={styles.bodyMuted}>{normalizeChartText(c.conclusion?.mindset) || tx('建议先稳住内在节奏，再扩展外部机会。', 'Stabilize inner rhythm first, then expand externally.', '建議先穩住內在節奏，再擴展外部機會。')}</Text>
       </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>{tx('五行能量图', 'Five-Element Profile', '五行能量圖')}</Text>
+        <Text style={styles.bodyMuted}>
+          {tx('主导元素：', 'Dominant element: ', '主導元素：')}{dominantWuxing?.label || '-'} · {dominantWuxing?.value || 0}%
+        </Text>
+        <View style={styles.wuxingChart}>
+          {wuxingBars.map((item) => (
+            <View key={item.key} style={styles.wuxingCol}>
+              <View style={styles.wuxingTrack}>
+                <View style={[styles.wuxingFill, { height: `${Math.max(8, Math.min(100, item.value))}%`, backgroundColor: item.color }]} />
+              </View>
+              <Text style={styles.wuxingPct}>{item.value}%</Text>
+              <Text style={styles.wuxingLabel}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.lifeTagGrid}>
+          <View style={styles.lifeTag}>
+            <Text style={styles.lifeTagTitle}>{tx('适合行业', 'Suitable fields', '適合行業')}</Text>
+            <Text style={styles.lifeTagText}>{normalizeChartText(c.fortuneSummary?.career) || tx('以专业能力与稳定输出为主。', 'Fields built on expertise and steady output.', '以專業能力與穩定輸出為主。')}</Text>
+          </View>
+          <View style={styles.lifeTag}>
+            <Text style={styles.lifeTagTitle}>{tx('关系提醒', 'Relationship note', '關係提醒')}</Text>
+            <Text style={styles.lifeTagText}>{normalizeChartText(c.fortuneSummary?.love) || tx('先看沟通节奏，再看承诺。', 'Read communication rhythm before commitment.', '先看溝通節奏，再看承諾。')}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>{tx('十神占比', 'Ten-God Ratio', '十神占比')}</Text>
+        {tenGodStats.map((item) => (
+          <View key={item.name} style={styles.ratioRow}>
+            <Text style={styles.ratioLabel}>{item.name}</Text>
+            <View style={styles.ratioTrack}>
+              <View style={[styles.ratioFill, { width: `${Math.max(6, item.pct)}%` }]} />
+            </View>
+            <Text style={styles.ratioPct}>{item.pct}%</Text>
+          </View>
+        ))}
+        {readingTier === 'lite' ? (
+          <TouchableOpacity
+            style={styles.chartPaywallStrip}
+            onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
+          >
+            <Text style={styles.chartPaywallText}>{tx('十神如何影响事业/关系？升级看老师傅拆解', 'How do these affect career and relationships? Unlock master notes.', '十神如何影響事業/關係？升級看老師傅拆解')}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {luckBars.length > 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>{tx('大运走势', 'Luck-Cycle Trend', '大運走勢')}</Text>
+          <View style={styles.luckChart}>
+            {luckBars.map((cycle) => (
+              <View key={`${cycle.ageRange}_${cycle.ganZhi}`} style={styles.luckCol}>
+                <Text style={styles.luckScore}>{cycle.score}</Text>
+                <View style={[styles.luckBar, { height: 48 + cycle.score * 0.9 }]} />
+                <Text style={styles.luckAge}>{cycle.ageRange}</Text>
+                <Text style={styles.luckGanZhi}>{cycle.ganZhi}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.bodyMuted}>
+            {tx('分数是节奏参考，不代表现实价值判断；重点看每一步的主题变化。', 'Scores are rhythm references, not real-life value judgments. Focus on theme changes.', '分數是節奏參考，不代表現實價值判斷；重點看每一步的主題變化。')}
+          </Text>
+        </View>
+      ) : null}
 
       <DeliveryNextStepCard
         title={tx('接下来做什么', 'Next step', '接下來做什麼')}
@@ -1239,6 +1327,148 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tenGodDetailTitle: { color: '#F8D05F', fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
+  wuxingChart: {
+    height: 178,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  wuxingCol: {
+    flex: 1,
+    alignItems: 'center',
+    minWidth: 0,
+  },
+  wuxingTrack: {
+    width: '100%',
+    maxWidth: 42,
+    height: 112,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  wuxingFill: {
+    width: '100%',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  wuxingPct: {
+    color: '#E8ECF3',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 6,
+  },
+  wuxingLabel: {
+    color: '#A89EBE',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  lifeTagGrid: {
+    gap: 8,
+  },
+  lifeTag: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#352A4E',
+    backgroundColor: '#1A132A',
+    padding: 10,
+  },
+  lifeTagTitle: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  lifeTagText: {
+    color: '#D0D2E3',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  ratioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  ratioLabel: {
+    width: 56,
+    color: '#E8ECF3',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  ratioTrack: {
+    flex: 1,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    overflow: 'hidden',
+  },
+  ratioFill: {
+    height: '100%',
+    borderRadius: 5,
+    backgroundColor: '#45D6B1',
+  },
+  ratioPct: {
+    width: 38,
+    color: '#A89EBE',
+    fontSize: 11,
+    textAlign: 'right',
+  },
+  chartPaywallStrip: {
+    borderRadius: 8,
+    backgroundColor: 'rgba(248, 208, 95, 0.11)',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.3)',
+    padding: 10,
+    marginTop: 4,
+  },
+  chartPaywallText: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  luckChart: {
+    minHeight: 190,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  luckCol: {
+    flex: 1,
+    alignItems: 'center',
+    minWidth: 0,
+  },
+  luckScore: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  luckBar: {
+    width: '86%',
+    maxWidth: 42,
+    minHeight: 52,
+    borderRadius: 10,
+    backgroundColor: '#E7B96C',
+  },
+  luckAge: {
+    color: '#CFC6DE',
+    fontSize: 10,
+    marginTop: 7,
+    textAlign: 'center',
+  },
+  luckGanZhi: {
+    color: '#8E84A3',
+    fontSize: 10,
+    marginTop: 2,
+  },
   moduleCard: {
     marginTop: 8,
     padding: 10,

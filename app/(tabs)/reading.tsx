@@ -395,6 +395,9 @@ export default function ReadingScreen() {
     ]
       .map((item) => item?.trim())
       .filter((item): item is string => !!item);
+    const lockedFinalAction = t('reading.result.lockedFinalAction', '最终决策动作已锁定：升级后查看具体话术、执行时机和避坑边界。');
+    const actionStepsForDisplay = isVip ? actionSteps : [...actionSteps.slice(0, 2), lockedFinalAction];
+    const riskItemsForDisplay = isVip ? riskItems : riskItems.slice(0, 2);
     const weeklyRhythm = [
       {
         phase: t('reading.result.rhythm.monTue', '周初（周一-周二）'),
@@ -560,11 +563,18 @@ export default function ReadingScreen() {
                 </View>
               </View>
               <View style={styles.detailGoldDivider} />
-              {actionSteps.map((step, idx) => (
-                <View key={`step_${idx}`} style={styles.detailBulletRow}>
-                  <Text style={styles.detailBulletIndex}>{idx + 1}</Text>
-                  <Text style={styles.detailBulletText}>{step}</Text>
-                </View>
+              {actionStepsForDisplay.map((step, idx) => (
+                step === lockedFinalAction ? (
+                  <TouchableOpacity key={`step_${idx}`} style={styles.lockedDetailCard} onPress={openVipPlanWithTrack}>
+                    <Text style={styles.lockedDetailTitle}>{t('reading.result.lockedFinalTitle', '锁定：最终决策动作')}</Text>
+                    <Text style={styles.lockedDetailText}>{step}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View key={`step_${idx}`} style={styles.detailBulletRow}>
+                    <Text style={styles.detailBulletIndex}>{idx + 1}</Text>
+                    <Text style={styles.detailBulletText}>{step}</Text>
+                  </View>
+                )
               ))}
               <TouchableOpacity style={styles.deepChatButton} onPress={handleDeepConversation}>
                 <Text style={styles.deepChatButtonText}>{t('reading.result.deepTalk', '和我聊聊现在的感受')}</Text>
@@ -579,12 +589,18 @@ export default function ReadingScreen() {
                 </View>
               </View>
               <View style={styles.detailGoldDivider} />
-              {riskItems.map((risk, idx) => (
+              {riskItemsForDisplay.map((risk, idx) => (
                 <View key={`risk_${idx}`} style={styles.detailBulletRow}>
                   <Text style={styles.detailRiskIcon}>⚠️</Text>
                   <Text style={styles.detailBulletText}>{risk}</Text>
                 </View>
               ))}
+              {!isVip ? (
+                <TouchableOpacity style={styles.lockedDetailCard} onPress={openVipPlanWithTrack}>
+                  <Text style={styles.lockedDetailTitle}>{t('reading.result.lockedRiskTitle', '锁定：完整避坑线')}</Text>
+                  <Text style={styles.lockedDetailText}>{t('reading.result.lockedRiskText', '升级后查看最容易踩错的一步，以及该不该继续推进。')}</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
 
             <View style={[styles.card, styles.detailCard, { backgroundColor: colors.surface }]}>
@@ -1282,6 +1298,25 @@ const styles = StyleSheet.create({
     color: '#AAB3C5',
     fontSize: 14,
     lineHeight: 21,
+  },
+  lockedDetailCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.38)',
+    backgroundColor: 'rgba(214, 179, 106, 0.1)',
+    padding: 12,
+    marginBottom: 10,
+  },
+  lockedDetailTitle: {
+    color: '#D6B36A',
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 5,
+  },
+  lockedDetailText: {
+    color: '#E6D6A8',
+    fontSize: 13,
+    lineHeight: 20,
   },
   rhythmRow: {
     backgroundColor: '#1A2233',

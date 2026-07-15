@@ -184,14 +184,14 @@ export default function ZiScreen() {
   const ziTierLabel = !result
     ? isVip
       ? tx('深度版（会员）', 'Deep (Member)', '深度版（會員）')
-      : tx('简版（免费）', 'Lite (Free)', '簡版（免費）')
+      : tx('免费深看', 'Free Deep Preview', '免費深看')
     : result.interpretation?.premiumHint
-    ? tx('简版（可升级）', 'Lite (Upgradeable)', '簡版（可升級）')
+    ? tx('免费深看（可升级）', 'Free Deep Preview', '免費深看（可升級）')
     : isVip
     ? tx('深度版（会员）', 'Deep (Member)', '深度版（會員）')
     : tx('完整版（积分解锁）', 'Full (Points Unlock)', '完整版（積分解鎖）');
   const ziTierDesc = result?.interpretation?.premiumHint
-    ? tx('你当前看到的是可用精华版，升级后可直接解锁老师傅深批与行动建议。', 'You are viewing a lite preview. Upgrade to unlock full expert guidance.', '你目前看到的是精華版，升級後可解鎖完整深度建議。')
+    ? tx('已开放字形、风险和主线判断；最终行动、时机与避坑线升级后解锁。', 'Shape, risks, and core pattern are open. Final action, timing, and risk boundary unlock after upgrade.', '已開放字形、風險和主線判斷；最終行動、時機與避坑線升級後解鎖。')
     : isVip
     ? tx('已解锁：部件拆解 + 方向深挖 + 老师傅批注 + 避坑提醒。', 'Unlocked: component analysis + deep focus guidance + expert notes.', '已解鎖：部件拆解 + 方向深挖 + 老師傅批注 + 避坑提醒。')
     : tx('当前已是完整版，升级会员可继续解锁更深层的年度批注与持续追问。', 'Current version is full. Upgrade membership for deeper annual notes and follow-up guidance.', '目前已是完整版，升級會員可解鎖更深層批注與持續追問。');
@@ -1334,10 +1334,21 @@ export default function ZiScreen() {
                   ))}
                   <Text style={styles.focusSubhead}>{tx('行动计划', 'Action Plan', '行動計畫')}</Text>
                   {result.interpretation.focusReading.actionPlan.map((item, idx) => (
-                    <View key={`plan_${idx}`} style={styles.focusBulletRow}>
-                      <Text style={styles.focusBulletNum}>{idx + 1}</Text>
-                      <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
-                    </View>
+                    /最终行动|Final action|最終行動/.test(item) ? (
+                      <TouchableOpacity
+                        key={`plan_${idx}`}
+                        style={styles.lockedActionCard}
+                        onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
+                      >
+                        <Text style={styles.lockedActionTitle}>{tx('锁定：最终行动', 'Locked: Final Action', '鎖定：最終行動')}</Text>
+                        <Text style={styles.lockedActionText}>{normalizeZiText(item)}</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View key={`plan_${idx}`} style={styles.focusBulletRow}>
+                        <Text style={styles.focusBulletNum}>{idx + 1}</Text>
+                        <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
+                      </View>
+                    )
                   ))}
                   <TouchableOpacity style={styles.focusChatBtn} onPress={goActionPlanChat}>
                     <Text style={styles.focusChatBtnText}>{tx('💬 去对话里执行行动计划', '💬 Execute action plan in chat', '💬 去對話裡執行行動計畫')}</Text>
@@ -2089,6 +2100,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     flex: 1,
+  },
+  lockedActionCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.38)',
+    backgroundColor: 'rgba(248, 208, 95, 0.11)',
+    padding: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  lockedActionTitle: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 5,
+  },
+  lockedActionText: {
+    color: '#E7D7A1',
+    fontSize: 13,
+    lineHeight: 20,
   },
   focusChatBtn: {
     marginTop: 10,
