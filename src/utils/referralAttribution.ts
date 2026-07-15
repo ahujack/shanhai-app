@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { trackNamedEvent } from '../services/analytics';
 
 const REFERRAL_ATTRIBUTION_KEY = 'shanhai_referral_attribution';
 const DEFAULT_ATTRIBUTION_DAYS = 30;
@@ -36,6 +37,7 @@ export async function captureReferralFromUrl(): Promise<string | null> {
     } catch {
       // ignore localStorage failure
     }
+    trackNamedEvent('affiliate_landing', { ref: code });
     return code;
   } catch {
     return null;

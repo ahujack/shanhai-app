@@ -234,6 +234,52 @@ async function request<T>(
   }
 }
 
+// ========== Affiliate Portal API ==========
+export type AffiliatePortalSummary = {
+  partner: {
+    code: string;
+    name: string;
+    commissionRate: number;
+    settlementCycle: 'weekly' | 'monthly' | string;
+    minimumPayout: number;
+    nextSettlementAt: string;
+  };
+  funnel: {
+    clicks: number;
+    registeredUsers: number;
+    paidUsers: number;
+    conversionRate: number;
+  };
+  summary: Record<
+    'pending' | 'approved' | 'paid',
+    {
+      orderCount: number;
+      grossAmount: number;
+      netAmount: number;
+      commissionAmount: number;
+    }
+  >;
+  commissions: Array<{
+    id: string;
+    productName: string;
+    productCode: string;
+    grossAmount: number;
+    netAmount: number;
+    commissionAmount: number;
+    currency: string;
+    status: string;
+    completedAt: string | null;
+    createdAt: string;
+  }>;
+};
+
+export const affiliateApi = {
+  portal: (code: string, token: string) => {
+    const params = new URLSearchParams({ code, token });
+    return request<AffiliatePortalSummary>(`/affiliate/portal?${params.toString()}`);
+  },
+};
+
 // ========== User API ==========
 export interface UserProfile {
   id: string;
