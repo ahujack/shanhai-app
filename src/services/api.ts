@@ -213,17 +213,23 @@ async function request<T>(
     const err = error as Error;
     if (err?.name === 'AbortError') {
       const sec = timeoutMs ? Math.round(timeoutMs / 1000) : 0;
+      const isZiAnalyze = endpoint === '/zi/analyze';
       throw new Error(
         sec > 0
-          ? `请求超时（>${sec}s），识别需要调用 AI，请稍后重试或检查网络`
+          ? isZiAnalyze
+            ? `深度解读生成超时（>${sec}s），已保留首轮结果，请稍后重试深度解读`
+            : `请求超时（>${sec}s），识别需要调用 AI，请稍后重试或检查网络`
           : '请求已取消',
       );
     }
     const msg = String(err?.message || error);
     if (/Failed to fetch|NetworkError|network error|load failed|ERR_CONNECTION|timed out|TIMEOUT/i.test(msg)) {
       const isZiRelated = /^\/zi\//.test(endpoint);
+      const isZiAnalyze = endpoint === '/zi/analyze';
       throw new Error(
-        isZiRelated
+        isZiAnalyze
+          ? '深度解读暂时响应较慢，已保留首轮结果。你可以稍后重试。'
+          : isZiRelated
           ? '网络异常或服务器响应超时。手写识别需调用云端 AI，请稍后重试；若持续失败请检查网络或稍后再试。'
           : '网络异常或服务器响应超时，请稍后重试。',
       );
@@ -696,7 +702,7 @@ export interface ZiResult {
 /** 手写识字 + 多模态较慢，单独放宽超时（毫秒） */
 const ZI_RECOGNIZE_TIMEOUT_MS = 120_000;
 const ZI_ANALYZE_HANDWRITING_TIMEOUT_MS = 180_000;
-const ZI_TEXT_ANALYZE_TIMEOUT_MS = 120_000;
+const ZI_TEXT_ANALYZE_TIMEOUT_MS = 45_000;
 
 export const ziApi = {
   analyze: (zi: string, focusAspect?: string, handwriting?: object, userQuestion?: string, invitePreview?: boolean) =>

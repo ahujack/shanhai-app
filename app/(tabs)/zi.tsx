@@ -400,6 +400,7 @@ export default function ZiScreen() {
     } catch (err: any) {
       console.error('测字失败:', err);
       const rawMsg = String(err?.message || '');
+      const isDeepTimeout = /深度解读|生成超时|已保留首轮结果|timeout|timed out|请求超时/i.test(rawMsg);
       const msg = localizeAuthMessage({
         rawMessage: rawMsg,
         language,
@@ -415,6 +416,11 @@ export default function ZiScreen() {
         Alert.alert(tx('积分不足', 'Insufficient points', '積分不足'), msg || tx('请使用下方快捷入口补充权益', 'Please use quick actions below to top up', '請使用下方快捷入口補充權益'));
       } else if (rawMsg.includes('请输入一个有效的汉字') || rawMsg.toLowerCase().includes('valid chinese character')) {
         Alert.alert(tx('输入无效', 'Invalid input', '輸入無效'), msg);
+      } else if (isDeepTimeout) {
+        Alert.alert(
+          tx('已先给出首轮结果', 'First-pass result is ready', '已先給出首輪結果'),
+          msg || tx('深度解读暂时响应较慢，你可以先查看当前结果，稍后再试。', 'Deep reading is slow right now. You can review the current result and retry later.', '深度解讀暫時較慢，你可以先查看目前結果，稍後再試。'),
+        );
       } else {
         Alert.alert(
           tx('测字失败', 'Character reading failed', '測字失敗'),
@@ -427,8 +433,12 @@ export default function ZiScreen() {
       }
       const previousZi = previousResult?.zi?.zi?.trim().charAt(0) || '';
       const shouldRestorePrevious = !!(previousResult && previousZi && previousZi === zi);
-      setResultStage(shouldRestorePrevious ? 'full' : 'idle');
-      setResult(shouldRestorePrevious ? previousResult : null);
+      if (isDeepTimeout) {
+        setResultStage('preview');
+      } else {
+        setResultStage(shouldRestorePrevious ? 'full' : 'idle');
+        setResult(shouldRestorePrevious ? previousResult : null);
+      }
       return false;
     } finally {
       setIsLoading(false);
