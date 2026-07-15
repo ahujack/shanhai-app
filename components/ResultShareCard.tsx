@@ -179,7 +179,9 @@ export default function ResultShareCard({
           <ActivityIndicator color="#1A1230" size="small" />
         ) : (
           <Text style={styles.shareBtnText}>
-            {tx('分享解读 · 邀请好友', 'Share reading · Invite friends', '分享解讀 · 邀請好友')}
+            {copied
+              ? tx('已复制，去分享给好友', 'Copied. Share with friends', '已複製，去分享給好友')
+              : tx('分享解读 · 邀请好友', 'Share reading · Invite friends', '分享解讀 · 邀請好友')}
           </Text>
         )}
       </TouchableOpacity>

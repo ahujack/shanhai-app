@@ -938,7 +938,7 @@ export default function ZiScreen() {
                 autoFocus
               />
               <TouchableOpacity
-                style={[styles.button, { backgroundColor: theme.dark.tint }]}
+                style={[styles.button, isLoading && styles.buttonDisabled]}
                 onPress={handleAnalyze}
                 disabled={isLoading}
               >
@@ -1894,29 +1894,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   input: {
-    flex: 1,
-    height: 50,
+    height: 56,
     backgroundColor: '#16213e',
     borderRadius: 10,
     paddingHorizontal: 20,
-    fontSize: 24,
+    fontSize: 28,
     color: '#fff',
     textAlign: 'center',
+    borderWidth: 1,
+    borderColor: '#2A3558',
   },
   button: {
-    height: 50,
+    height: 52,
     paddingHorizontal: 20,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8D05F',
+    borderWidth: 1,
+    borderColor: '#FFE08A',
+  },
+  buttonDisabled: {
+    opacity: 0.72,
   },
   buttonText: {
-    color: '#fff',
+    color: '#1A0A18',
     fontSize: 16,
     fontWeight: 'bold',
   },

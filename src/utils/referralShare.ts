@@ -12,6 +12,45 @@ type ShareCopy = {
   cta: string;
 };
 
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (Platform.OS === 'web') {
+    try {
+      const clipboard = (globalThis as any)?.navigator?.clipboard;
+      if (clipboard?.writeText) {
+        await clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      /* fallback below */
+    }
+    try {
+      const doc = (globalThis as any)?.document;
+      if (doc?.createElement && doc?.body) {
+        const textarea = doc.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        doc.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const ok = doc.execCommand?.('copy') !== false;
+        doc.body.removeChild(textarea);
+        return ok;
+      }
+    } catch {
+      /* fallback below */
+    }
+  }
+  try {
+    await Clipboard.setStringAsync(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function pickCopy(language: AppLanguage, kind: ResultShareKind): { label: string; inviteLine: string } {
   const kindLabel =
     language === 'en-US'
@@ -103,26 +142,22 @@ export async function shareResultCopy(params: {
   const copy = buildResultShareCopy(params);
 
   if (Platform.OS === 'web') {
-    try {
-      await Clipboard.setStringAsync(copy.body);
+    if (await copyTextToClipboard(copy.body)) {
       onCopied?.();
       return true;
-    } catch {
-      return false;
     }
+    return false;
   }
 
   try {
     await Share.share({ message: copy.body, title: copy.title });
     return true;
   } catch {
-    try {
-      await Clipboard.setStringAsync(copy.body);
+    if (await copyTextToClipboard(copy.body)) {
       onCopied?.();
       return true;
-    } catch {
-      return false;
     }
+    return false;
   }
 }
 
