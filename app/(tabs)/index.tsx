@@ -1000,19 +1000,13 @@ export default function HomeScreen() {
           {messages.length === 0 && (
             <>
               <View style={styles.welcomeCard}>
-                <View style={styles.welcomePersonaRow}>
-                  <View style={styles.welcomePersonaAvatarWrap}>
-                    <Image source={personaAvatarSource} style={styles.welcomePersonaAvatar} resizeMode="cover" />
-                  </View>
-                  <Text style={styles.welcomePersonaName}>{localizedPersona.name}</Text>
-                </View>
                 <View style={styles.heroRule} />
                 <Text style={styles.welcomeTag}>{t('home.welcome.tag', '先把一件事说清楚')}</Text>
                 <Text style={styles.welcomeText}>
                   {t('home.welcome.hero', '把最近困住你的关系、工作或人生选择说出来。{name} 会先给一句结论，再用东方命理帮你拆依据和下一步。').replace('{name}', localizedPersona.name)}
                 </Text>
                 <Text style={styles.welcomeHint}>
-                  {t('home.welcome.hint', '适合海外生活里那些不方便问别人、但又一直压在心里的事。')}
+                  {t('home.welcome.hint', '适合海外生活里那些不方便问别人、但又一直压在心里的事。').replace('{name}', localizedPersona.name)}
                 </Text>
                 <View style={styles.valueProofRow}>
                   <View style={styles.valueProofItem}>
