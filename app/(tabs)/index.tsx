@@ -43,7 +43,7 @@ export default function HomeScreen() {
   const language = useI18nStore((state) => state.language);
   const setLanguage = useI18nStore((state) => state.setLanguage);
   const { user, chart, hasChart, generateChart, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
-  const { messages, isLoading, sendMessage, clearMessages } = useChatStore();
+  const { messages, isLoading, sendMessage, clearMessages, hydrateMessages } = useChatStore();
   const { setLastFortune } = useDivinationStore();
   
   // 加载签到状态
@@ -337,6 +337,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     trackNamedEvent('home_view', { personaId: persona.id });
+    void hydrateMessages();
     const today = getLocalDateKey();
     AsyncStorage.getItem(D1_RETURN_KEY)
       .then((lastDate) => {
@@ -1029,7 +1030,7 @@ export default function HomeScreen() {
                   activeOpacity={0.82}
                 >
                   <View style={styles.welcomePersonaGlow}>
-                    <Image source={personaAvatarSource} style={styles.welcomePersonaAvatar as ImageStyle} resizeMode="cover" />
+                    <Text style={styles.welcomePersonaSeal}>灵</Text>
                   </View>
                   <View style={styles.welcomePersonaCopy}>
                     <Text style={styles.welcomePersonaKicker}>{t('home.persona.present', '{name} 已入席').replace('{name}', localizedPersona.name)}</Text>
@@ -2308,17 +2309,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(18, 23, 34, 0.72)',
   },
   welcomePersonaGlow: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     padding: 2,
     borderWidth: 1,
     borderColor: 'rgba(214, 179, 106, 0.52)',
     backgroundColor: 'rgba(214, 179, 106, 0.09)',
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#D6B36A',
     shadowOpacity: 0.28,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
+  },
+  welcomePersonaSeal: {
+    color: '#E6C77B',
+    fontSize: 18,
+    fontWeight: '900',
   },
   welcomePersonaCopy: {
     flex: 1,

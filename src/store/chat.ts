@@ -1,5 +1,8 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { agentApi, AgentChatDto, AgentResponse, DivinationResult, FortuneSlip, Meditation, ZiResult } from '../services/api';
+
+const CHAT_SESSION_KEY = 'shanhai_current_chat_session_v1';
 
 export interface ChatMessage {
   id: string;
@@ -21,6 +24,7 @@ export interface ChatMessage {
 }
 
 interface ChatState {
+  sessionId: string;
   messages: ChatMessage[];
   isLoading: boolean;
   currentIntent?: string;
@@ -33,11 +37,48 @@ interface ChatState {
     options?: { appendUser?: boolean; replaceAssistantId?: string },
   ) => Promise<void>;
   clearMessages: () => void;
+  hydrateMessages: () => Promise<void>;
   removeMessage: (id: string) => void;
   addSystemMessage: (content: string) => void;
 }
 
+function createSessionId(): string {
+  return `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function serializeMessages(messages: ChatMessage[]) {
+  return messages.slice(-80).map((m) => ({
+    ...m,
+    timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
+  }));
+}
+
+async function persistChat(sessionId: string, messages: ChatMessage[], currentIntent?: string) {
+  try {
+    await AsyncStorage.setItem(
+      CHAT_SESSION_KEY,
+      JSON.stringify({
+        sessionId,
+        currentIntent,
+        messages: serializeMessages(messages),
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  } catch {
+    // persistence failure should never block chat
+  }
+}
+
+async function clearPersistedChat() {
+  try {
+    await AsyncStorage.removeItem(CHAT_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export const useChatStore = create<ChatState>((set, get) => ({
+  sessionId: createSessionId(),
   messages: [],
   isLoading: false,
   
@@ -142,6 +183,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               actions: response.actions,
             };
           }
+          void persistChat(state.sessionId, msgs, response.intent);
           return {
             messages: msgs,
             isLoading: false,
@@ -166,8 +208,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const response = await agentApi.chat(dto);
       set((state) => {
         if (replaceAssistantId) {
-          return {
-            messages: state.messages.map((m) =>
+          const nextMessages = state.messages.map((m) =>
               m.id === replaceAssistantId
                 ? {
                     ...m,
@@ -178,7 +219,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     actions: response.actions,
                   }
                 : m,
-            ),
+            );
+          void persistChat(state.sessionId, nextMessages, response.intent);
+          return {
+            messages: nextMessages,
             isLoading: false,
             currentIntent: response.intent,
           };
@@ -192,8 +236,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
           artifacts: response.artifacts as any,
           actions: response.actions,
         };
+        const nextMessages = [...state.messages, assistantMessage];
+        void persistChat(state.sessionId, nextMessages, response.intent);
         return {
-          messages: [...state.messages, assistantMessage],
+          messages: nextMessages,
           isLoading: false,
           currentIntent: response.intent,
         };
@@ -227,17 +273,47 @@ export const useChatStore = create<ChatState>((set, get) => ({
         } else {
           msgs.push(errorMsg);
         }
+        void persistChat(state.sessionId, msgs, state.currentIntent);
         return { messages: msgs };
       });
     }
   },
   
   clearMessages: () => {
-    set({ messages: [], currentIntent: undefined });
+    void clearPersistedChat();
+    set({ sessionId: createSessionId(), messages: [], currentIntent: undefined });
+  },
+
+  hydrateMessages: async () => {
+    try {
+      const raw = await AsyncStorage.getItem(CHAT_SESSION_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const messages = Array.isArray(parsed.messages)
+        ? parsed.messages
+            .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+            .map((m: any) => ({
+              ...m,
+              timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+            }))
+        : [];
+      if (!messages.length) return;
+      set({
+        sessionId: typeof parsed.sessionId === 'string' ? parsed.sessionId : createSessionId(),
+        messages,
+        currentIntent: typeof parsed.currentIntent === 'string' ? parsed.currentIntent : undefined,
+      });
+    } catch {
+      // ignore corrupted local session
+    }
   },
   
   removeMessage: (id: string) => {
-    set((state) => ({ messages: state.messages.filter((m) => m.id !== id) }));
+    set((state) => {
+      const messages = state.messages.filter((m) => m.id !== id);
+      void persistChat(state.sessionId, messages, state.currentIntent);
+      return { messages };
+    });
   },
   
   addSystemMessage: (content: string) => {
@@ -247,8 +323,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       content,
       timestamp: new Date(),
     };
-    set(state => ({
-      messages: [...state.messages, message],
-    }));
+    set(state => {
+      const messages = [...state.messages, message];
+      void persistChat(state.sessionId, messages, state.currentIntent);
+      return { messages };
+    });
   },
 }));
