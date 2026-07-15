@@ -100,6 +100,7 @@ export default function HomeScreen() {
     ],
     [t, language],
   );
+  const visibleQuickStartPrompts = quickStartPrompts.slice(0, 2);
   const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
   const languageLabelShort: Record<AppLanguage, string> = {
@@ -1008,31 +1009,10 @@ export default function HomeScreen() {
                 <Text style={styles.welcomeHint}>
                   {t('home.welcome.hint', '适合海外生活里那些不方便问别人、但又一直压在心里的事。').replace('{name}', localizedPersona.name)}
                 </Text>
-                <View style={styles.valueProofRow}>
-                  <View style={styles.valueProofItem}>
-                    <Text style={styles.valueProofKicker}>{t('home.value.conclusion.kicker', '先给')}</Text>
-                    <Text style={styles.valueProofText}>{t('home.value.conclusion.text', '一句结论')}</Text>
-                  </View>
-                  <View style={styles.valueProofItem}>
-                    <Text style={styles.valueProofKicker}>{t('home.value.basis.kicker', '再看')}</Text>
-                    <Text style={styles.valueProofText}>{t('home.value.basis.text', '命理依据')}</Text>
-                  </View>
-                  <View style={styles.valueProofItem}>
-                    <Text style={styles.valueProofKicker}>{t('home.value.action.kicker', '最后')}</Text>
-                    <Text style={styles.valueProofText}>{t('home.value.action.text', '下一步')}</Text>
-                  </View>
-                </View>
-                {!user ? (
-                  <TouchableOpacity style={styles.loginHintBar} onPress={() => router.push('/login')} activeOpacity={0.8}>
-                    <Text style={styles.loginHintText}>
-                      {t('home.login.valueHint', '登录后可保存解读记录、签到积分与会员权益')}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
                 {/* 试试问我 - 示例问题 */}
                 <Text style={styles.suggestedTitle}>{t('home.quick.title', '不知道怎么问，就从这里开始')}</Text>
                 <View style={styles.suggestedChips}>
-                  {quickStartPrompts.map((item) => (
+                  {visibleQuickStartPrompts.map((item) => (
                     <TouchableOpacity
                       key={item.label}
                       style={styles.suggestedChip}
@@ -1099,28 +1079,6 @@ export default function HomeScreen() {
 
           {/* 输入区域 */}
           <View style={styles.inputContainer}>
-            <View style={styles.entryActionRow}>
-              <TouchableOpacity
-                style={[styles.entryActionBtn, styles.entryActionPrimary]}
-                onPress={() => {
-                  if (inputText.trim()) {
-                    void handleSend();
-                    return;
-                  }
-                  setInputText(t('home.input.seed', '我最近被一件事卡住了，想先听你给一句结论。'));
-                }}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.entryActionPrimaryText}>{t('home.entry.start', '先给我结论')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.entryActionSecondary}
-                onPress={openDrawModal}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.entryActionSecondaryText}>{t('home.entry.draw', '今日抽签')}</Text>
-              </TouchableOpacity>
-            </View>
             {isLoading ? (
               <Text style={styles.processHint}>{t('home.processHint', '正在生成第一版结论，通常 3-8 秒即可看到结果。')}</Text>
             ) : null}
@@ -2243,14 +2201,14 @@ const styles = StyleSheet.create({
   },
   chatContent: {
     paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 18,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   welcomeCard: {
     paddingHorizontal: 0,
-    paddingTop: 6,
-    paddingBottom: 8,
-    marginBottom: 8,
+    paddingTop: 2,
+    paddingBottom: 2,
+    marginBottom: 4,
   },
   welcomePersonaRow: {
     flexDirection: 'row',
@@ -2279,25 +2237,25 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   heroRule: {
-    width: 34,
+    width: 30,
     height: 1,
     alignSelf: 'center',
     backgroundColor: 'rgba(214, 179, 106, 0.42)',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   welcomeTag: {
     alignSelf: 'center',
     color: '#C9A963',
     fontSize: 11,
     fontWeight: '700',
-    marginBottom: 12,
+    marginBottom: 8,
     letterSpacing: 1.4,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 22,
     color: '#F4EBDC',
-    lineHeight: 33,
-    marginBottom: 14,
+    lineHeight: 30,
+    marginBottom: 10,
     textAlign: 'center',
     fontWeight: '800',
   },
@@ -2305,7 +2263,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#A7B0C1',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
     lineHeight: 20,
   },
   valueProofRow: {
@@ -2339,8 +2297,8 @@ const styles = StyleSheet.create({
     color: '#C9A963',
     fontSize: 12,
     fontWeight: '700',
-    marginTop: 18,
-    marginBottom: 10,
+    marginTop: 14,
+    marginBottom: 8,
     letterSpacing: 0.2,
   },
   loginHintBar: {
@@ -2366,23 +2324,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   suggestedChips: {
-    gap: 8,
-    rowGap: 8,
+    gap: 7,
+    rowGap: 7,
   },
   suggestedChip: {
     backgroundColor: 'rgba(18, 23, 34, 0.56)',
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(154, 167, 190, 0.18)',
-    minHeight: 54,
+    minHeight: 50,
   },
   suggestedChipLabel: {
     color: '#F4EBDC',
     fontSize: 13,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   suggestedChipText: {
     color: '#99A4B7',
@@ -2505,7 +2463,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 8,
     backgroundColor: '#080A0F',
     borderTopWidth: 1,
     borderTopColor: 'rgba(214, 179, 106, 0.12)',
