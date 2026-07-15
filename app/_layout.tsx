@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { subscribeAuthExpired } from '../src/lib/auth-expired';
 import { useUserStore } from '../src/store/user';
 import { useI18nStore } from '../src/store/i18n';
+import { captureReferralFromUrl } from '../src/utils/referralAttribution';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -60,6 +61,7 @@ function RootLayoutNav() {
     const init = async () => {
       setIsReady(true);
       await loadLanguage();
+      await captureReferralFromUrl();
       // 加载用户信息（从 localStorage 恢复登录状态）
       await loadUser();
     };

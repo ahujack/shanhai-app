@@ -17,11 +17,11 @@ export type SeoMeta = {
 };
 
 export const HOME_SEO: SeoMeta = {
-  title: 'Shanhai Realm | Eastern Metaphysics AI Companion for Life Decisions',
+  title: 'Shanhai Realm | Chinese Metaphysics AI Companion for Overseas Chinese',
   description:
-    'Shanhai Realm helps overseas Chinese users process relationships, career choices, and life uncertainty with an AI companion grounded in BaZi, CeZi, I Ching, and daily oracle slips. Entertainment only.',
+    'Shanhai Realm is a Chinese metaphysics AI companion for overseas Chinese users. Explore CeZi character divination, I Ching readings, BaZi charts, and decision-focused emotional support. Entertainment only.',
   keywords:
-    'shanhai realm, bazi calculator, chinese character divination, cezi, i ching reading, daily fortune, 八字, 测字, 占卜, 山海灵境',
+    'shanhai realm, overseas chinese ai companion, chinese metaphysics ai, bazi calculator, chinese character divination, cezi, i ching reading, 八字, 测字, 易经占卜, 山海灵境',
   canonical: SEO_SITE.url,
 };
 
@@ -110,6 +110,26 @@ export function buildWebSiteJsonLd() {
       '@type': 'SearchAction',
       target: `${SEO_SITE.url}/tools?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
+    },
+  };
+}
+
+export function buildSoftwareApplicationJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: SEO_SITE.name,
+    alternateName: SEO_SITE.nameZh,
+    applicationCategory: 'LifestyleApplication',
+    operatingSystem: 'Web, iOS, Android',
+    url: SEO_SITE.url,
+    image: SEO_SITE.ogImage,
+    inLanguage: ['en', 'zh-CN', 'zh-TW'],
+    description: HOME_SEO.description,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
     },
   };
 }

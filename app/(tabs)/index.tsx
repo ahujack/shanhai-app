@@ -101,6 +101,26 @@ export default function HomeScreen() {
     [t, language],
   );
   const visibleQuickStartPrompts = quickStartPrompts.slice(0, 3);
+  const methodSignals = React.useMemo(
+    () => [
+      {
+        seal: '字',
+        title: t('home.method.cezi.title', '测字'),
+        text: t('home.method.cezi.text', '一字见当下'),
+      },
+      {
+        seal: '卦',
+        title: t('home.method.iching.title', '易经'),
+        text: t('home.method.iching.text', '一问定取舍'),
+      },
+      {
+        seal: '命',
+        title: t('home.method.bazi.title', '八字'),
+        text: t('home.method.bazi.text', '看长期节奏'),
+      },
+    ],
+    [t, language],
+  );
   const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
   const languageLabelShort: Record<AppLanguage, string> = {
@@ -1001,14 +1021,26 @@ export default function HomeScreen() {
           {messages.length === 0 && (
             <>
               <View style={styles.welcomeCard}>
+                <Text style={styles.welcomeWatermark}>山海</Text>
                 <View style={styles.heroRule} />
-                <Text style={styles.welcomeTag}>{t('home.welcome.tag', '先把一件事说清楚')}</Text>
+                <Text style={styles.welcomeTag}>{t('home.welcome.tag', '中国传统玄学 AI 陪伴')}</Text>
                 <Text style={styles.welcomeText}>
-                  {t('home.welcome.hero', '卡住的事，先听结论。')}
+                  {t('home.welcome.hero', '问一件事，取一个象。')}
                 </Text>
                 <Text style={styles.welcomeHint}>
-                  {t('home.welcome.hint', '再帮你拆依据、风险和下一步。')}
+                  {t('home.welcome.hint', '测字、易经、八字，把关系、工作和身份规划先理出方向。')}
                 </Text>
+                <View style={styles.methodGrid}>
+                  {methodSignals.map((item) => (
+                    <View key={item.title} style={styles.methodTile}>
+                      <View style={styles.methodSeal}>
+                        <Text style={styles.methodSealText}>{item.seal}</Text>
+                      </View>
+                      <Text style={styles.methodTitle}>{item.title}</Text>
+                      <Text style={styles.methodText}>{item.text}</Text>
+                    </View>
+                  ))}
+                </View>
                 {/* 试试问我 - 示例问题 */}
                 <Text style={styles.suggestedTitle}>{t('home.quick.title', '不知道怎么问，就从这里开始')}</Text>
                 <View style={styles.suggestedChips}>
@@ -2205,10 +2237,21 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   welcomeCard: {
+    position: 'relative',
+    overflow: 'hidden',
     paddingHorizontal: 0,
-    paddingTop: 2,
+    paddingTop: 8,
     paddingBottom: 2,
     marginBottom: 4,
+  },
+  welcomeWatermark: {
+    position: 'absolute',
+    top: 12,
+    right: -8,
+    color: 'rgba(214, 179, 106, 0.045)',
+    fontSize: 58,
+    fontWeight: '900',
+    letterSpacing: 4,
   },
   welcomePersonaRow: {
     flexDirection: 'row',
@@ -2237,10 +2280,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   heroRule: {
-    width: 30,
+    width: 42,
     height: 1,
     alignSelf: 'center',
-    backgroundColor: 'rgba(214, 179, 106, 0.42)',
+    backgroundColor: 'rgba(214, 179, 106, 0.58)',
     marginBottom: 10,
   },
   welcomeTag: {
@@ -2252,9 +2295,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   welcomeText: {
-    fontSize: 22,
+    fontSize: 24,
     color: '#F4EBDC',
-    lineHeight: 30,
+    lineHeight: 32,
     marginBottom: 10,
     textAlign: 'center',
     fontWeight: '800',
@@ -2265,6 +2308,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 4,
     lineHeight: 20,
+  },
+  methodGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  methodTile: {
+    flex: 1,
+    minHeight: 82,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.22)',
+    backgroundColor: 'rgba(18, 23, 34, 0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  methodSeal: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.52)',
+    backgroundColor: 'rgba(214, 179, 106, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  methodSealText: {
+    color: '#E6C77B',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  methodTitle: {
+    color: '#F4EBDC',
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  methodText: {
+    color: '#8F9AAE',
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'center',
   },
   valueProofRow: {
     flexDirection: 'row',

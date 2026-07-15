@@ -19,6 +19,7 @@ import { useUserStore } from '../src/store/user';
 import { useI18nStore } from '../src/store/i18n';
 import { localizeAuthMessage } from '../src/utils/authMessage';
 import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
+import { clearStoredReferralCode, getStoredReferralCode } from '../src/utils/referralAttribution';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -27,8 +28,10 @@ export default function RegisterScreen() {
   const language = useI18nStore((state) => state.language);
   const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
   
-  // 从 URL 获取推荐码
-  const referralCode = params.ref as string | undefined;
+  // 从 URL 或已捕获的落地页 ref 获取推荐码
+  const urlReferralCode = params.ref as string | undefined;
+  const [storedReferralCode, setStoredReferralCode] = useState<string | null>(null);
+  const referralCode = urlReferralCode || storedReferralCode || undefined;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,6 +45,16 @@ export default function RegisterScreen() {
   const [termsError, setTermsError] = useState('');
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
+
+  React.useEffect(() => {
+    let cancelled = false;
+    getStoredReferralCode().then((code) => {
+      if (!cancelled) setStoredReferralCode(code);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 倒计时
   React.useEffect(() => {
@@ -195,6 +208,7 @@ export default function RegisterScreen() {
     if (result?.success) {
       // 记住协议勾选状态
       await AsyncStorage.setItem('agreedToTerms', 'true');
+      await clearStoredReferralCode();
       Alert.alert(
         tx('注册成功', 'Registration successful', '註冊成功'),
         referralCode

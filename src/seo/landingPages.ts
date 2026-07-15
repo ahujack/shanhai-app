@@ -261,6 +261,126 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ],
     cta: { primary: 'Draw today’s fortune', secondary: 'Join & save progress' },
   },
+  {
+    slug: 'overseas-chinese-metaphysics-ai',
+    path: '/overseas-chinese-metaphysics-ai',
+    canonical: `${SITE}/overseas-chinese-metaphysics-ai`,
+    ctaRoute: '/(tabs)/index',
+    relatedSlugs: ['character-divination', 'i-ching-reading', 'bazi-calculator'],
+    seo: {
+      title: 'Chinese Metaphysics AI Companion for Overseas Chinese | Shanhai Realm',
+      description:
+        'A Chinese metaphysics AI companion for overseas Chinese users navigating relationships, work, identity, and uncertainty through CeZi, I Ching, BaZi, and empathetic chat.',
+      keywords:
+        'overseas chinese ai companion, chinese metaphysics ai, chinese astrology app, 华人玄学AI, 海外华人情感陪伴, AI算命',
+    },
+    hero: {
+      badge: 'Overseas Chinese · AI Companion',
+      title: 'Chinese Metaphysics Support When Life Abroad Feels Unclear',
+      subtitle:
+        'Shanhai Realm combines CeZi, I Ching, BaZi, and companion-style chat for overseas Chinese users who want culturally familiar reflection before making life decisions.',
+    },
+    features: [
+      {
+        icon: '文',
+        title: 'Culturally familiar language',
+        body: 'Talk through relationships, career stress, family expectations, and identity questions in Chinese, English, or Traditional Chinese.',
+      },
+      {
+        icon: '卦',
+        title: 'Traditional methods, modern flow',
+        body: 'Use character divination, I Ching-style readings, and BaZi charts as structured reflection tools, not vague predictions.',
+      },
+      {
+        icon: '问',
+        title: 'Decision-first delivery',
+        body: 'Start with a clear verdict, then review signals, risks, and practical next steps for the situation you are facing.',
+      },
+    ],
+    steps: [
+      { title: 'Name the one thing', body: 'Bring a real question: stay or leave, wait or act, prepare or change direction.' },
+      { title: 'Choose a path', body: 'Chat with a persona, measure one character, cast a reading, or generate a BaZi chart.' },
+      { title: 'Keep the thread', body: 'Register to save context so future questions can continue from what you already shared.' },
+    ],
+    faq: [
+      {
+        question: 'Who is Shanhai Realm built for?',
+        answer:
+          'It is built for overseas Chinese and Chinese-speaking users who want culturally familiar AI reflection around relationships, work, family pressure, and uncertainty.',
+      },
+      {
+        question: 'Is this a replacement for professional advice?',
+        answer:
+          'No. Shanhai Realm is for entertainment, self-reflection, and emotional companionship. It is not medical, legal, financial, or immigration advice.',
+      },
+      {
+        question: 'Why combine AI with Chinese metaphysics?',
+        answer:
+          'AI makes the experience available on demand, while traditional frameworks like CeZi, I Ching, and BaZi provide symbolic structure for reflection.',
+      },
+    ],
+    cta: { primary: 'Ask one real question', secondary: 'Create free account' },
+  },
+  {
+    slug: 'ai-cezi-vs-fortune-teller',
+    path: '/ai-cezi-vs-fortune-teller',
+    canonical: `${SITE}/ai-cezi-vs-fortune-teller`,
+    ctaRoute: '/(tabs)/zi',
+    relatedSlugs: ['character-divination', 'i-ching-reading', 'overseas-chinese-metaphysics-ai'],
+    seo: {
+      title: 'AI CeZi vs Traditional Fortune Teller | Chinese Character Reading Explained',
+      description:
+        'Compare AI Chinese character divination with traditional fortune-telling: what CeZi can help clarify, where its limits are, and how to use it for reflection.',
+      keywords:
+        'ai cezi, ai chinese character reading, cezi vs fortune teller, 测字AI, AI测字, chinese divination online',
+    },
+    hero: {
+      badge: 'CeZi Guide · AI vs Human',
+      title: 'AI CeZi Is Best Used as a Focused Reflection Tool',
+      subtitle:
+        'Traditional fortune-tellers rely on human experience and ritual context. AI CeZi is faster, private, repeatable, and useful when you need a first layer of clarity.',
+    },
+    features: [
+      {
+        icon: '字',
+        title: 'One character, one situation',
+        body: 'CeZi works best when the chosen character reflects a live question rather than a general curiosity about fate.',
+      },
+      {
+        icon: '象',
+        title: 'Symbolic, not absolute',
+        body: 'The reading interprets structure, imagery, and associations. It should not be treated as a guaranteed prediction.',
+      },
+      {
+        icon: '行',
+        title: 'Turn meaning into action',
+        body: 'Shanhai Realm formats results into a verdict, signals, risks, and next steps so the insight is easier to use.',
+      },
+    ],
+    steps: [
+      { title: 'Pick a character honestly', body: 'Choose the first character that feels connected to your current question.' },
+      { title: 'Add a life focus', body: 'Career, love, wealth, health, or study focus makes the interpretation less generic.' },
+      { title: 'Review the result critically', body: 'Use the reading to organize thoughts, then make decisions with real-world information.' },
+    ],
+    faq: [
+      {
+        question: 'Is AI CeZi the same as a human fortune teller?',
+        answer:
+          'No. Human practitioners bring lived experience, context, and ritual presence. AI CeZi offers an accessible and private first-pass interpretation.',
+      },
+      {
+        question: 'Can AI CeZi predict my future?',
+        answer:
+          'No reading should be treated as a guaranteed prediction. Use it for symbolic reflection, emotional clarity, and decision framing.',
+      },
+      {
+        question: 'Do I need to handwrite the character?',
+        answer:
+          'Typing works, but handwriting can make the experience more personal because stroke rhythm and structure add another interpretive layer.',
+      },
+    ],
+    cta: { primary: 'Try AI CeZi now', secondary: 'Register free' },
+  },
 ];
 
 export const LANDING_PAGES: Record<string, LandingPageConfig> = Object.fromEntries(

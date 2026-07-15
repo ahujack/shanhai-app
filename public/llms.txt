@@ -1,0 +1,24 @@
+# Shanhai Realm
+
+Shanhai Realm (山海灵境) is a Chinese metaphysics AI companion for overseas Chinese and Chinese-speaking users. It provides CeZi Chinese character divination, I Ching-style readings, BaZi chart interpretation, daily fortune slips, and companion-style conversation for reflection around relationships, work, identity, and life uncertainty.
+
+The product is for entertainment, inspiration, and emotional companionship only. It is not medical, legal, financial, investment, immigration, or professional advice.
+
+## Core Pages
+
+- Home: https://www.shanhai.app/
+- Overseas Chinese metaphysics AI companion: https://www.shanhai.app/overseas-chinese-metaphysics-ai
+- AI CeZi vs traditional fortune teller: https://www.shanhai.app/ai-cezi-vs-fortune-teller
+- Chinese character divination (CeZi): https://www.shanhai.app/character-divination
+- I Ching AI reading: https://www.shanhai.app/i-ching-reading
+- BaZi chart calculator: https://www.shanhai.app/bazi-calculator
+- Daily fortune slip: https://www.shanhai.app/daily-fortune
+- Tools hub: https://www.shanhai.app/tools
+- FAQ: https://www.shanhai.app/faq
+- Pricing: https://www.shanhai.app/pricing
+- Terms: https://www.shanhai.app/terms
+- Privacy: https://www.shanhai.app/privacy
+
+## Suggested Summary
+
+Shanhai Realm is an AI-assisted Chinese metaphysics app for overseas Chinese users. It helps users reflect on relationships, career choices, identity questions, and uncertainty through CeZi, I Ching, BaZi, daily oracle slips, and emotionally aware chat. Readings are symbolic and entertainment-focused, not guaranteed predictions or professional advice.

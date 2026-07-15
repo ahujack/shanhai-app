@@ -1,10 +1,11 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
-import { HOME_SEO, SEO_SITE, buildOrganizationJsonLd, buildWebSiteJsonLd } from '../src/seo/site';
+import { HOME_SEO, SEO_SITE, buildOrganizationJsonLd, buildSoftwareApplicationJsonLd, buildWebSiteJsonLd } from '../src/seo/site';
 
 // This file is web-only and configures the root HTML shell for static rendering.
 export default function Root({ children }: { children: React.ReactNode }) {
   const organizationJsonLd = JSON.stringify(buildOrganizationJsonLd());
   const websiteJsonLd = JSON.stringify(buildWebSiteJsonLd());
+  const softwareJsonLd = JSON.stringify(buildSoftwareApplicationJsonLd());
 
   return (
     <html lang="en">
@@ -18,6 +19,10 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta name="author" content={SEO_SITE.name} />
         <meta name="theme-color" content={SEO_SITE.themeColor} />
         <link rel="canonical" href={HOME_SEO.canonical} />
+        <link rel="alternate" hrefLang="en" href={HOME_SEO.canonical} />
+        <link rel="alternate" hrefLang="zh-CN" href={HOME_SEO.canonical} />
+        <link rel="alternate" hrefLang="zh-TW" href={HOME_SEO.canonical} />
+        <link rel="alternate" hrefLang="x-default" href={HOME_SEO.canonical} />
 
         <meta property="og:site_name" content={SEO_SITE.name} />
         <meta property="og:type" content="website" />
@@ -35,6 +40,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: organizationJsonLd }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: websiteJsonLd }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: softwareJsonLd }} />
 
         <meta
           name="viewport"
