@@ -586,6 +586,20 @@ export default function ZiScreen() {
     }
   };
 
+  const handleHandwritingPreviewAnalyze = async () => {
+    if (!handwritingPreview?.zi || isLoading) return;
+    const zi = handwritingPreview.zi.trim().charAt(0);
+    setHandwritingStage('analyzing');
+    const ok = await analyzeZiInput(zi, getFocusAspect(), userQuestion);
+    if (!ok) {
+      Alert.alert(
+        tx('还没生成成功', 'Not generated yet', '還沒生成成功'),
+        tx('刚才没有拿到深度解读，请稍后再点一次；如果仍失败，可以切到打字模式输入这个字。', 'The deep reading did not complete. Please try again shortly, or switch to type mode and enter this character.', '剛才沒有拿到深度解讀，請稍後再點一次；如果仍失敗，可以切到打字模式輸入這個字。'),
+      );
+    }
+    setHandwritingStage('idle');
+  };
+
   const startRitualCountdown = () => {
     if (isLoading) return;
     setRitualReady(false);
@@ -914,19 +928,27 @@ export default function ZiScreen() {
                     {tx('置信度约', 'Confidence', '置信度約')} {Math.round(Math.min(1, Math.max(0, handwritingPreview.confidence)) * 100)}%
                   </Text>
                   <Text style={styles.handwritingPreviewHint}>
-                    {tx(
-                      `下方「深度解读」需消耗积分（当前 ${ziPointsCost} 积分/次）。若刚才提示积分不足，请先签到或前往「灵石」获取积分，再点按钮重试。`,
-                      `The deep reading below costs points (currently ${ziPointsCost} points/time). If you saw low balance, check in or get points first, then retry.`,
-                      `下方「深度解讀」需消耗積分（目前 ${ziPointsCost} 積分/次）。若剛才提示積分不足，請先簽到或前往「靈石」取得積分，再點按鈕重試。`,
-                    )}
+                    {isInvitePreview
+                      ? tx(
+                          '邀请体验可直接生成一次深度解读，本次不扣积分。',
+                          'Invite preview can generate one deep reading without points.',
+                          '邀請體驗可直接生成一次深度解讀，本次不扣積分。',
+                        )
+                      : tx(
+                          `下方「深度解读」需消耗积分（当前 ${ziPointsCost} 积分/次）。若刚才提示积分不足，请先签到或前往「灵石」获取积分，再点按钮重试。`,
+                          `The deep reading below costs points (currently ${ziPointsCost} points/time). If you saw low balance, check in or get points first, then retry.`,
+                          `下方「深度解讀」需消耗積分（目前 ${ziPointsCost} 積分/次）。若剛才提示積分不足，請先簽到或前往「靈石」取得積分，再點按鈕重試。`,
+                        )}
                   </Text>
                   <TouchableOpacity
                     style={[styles.handwritingPreviewBtn, isLoading && styles.handwritingPreviewBtnDisabled]}
-                    onPress={() => analyzeZiInput(handwritingPreview.zi, getFocusAspect())}
+                    onPress={handleHandwritingPreviewAnalyze}
                     disabled={isLoading}
                   >
                     <Text style={styles.handwritingPreviewBtnText}>
-                      {isLoading ? tx('解读中…', 'Reading...', '解讀中…') : tx('生成深度解读', 'Generate Deep Reading', '生成深度解讀')}
+                      {isLoading || handwritingStage === 'analyzing'
+                        ? tx('解读中…', 'Reading...', '解讀中…')
+                        : tx('生成深度解读', 'Generate Deep Reading', '生成深度解讀')}
                     </Text>
                   </TouchableOpacity>
                 </View>
