@@ -14,6 +14,7 @@ import PersonaPicker from '../../components/PersonaPicker';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import OnboardingModal from '../../components/OnboardingModal';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
+import CompanionPresence from '../../components/CompanionPresence';
 import { useI18nStore } from '../../src/store/i18n';
 import type { AppLanguage } from '../../src/i18n/translations';
 import { isMembershipActive } from '../../src/utils/membership';
@@ -1029,15 +1030,12 @@ export default function HomeScreen() {
                   onPress={() => setShowPersonaPicker(true)}
                   activeOpacity={0.82}
                 >
-                  <View style={styles.welcomePersonaGlow}>
-                    <Text style={styles.welcomePersonaSeal}>灵</Text>
-                  </View>
-                  <View style={styles.welcomePersonaCopy}>
-                    <Text style={styles.welcomePersonaKicker}>{t('home.persona.present', '{name} 已入席').replace('{name}', localizedPersona.name)}</Text>
-                    <Text style={styles.welcomePersonaLine} numberOfLines={2}>
-                      {localizedPersona.greeting}
-                    </Text>
-                  </View>
+                  <CompanionPresence
+                    image={personaAvatarSource}
+                    name={localizedPersona.name}
+                    title={localizedPersona.title}
+                    line={localizedPersona.greeting}
+                  />
                 </TouchableOpacity>
                 <Text style={styles.welcomeTag}>{t('home.welcome.tag', '中国传统玄学 AI 陪伴')}</Text>
                 <Text style={styles.welcomeText}>
@@ -2297,51 +2295,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   welcomePersonaPanel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     marginBottom: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(214, 179, 106, 0.22)',
-    backgroundColor: 'rgba(18, 23, 34, 0.72)',
-  },
-  welcomePersonaGlow: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    padding: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(214, 179, 106, 0.52)',
-    backgroundColor: 'rgba(214, 179, 106, 0.09)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#D6B36A',
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  welcomePersonaSeal: {
-    color: '#E6C77B',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  welcomePersonaCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  welcomePersonaKicker: {
-    color: '#E6C77B',
-    fontSize: 12,
-    fontWeight: '900',
-    marginBottom: 4,
-  },
-  welcomePersonaLine: {
-    color: '#AAB3C5',
-    fontSize: 12,
-    lineHeight: 18,
   },
   heroRule: {
     width: 42,

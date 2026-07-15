@@ -1,7 +1,5 @@
 import React, { useMemo } from 'react';
 import {
-  Image,
-  ImageStyle,
   Platform,
   ScrollView,
   StyleSheet,
@@ -12,11 +10,12 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SeoHead } from '../components/SeoHead';
+import CompanionPresence from '../components/CompanionPresence';
 import { SEO_SITE } from '../src/seo/site';
 import { trackNamedEvent } from '../src/services/analytics';
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
-const oracleImage = require('../assets/personas/oracle.png');
+const cloudWandererImage = require('../assets/personas/elder.png');
 
 function normalizeCode(value?: string | string[]) {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -75,16 +74,14 @@ export default function InviteLandingPage() {
               <Text style={styles.badge}>邀请体验</Text>
             </View>
 
-            <View style={styles.visualRow}>
-              <View style={styles.imageWrap}>
-                <Image source={oracleImage} style={styles.image as ImageStyle} resizeMode="cover" />
-              </View>
-              <View style={styles.sealStack}>
-                <Text style={styles.seal}>字</Text>
-                <Text style={styles.seal}>卦</Text>
-                <Text style={styles.seal}>命</Text>
-              </View>
-            </View>
+            <CompanionPresence
+              image={cloudWandererImage}
+              name="云游子"
+              title="断事老师"
+              line="先取一个字，云游子替你看形、看势，再给一个当下能用的方向。"
+              mode="hero"
+              style={styles.companion}
+            />
 
             <Text style={styles.kicker}>中国传统玄学 AI 陪伴</Text>
             <Text style={styles.title}>问一件卡住的事，先拿到一个方向。</Text>
@@ -181,41 +178,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     backgroundColor: '#0B1220',
   },
-  visualRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 18,
-    marginBottom: 18,
-  },
-  imageWrap: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(214, 179, 106, 0.45)',
-    backgroundColor: '#17120D',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  sealStack: {
-    gap: 8,
-  },
-  seal: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: 'rgba(214, 179, 106, 0.5)',
-    color: '#E6C77B',
-    textAlign: 'center',
-    lineHeight: 32,
-    fontSize: 17,
-    fontWeight: '900',
-    backgroundColor: 'rgba(214, 179, 106, 0.08)',
+  companion: {
+    marginBottom: 16,
   },
   kicker: {
     color: '#D6B36A',

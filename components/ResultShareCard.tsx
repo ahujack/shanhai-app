@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Image,
+  ImageStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import ViewShot from 'react-native-view-shot';
@@ -24,6 +26,7 @@ import {
 
 const colors = theme.dark;
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
+const cloudWandererImage = require('../assets/personas/elder.png');
 
 type Props = {
   kind: ResultShareKind;
@@ -134,10 +137,14 @@ export default function ResultShareCard({
           <View style={styles.cardTop}>
             <View style={styles.brandRow}>
               <Text style={styles.brand}>{tx('山海灵境', 'Shanhai Realm', '山海靈境')}</Text>
+              <Text style={styles.companionLine}>{tx('云游子交付', 'Delivered by Yunyouzi', '雲遊子交付')}</Text>
               {badge ? <Text style={styles.badge}>{badge}</Text> : null}
             </View>
-            <View style={styles.glyphCircle}>
-              <Text style={styles.glyphText}>{meta.emoji}</Text>
+            <View style={styles.companionMark}>
+              <Image source={cloudWandererImage} style={styles.companionImage as ImageStyle} resizeMode="cover" />
+              <View style={styles.glyphBadge}>
+                <Text style={styles.glyphText}>{meta.emoji}</Text>
+              </View>
             </View>
           </View>
 
@@ -200,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   card: {
-    borderRadius: 18,
+    borderRadius: 8,
     padding: 18,
     borderWidth: 1,
     borderColor: 'rgba(214, 179, 106, 0.35)',
@@ -230,22 +237,43 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 999,
+    borderRadius: 8,
     overflow: 'hidden',
   },
-  glyphCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(214, 179, 106, 0.15)',
+  companionLine: {
+    color: 'rgba(232, 236, 243, 0.66)',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 5,
+  },
+  companionMark: {
+    width: 58,
+    height: 58,
+  },
+  companionImage: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     borderWidth: 1,
-    borderColor: 'rgba(214, 179, 106, 0.45)',
+    borderColor: 'rgba(214, 179, 106, 0.5)',
+    backgroundColor: '#17120D',
+  },
+  glyphBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#1A1230',
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.68)',
   },
   glyphText: {
     color: colors.tabIconSelected,
-    fontSize: 24,
+    fontSize: 13,
     fontWeight: '700',
   },
   headline: {
@@ -290,7 +318,7 @@ const styles = StyleSheet.create({
   shareBtn: {
     marginTop: 12,
     backgroundColor: colors.tabIconSelected,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     ...webPointer,

@@ -22,6 +22,7 @@ import { trackFeature } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import ResultShareCard from '../../components/ResultShareCard';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
+import CompanionPresence from '../../components/CompanionPresence';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { useUserStore } from '../../src/store/user';
 import { isMembershipActive } from '../../src/utils/membership';
@@ -29,6 +30,8 @@ import { localizeAuthMessage } from '../../src/utils/authMessage';
 import { normalizeBackendText } from '../../src/utils/backendText';
 import HandwritingCanvas from '../../components/HandwritingCanvas';
 import { useI18nStore } from '../../src/store/i18n';
+
+const cloudWandererImage = require('../../assets/personas/elder.png');
 
 /** Web 上 RN Image 对 raw.githubusercontent.com 等外链偶发不显示，用原生 img + no-referrer 更稳 */
 function OracleGlyphImage({ uri, ziChar, style }: { uri: string; ziChar: string; style: { width: number; height: number } }) {
@@ -998,6 +1001,17 @@ export default function ZiScreen() {
                 <Text style={styles.previewBannerText}>{tx('已为你先展示首轮结果，深度解读正在补全中…', 'First-pass result is ready. Deep reading is still completing…', '已先為你展示首輪結果，深度解讀正在補全中…')}</Text>
               </View>
             )}
+            <CompanionPresence
+              image={cloudWandererImage}
+              name={tx('云游子', 'Yunyouzi', '雲遊子')}
+              title={tx('断事老师', 'Reading companion', '斷事老師')}
+              line={tx(
+                `「${result.zi.zi}」这个字先不急着判。我先看它的形，再把当下的势和下一步说清楚。`,
+                `I will first read the shape of "${result.zi.zi}", then clarify the current pattern and next step.`,
+                `「${result.zi.zi}」這個字先不急著判。我先看它的形，再把當下的勢和下一步說清楚。`,
+              )}
+              style={styles.deliveryCompanion}
+            />
             <View style={styles.tierCard}>
               <Text style={styles.tierTitle}>{tx('当前解读档位：', 'Current tier: ', '當前解讀檔位：')}{ziTierLabel}</Text>
               <Text style={styles.tierDesc}>{ziTierDesc}</Text>
@@ -1565,6 +1579,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
+  },
+  deliveryCompanion: {
+    marginBottom: 14,
   },
   languageRefreshBanner: {
     marginBottom: 14,
