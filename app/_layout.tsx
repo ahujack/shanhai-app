@@ -59,11 +59,11 @@ function RootLayoutNav() {
   useEffect(() => {
     // 延迟一下让 Zustand 初始化完成，然后加载用户
     const init = async () => {
-      setIsReady(true);
       await loadLanguage();
       await captureReferralFromUrl();
       // 加载用户信息（从 localStorage 恢复登录状态）
       await loadUser();
+      setIsReady(true);
     };
     init();
   }, [loadLanguage, loadUser]);

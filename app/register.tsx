@@ -20,6 +20,7 @@ import { useI18nStore } from '../src/store/i18n';
 import { localizeAuthMessage } from '../src/utils/authMessage';
 import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
 import { clearStoredReferralCode, getStoredReferralCode } from '../src/utils/referralAttribution';
+import LanguageToggle from '../components/LanguageToggle';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -243,6 +244,7 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Logo 和标题 */}
         <View style={styles.header}>
+          <LanguageToggle compact style={styles.languageToggle} />
           <Text style={styles.logo}>🏔️</Text>
           <Text style={styles.title}>{tx('山海灵境', 'Shanhai Realm', '山海靈境')}</Text>
           <Text style={styles.subtitle}>{tx('保存你的解读，让下次追问接得上', 'Save readings and continue later', '保存你的解讀，讓下次追問接得上')}</Text>
@@ -409,6 +411,9 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 32,
+  },
+  languageToggle: {
+    marginBottom: 16,
   },
   logo: {
     fontSize: 64,

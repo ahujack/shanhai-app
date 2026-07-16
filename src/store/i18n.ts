@@ -31,6 +31,15 @@ function normalizeLanguage(raw: string | null | undefined): AppLanguage {
   return 'zh-CN';
 }
 
+function detectPreferredLanguage(): AppLanguage {
+  if (typeof window === 'undefined') return 'zh-CN';
+  const candidates = [
+    window.navigator?.language,
+    ...(Array.isArray(window.navigator?.languages) ? window.navigator.languages : []),
+  ].filter(Boolean);
+  return normalizeLanguage(candidates[0]);
+}
+
 interface I18nState {
   language: AppLanguage;
   /** 每次切换语言 +1，供页面感知并刷新缓存内容 */
@@ -60,7 +69,7 @@ export const useI18nStore = create<I18nState>((set, get) => ({
   loadLanguage: async () => {
     try {
       const stored = await storage.getItem(LANGUAGE_KEY);
-      const normalized = normalizeLanguage(stored);
+      const normalized = stored ? normalizeLanguage(stored) : detectPreferredLanguage();
       setGlobalAppLanguage(normalized);
       set({
         language: normalized,
@@ -92,4 +101,3 @@ export const useI18nStore = create<I18nState>((set, get) => ({
     }
   },
 }));
-

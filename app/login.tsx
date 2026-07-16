@@ -19,6 +19,7 @@ import { signInWithGoogle } from '../src/services/auth';
 import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
 import { useI18nStore } from '../src/store/i18n';
 import { localizeAuthMessage } from '../src/utils/authMessage';
+import LanguageToggle from '../components/LanguageToggle';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -281,6 +282,7 @@ export default function LoginScreen() {
         <View style={isWeb ? styles.formWrapperWeb : undefined}>
         {/* Logo 和标题 */}
         <View style={styles.header}>
+          <LanguageToggle compact style={styles.languageToggle} />
           <TouchableOpacity style={[styles.registerButton, styles.webCursor]} onPress={handleRegister} activeOpacity={0.7}>
             <Text style={styles.registerButtonText}>{tx('注册', 'Register', '註冊')}</Text>
           </TouchableOpacity>
@@ -534,6 +536,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
     position: 'relative',
+  },
+  languageToggle: {
+    marginBottom: 16,
   },
   registerButton: {
     position: 'absolute',

@@ -11,8 +11,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SeoHead } from '../components/SeoHead';
 import CompanionPresence from '../components/CompanionPresence';
+import LanguageToggle from '../components/LanguageToggle';
 import { SEO_SITE } from '../src/seo/site';
 import { trackNamedEvent } from '../src/services/analytics';
+import { useI18nStore } from '../src/store/i18n';
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
 const cloudWandererImage = require('../assets/personas/elder.png');
@@ -28,6 +30,8 @@ function normalizeCode(value?: string | string[]) {
 export default function InviteLandingPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const language = useI18nStore((state) => state.language);
+  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
   const params = useLocalSearchParams<{ ref?: string; invite?: string }>();
   const referralCode = normalizeCode(params.ref || params.invite);
 
@@ -70,55 +74,68 @@ export default function InviteLandingPage() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
             <View style={styles.topLine}>
-              <Text style={styles.brand}>山海灵境</Text>
-              <Text style={styles.badge}>邀请体验</Text>
+              <Text style={styles.brand}>{tx('山海灵境', 'Shanhai Realm', '山海靈境')}</Text>
+              <Text style={styles.badge}>{tx('邀请体验', 'Invite', '邀請體驗')}</Text>
             </View>
+            <LanguageToggle compact style={styles.languageToggle} />
 
             <CompanionPresence
               image={cloudWandererImage}
-              name="云游子"
-              title="断事老师"
-              line="先取一个字，云游子替你看形、看势，再给一个当下能用的方向。"
+              name={tx('云游子', 'Yunyouzi', '雲遊子')}
+              title={tx('断事老师', 'Reading Companion', '斷事老師')}
+              line={tx(
+                '先取一个字，云游子替你看形、看势，再给一个当下能用的方向。',
+                'Start with one Chinese character. Yunyouzi reads its shape, pattern, and next direction.',
+                '先取一個字，雲遊子替你看形、看勢，再給一個當下能用的方向。',
+              )}
               mode="hero"
               style={styles.companion}
             />
 
-            <Text style={styles.kicker}>中国传统玄学 AI 陪伴</Text>
-            <Text style={styles.title}>问一件卡住的事，先拿到一个方向。</Text>
+            <Text style={styles.kicker}>{tx('中国传统玄学 AI 陪伴', 'Chinese Metaphysics AI Companion', '中國傳統玄學 AI 陪伴')}</Text>
+            <Text style={styles.title}>{tx('问一件卡住的事，先拿到一个方向。', 'Ask what feels stuck. Get one clear direction first.', '問一件卡住的事，先拿到一個方向。')}</Text>
             <Text style={styles.subtitle}>
-              测字、易经、八字与陪伴式对话，适合关系、工作、身份规划和说不清的焦虑。
+              {tx(
+                '测字、易经、八字与陪伴式对话，适合关系、工作、身份规划和说不清的焦虑。',
+                'Character reading, I Ching, Bazi, and companion chat for relationships, career, identity, and unclear anxiety.',
+                '測字、易經、八字與陪伴式對話，適合關係、工作、身份規劃和說不清的焦慮。',
+              )}
             </Text>
 
             {referralCode ? (
               <View style={styles.rewardBox}>
-                <Text style={styles.rewardLabel}>你的邀请奖励</Text>
-                <Text style={styles.rewardText}>用邀请码 {referralCode} 注册，你和邀请人各得 50 积分。</Text>
+                <Text style={styles.rewardLabel}>{tx('你的邀请奖励', 'Invite reward', '你的邀請獎勵')}</Text>
+                <Text style={styles.rewardText}>{tx(`用邀请码 ${referralCode} 注册，你和邀请人各得 50 积分。`, `Register with code ${referralCode}. You and your inviter each get 50 points.`, `用邀請碼 ${referralCode} 註冊，你和邀請人各得 50 積分。`)}</Text>
               </View>
             ) : (
               <View style={styles.rewardBox}>
-                <Text style={styles.rewardLabel}>新用户体验</Text>
-                <Text style={styles.rewardText}>注册后可保存解读、继续追问，并领取新用户积分。</Text>
+                <Text style={styles.rewardLabel}>{tx('新用户体验', 'New user trial', '新用戶體驗')}</Text>
+                <Text style={styles.rewardText}>{tx('注册后可保存解读、继续追问，并领取新用户积分。', 'Register to save readings, continue follow-ups, and receive starter points.', '註冊後可保存解讀、繼續追問，並領取新用戶積分。')}</Text>
               </View>
             )}
 
             <View style={styles.ctaRow}>
               <TouchableOpacity style={[styles.primaryBtn, webPointer]} onPress={goRegister}>
-                <Text style={styles.primaryText}>领取积分并体验</Text>
+                <Text style={styles.primaryText}>{tx('领取积分并体验', 'Claim points and start', '領取積分並體驗')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.secondaryBtn, webPointer]} onPress={goTryZi}>
-                <Text style={styles.secondaryText}>先测一个字</Text>
+                <Text style={styles.secondaryText}>{tx('先测一个字', 'Try one character', '先測一個字')}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.methodGrid}>
-            <Method title="测字" desc="选一个字，看当下状态和下一步。" />
-            <Method title="易经" desc="把纠结的问题转成清晰判断。" />
-            <Method title="八字" desc="从长期节奏理解自己和选择。" />
+            <Method title={tx('测字', 'Character', '測字')} desc={tx('选一个字，看当下状态和下一步。', 'Pick one character to read your current state.', '選一個字，看當下狀態和下一步。')} />
+            <Method title={tx('易经', 'I Ching', '易經')} desc={tx('把纠结的问题转成清晰判断。', 'Turn a dilemma into clearer judgment.', '把糾結的問題轉成清晰判斷。')} />
+            <Method title={tx('八字', 'Bazi', '八字')} desc={tx('从长期节奏理解自己和选择。', 'Understand yourself through long-term rhythm.', '從長期節奏理解自己和選擇。')} />
           </View>
 
           <Text style={styles.disclaimer}>
-            山海灵境内容仅供娱乐参考与自我观察，不构成医疗、法律、金融、投资或其他专业建议。
+            {tx(
+              '山海灵境内容仅供娱乐参考与自我观察，不构成医疗、法律、金融、投资或其他专业建议。',
+              'For entertainment and self-reflection only. Not medical, legal, financial, investment, or professional advice.',
+              '山海靈境內容僅供娛樂參考與自我觀察，不構成醫療、法律、金融、投資或其他專業建議。',
+            )}
           </Text>
         </ScrollView>
       </View>
@@ -160,6 +177,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 18,
+  },
+  languageToggle: {
+    marginBottom: 14,
   },
   brand: {
     color: '#D6B36A',
