@@ -33,6 +33,53 @@ import { useI18nStore } from '../../src/store/i18n';
 
 const cloudWandererImage = require('../../assets/personas/elder.png');
 
+type SymbolSuggestion = { zi: string; label: string; meaning: string };
+
+const defaultEnglishSymbolSuggestions: SymbolSuggestion[] = [
+  { zi: '心', label: 'Heart / feelings', meaning: 'For emotions, anxiety, and what you truly care about.' },
+  { zi: '路', label: 'Path / direction', meaning: 'For career, choices, timing, and where to go next.' },
+  { zi: '缘', label: 'Connection / fate', meaning: 'For relationships, attraction, distance, and unfinished ties.' },
+];
+
+function suggestChineseSymbols(seed: string): SymbolSuggestion[] {
+  const text = seed.toLowerCase();
+  const pools: Array<{ match: RegExp; items: SymbolSuggestion[] }> = [
+    {
+      match: /love|relationship|partner|marriage|ex|dating|crush|heart|connection/,
+      items: [
+        { zi: '缘', label: 'Connection / fate', meaning: 'For relationship timing, attraction, and unfinished ties.' },
+        { zi: '心', label: 'Heart / feelings', meaning: 'For emotional truth, longing, and inner conflict.' },
+        { zi: '合', label: 'Union / fit', meaning: 'For compatibility, repair, and whether two sides can meet.' },
+      ],
+    },
+    {
+      match: /career|job|work|offer|business|money|wealth|salary|startup|visa|study|school/,
+      items: [
+        { zi: '业', label: 'Work / karma', meaning: 'For career direction, responsibility, and long-term effort.' },
+        { zi: '进', label: 'Move forward', meaning: 'For promotion, momentum, and whether to take the next step.' },
+        { zi: '稳', label: 'Stability', meaning: 'For risk control, patience, and staying grounded.' },
+      ],
+    },
+    {
+      match: /lost|stuck|unclear|confused|anxious|worry|fear|stress|healing|sad|tired/,
+      items: [
+        { zi: '困', label: 'Stuck', meaning: 'For blocked energy, pressure, and what is trapping you.' },
+        { zi: '明', label: 'Clarity', meaning: 'For seeing the truth, finding direction, and reducing confusion.' },
+        { zi: '安', label: 'Peace', meaning: 'For calming the mind, safety, and emotional recovery.' },
+      ],
+    },
+    {
+      match: /move|change|travel|future|decision|choose|choice|timing|wait|leave|stay/,
+      items: [
+        { zi: '变', label: 'Change', meaning: 'For transition, instability, and what is shifting.' },
+        { zi: '路', label: 'Path', meaning: 'For direction, next steps, and long-distance choices.' },
+        { zi: '时', label: 'Timing', meaning: 'For waiting, acting, and whether the moment is right.' },
+      ],
+    },
+  ];
+  return pools.find((pool) => pool.match.test(text))?.items || defaultEnglishSymbolSuggestions;
+}
+
 /** Web 上 RN Image 对 raw.githubusercontent.com 等外链偶发不显示，用原生 img + no-referrer 更稳 */
 function OracleGlyphImage({ uri, ziChar, style }: { uri: string; ziChar: string; style: { width: number; height: number } }) {
   if (Platform.OS === 'web') {
@@ -76,6 +123,7 @@ export default function ZiScreen() {
   const [selectedAspect, setSelectedAspect] = useState('');
   const [customAspect, setCustomAspect] = useState('');
   const [userQuestion, setUserQuestion] = useState('');
+  const [englishSymbolSeed, setEnglishSymbolSeed] = useState('');
   const oracleUnlockAnim = useRef(new Animated.Value(0)).current;
   
   // 可选的测字方面
@@ -362,7 +410,14 @@ export default function ZiScreen() {
     const zi = rawZi.trim().charAt(0);
     const normalizedQuestion = (questionText ?? userQuestion).trim();
     if (!/[\u4e00-\u9fa5]/.test(zi)) {
-      Alert.alert(t('common.notice', '提示'), tx('请输入一个有效的汉字', 'Please input a valid Chinese character', '請輸入一個有效的漢字'));
+      Alert.alert(
+        t('common.notice', '提示'),
+        tx(
+          '请输入一个有效的汉字',
+          'Symbol reading needs one Chinese character. If you only have an English word, use the suggestions below first.',
+          '請輸入一個有效的漢字',
+        ),
+      );
       return false;
     }
     if (user && !isVip && !isInvitePreview) {
@@ -476,6 +531,7 @@ export default function ZiScreen() {
           selectedAspect?: string;
           customAspect?: string;
           userQuestion?: string;
+          englishSymbolSeed?: string;
           isHandwritingMode?: boolean;
           showColdReading?: boolean;
         };
@@ -485,6 +541,7 @@ export default function ZiScreen() {
         if (parsed.selectedAspect) setSelectedAspect(parsed.selectedAspect);
         if (parsed.customAspect) setCustomAspect(parsed.customAspect);
         if (parsed.userQuestion) setUserQuestion(parsed.userQuestion);
+        if (parsed.englishSymbolSeed) setEnglishSymbolSeed(parsed.englishSymbolSeed);
         if (typeof parsed.isHandwritingMode === 'boolean') setIsHandwritingMode(parsed.isHandwritingMode);
         if (typeof parsed.showColdReading === 'boolean') setShowColdReading(parsed.showColdReading);
       } catch {
@@ -506,11 +563,12 @@ export default function ZiScreen() {
       selectedAspect,
       customAspect,
       userQuestion,
+      englishSymbolSeed,
       isHandwritingMode,
       showColdReading,
     };
     AsyncStorage.setItem(ziStateStorageKey, JSON.stringify(payload)).catch(() => null);
-  }, [ziStateStorageKey, inputZi, result, resultStage, handwritingPreview, selectedAspect, customAspect, userQuestion, isHandwritingMode, showColdReading]);
+  }, [ziStateStorageKey, inputZi, result, resultStage, handwritingPreview, selectedAspect, customAspect, userQuestion, englishSymbolSeed, isHandwritingMode, showColdReading]);
 
   React.useEffect(() => {
     if (!isHandwritingMode) return;
@@ -554,10 +612,22 @@ export default function ZiScreen() {
   // 打字模式测字
   const handleAnalyze = async () => {
     if (!inputZi.trim()) {
-      Alert.alert(t('common.notice', '提示'), tx('请输入一个汉字', 'Please input one Chinese character', '請輸入一個漢字'));
+      Alert.alert(t('common.notice', '提示'), tx('请输入一个汉字', 'Please choose or type one Chinese character first', '請輸入一個漢字'));
       return;
     }
     await analyzeZiInput(inputZi.trim(), getFocusAspect(), userQuestion);
+  };
+
+  const englishSymbolSuggestions = React.useMemo(
+    () => suggestChineseSymbols(`${englishSymbolSeed} ${userQuestion}`),
+    [englishSymbolSeed, userQuestion],
+  );
+
+  const selectEnglishSymbol = (suggestion: SymbolSuggestion) => {
+    setInputZi(suggestion.zi);
+    if (!userQuestion.trim()) {
+      setUserQuestion(englishSymbolSeed.trim().slice(0, 120));
+    }
   };
 
   // 手写模式识别并测字
@@ -969,28 +1039,63 @@ export default function ZiScreen() {
             </View>
           ) : (
             // 打字模式
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.input}
-                value={inputZi}
-                onChangeText={setInputZi}
-                placeholder={tx('输入一个汉字', 'Type one Chinese symbol', '輸入一個漢字')}
-                placeholderTextColor="#999"
-                maxLength={1}
-                autoFocus
-              />
-              <TouchableOpacity
-                style={[styles.button, isLoading && styles.buttonDisabled]}
-                onPress={handleAnalyze}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>{tx('开始测字', 'Read Symbol', '開始測字')}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            <>
+              {language === 'en-US' ? (
+                <View style={styles.englishSymbolCard}>
+                  <Text style={styles.englishSymbolTitle}>Need a Chinese symbol?</Text>
+                  <Text style={styles.englishSymbolText}>
+                    Type an English word or question. Then pick one Chinese character below. The actual reading still uses that Chinese character.
+                  </Text>
+                  <TextInput
+                    style={styles.englishSymbolInput}
+                    value={englishSymbolSeed}
+                    onChangeText={setEnglishSymbolSeed}
+                    placeholder="e.g. love, career change, I feel stuck"
+                    placeholderTextColor="#7F8797"
+                    maxLength={80}
+                  />
+                  <View style={styles.symbolSuggestionRow}>
+                    {englishSymbolSuggestions.map((item) => {
+                      const active = inputZi === item.zi;
+                      return (
+                        <TouchableOpacity
+                          key={`${item.zi}_${item.label}`}
+                          style={[styles.symbolSuggestion, active && styles.symbolSuggestionActive]}
+                          onPress={() => selectEnglishSymbol(item)}
+                          activeOpacity={0.82}
+                        >
+                          <Text style={[styles.symbolSuggestionZi, active && styles.symbolSuggestionZiActive]}>{item.zi}</Text>
+                          <Text style={[styles.symbolSuggestionLabel, active && styles.symbolSuggestionLabelActive]}>{item.label}</Text>
+                          <Text style={styles.symbolSuggestionMeaning}>{item.meaning}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.input}
+                  value={inputZi}
+                  onChangeText={setInputZi}
+                  placeholder={tx('输入一个汉字', 'Chosen Chinese character', '輸入一個漢字')}
+                  placeholderTextColor="#999"
+                  maxLength={1}
+                  autoFocus={language !== 'en-US'}
+                />
+                <TouchableOpacity
+                  style={[styles.button, isLoading && styles.buttonDisabled]}
+                  onPress={handleAnalyze}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.buttonText}>{tx('开始测字', 'Read Symbol', '開始測字')}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
           )}
           {isLoading ? (
             <Text style={styles.loadingHint}>
@@ -1716,6 +1821,76 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     marginBottom: 20,
+  },
+  englishSymbolCard: {
+    backgroundColor: '#111A2E',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.22)',
+    padding: 12,
+    marginBottom: 12,
+  },
+  englishSymbolTitle: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  englishSymbolText: {
+    color: '#BFC8D8',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  englishSymbolInput: {
+    minHeight: 38,
+    backgroundColor: '#0D1424',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#27354F',
+    color: '#F7F7F0',
+    fontSize: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 10,
+  },
+  symbolSuggestionRow: {
+    gap: 8,
+  },
+  symbolSuggestion: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#27354F',
+    backgroundColor: '#0D1424',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  symbolSuggestionActive: {
+    borderColor: '#F8D05F',
+    backgroundColor: 'rgba(248, 208, 95, 0.13)',
+  },
+  symbolSuggestionZi: {
+    color: '#F8D05F',
+    fontSize: 22,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  symbolSuggestionZiActive: {
+    color: '#FFE28A',
+  },
+  symbolSuggestionLabel: {
+    color: '#E8ECF6',
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  symbolSuggestionLabelActive: {
+    color: '#FFFFFF',
+  },
+  symbolSuggestionMeaning: {
+    color: '#9BA7BC',
+    fontSize: 11,
+    lineHeight: 16,
   },
   aspectSection: {
     backgroundColor: '#16213e',
