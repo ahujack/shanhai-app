@@ -54,14 +54,14 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
 function pickCopy(language: AppLanguage, kind: ResultShareKind): { label: string; inviteLine: string } {
   const kindLabel =
     language === 'en-US'
-      ? ({ zi: 'Character Reading', reading: 'Divination Reading', bazi: 'BaZi Chart', fortune: 'Daily Fortune' } as const)[kind]
+      ? ({ zi: 'Symbol Reading', reading: 'Oracle Reading', bazi: 'Eastern Birth Chart', fortune: 'Daily Oracle' } as const)[kind]
       : language === 'zh-TW'
         ? ({ zi: '測字解讀', reading: '占卜解讀', bazi: '八字命盤', fortune: '今日靈簽' } as const)[kind]
         : ({ zi: '测字解读', reading: '占卜解读', bazi: '八字命盘', fortune: '今日灵签' } as const)[kind];
 
   const inviteLine =
     language === 'en-US'
-      ? 'Register with my invite link — we both get +50 points!'
+      ? 'Register with my invite link — we both get +50 points for readings!'
       : language === 'zh-TW'
         ? '用我的連結註冊，你我各得 50 積分。'
         : '用我的链接注册，你我各得 50 积分。';
@@ -91,13 +91,13 @@ export function buildResultShareCopy(params: {
     return {
       title: 'Shanhai Realm',
       body: [
-        `🔮 I just used Shanhai Realm for a ${label}`,
+        `🔮 I just tried Shanhai Realm, an Eastern oracle AI, for a ${label}`,
         safeHeadline ? `📌 Main takeaway: ${safeHeadline}` : '',
         safeSummary ? `💬 Note: ${safeSummary}` : '',
         referralCode ? `\nInvite code: ${referralCode}` : '',
         inviteLine,
         `\nTry it here: ${url}`,
-        '\nFor entertainment reference only.',
+        '\nFor entertainment and self-reflection only.',
       ]
         .filter(Boolean)
         .join('\n'),

@@ -17,11 +17,11 @@ export type SeoMeta = {
 };
 
 export const HOME_SEO: SeoMeta = {
-  title: 'Shanhai Realm | Chinese Metaphysics AI Companion for Overseas Chinese',
+  title: 'Shanhai Realm | Eastern Oracle AI for Clarity, Love & Life Decisions',
   description:
-    'Shanhai Realm is a Chinese metaphysics AI companion for overseas Chinese users. Explore CeZi character divination, I Ching readings, BaZi charts, and decision-focused emotional support. Entertainment only.',
+    'Shanhai Realm turns Eastern oracle traditions into simple AI guidance for modern questions. Try symbol readings, I Ching-style oracle guidance, birth-chart patterns, and companion chat. Entertainment only.',
   keywords:
-    'shanhai realm, overseas chinese ai companion, chinese metaphysics ai, bazi calculator, chinese character divination, cezi, i ching reading, 八字, 测字, 易经占卜, 山海灵境',
+    'shanhai realm, eastern oracle ai, ai fortune reading, spiritual ai companion, chinese astrology, bazi calculator, symbol reading, i ching reading, chinese character divination, 八字, 测字, 易经占卜, 山海灵境',
   canonical: SEO_SITE.url,
 };
 
@@ -29,15 +29,15 @@ export const STATIC_PAGE_SEO = {
   pricing: {
     title: 'Pricing & Membership | Shanhai Realm',
     description:
-      'Compare Shanhai Realm free and VIP plans. Unlock deeper BaZi commentary, unlimited readings, and premium AI guidance. Points packs available.',
-    keywords: 'shanhai realm pricing, membership, vip, points, bazi premium',
+      'Compare Shanhai Realm free and VIP plans. Unlock deeper oracle guidance, birth-chart commentary, follow-up conversations, and premium AI readings. Points packs available.',
+    keywords: 'shanhai realm pricing, membership, vip, points, oracle reading premium',
     canonical: `${SEO_SITE.url}/pricing`,
   },
   faq: {
-    title: 'FAQ | Shanhai Realm — BaZi, CeZi & I Ching Help',
+    title: 'FAQ | Shanhai Realm — Eastern Oracle AI Help',
     description:
-      'Answers about Shanhai Realm: how the AI companion helps with life decisions, points, VIP benefits, check-in rewards, data privacy, and BaZi, 测字, and I Ching readings.',
-    keywords: 'shanhai realm faq, help, points, vip, bazi help',
+      'Answers about Shanhai Realm: how the AI companion helps with love, career, timing, points, VIP benefits, privacy, symbol readings, I Ching, and birth-chart guidance.',
+    keywords: 'shanhai realm faq, eastern oracle ai help, points, vip, ai fortune reading',
     canonical: `${SEO_SITE.url}/faq`,
   },
   privacy: {
@@ -50,7 +50,7 @@ export const STATIC_PAGE_SEO = {
   terms: {
     title: 'Terms of Service | Shanhai Realm',
     description:
-      'Terms for using Shanhai Realm AI metaphysics tools. Readings are for entertainment and inspiration only — not medical, legal, or financial advice.',
+      'Terms for using Shanhai Realm AI oracle and metaphysics tools. Readings are for entertainment and inspiration only — not medical, legal, or financial advice.',
     keywords: 'shanhai realm terms of service, disclaimer',
     canonical: `${SEO_SITE.url}/terms`,
   },
@@ -61,7 +61,7 @@ export const FAQ_SCHEMA_ITEMS = [
   {
     question: 'What is Shanhai Realm?',
     answer:
-      'Shanhai Realm is an AI companion for overseas Chinese users who want to reflect on relationships, career choices, and uncertainty through traditional Eastern metaphysics, including BaZi, character divination, and I Ching readings.',
+      'Shanhai Realm is an Eastern oracle-style AI companion for people who want to reflect on relationships, career choices, timing, and uncertainty through symbolic tools such as character readings, I Ching-style guidance, and birth-chart patterns.',
   },
   {
     question: 'Are readings guaranteed accurate?',

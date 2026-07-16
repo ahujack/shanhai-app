@@ -799,8 +799,8 @@ export default function ZiScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: wuxingTheme.bg }]}>
       <View pointerEvents="none" style={[styles.wuxingAura, { backgroundColor: wuxingTheme.glow }]} />
       <View style={styles.header}>
-        <Text style={styles.title}>{tx('🔮 测字问心', '🔮 Character Insight', '🔮 測字問心')}</Text>
-        <Text style={styles.subtitle}>{tx('说不清的时候，先用一个字看状态', 'When words are unclear, start with one character', '說不清的時候，先用一個字看狀態')}</Text>
+        <Text style={styles.title}>{tx('🔮 测字问心', '🔮 Symbol Reading', '🔮 測字問心')}</Text>
+        <Text style={styles.subtitle}>{tx('说不清的时候，先用一个字看状态', 'When feelings are hard to name, start with one Chinese symbol', '說不清的時候，先用一個字看狀態')}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -839,17 +839,17 @@ export default function ZiScreen() {
         {/* 输入区域 - 书写框优先展示 */}
         <View style={styles.inputSection}>
           <Text style={styles.sectionTitle}>
-            {isHandwritingMode ? tx('写下一个字', 'Write one character', '寫下一個字') : tx('输入一个字', 'Type one character', '輸入一個字')}
+            {isHandwritingMode ? tx('写下一个字', 'Write one symbol', '寫下一個字') : tx('输入一个字', 'Type one symbol', '輸入一個字')}
           </Text>
           <Text style={styles.hint}>
             {isHandwritingMode 
-              ? tx('把此刻最有感觉的汉字写下来，不用追求好看。', 'Write the character that feels right now. It does not need to look perfect.', '把此刻最有感覺的漢字寫下來，不用追求好看。')
-              : tx('选一个最贴近你当下状态的汉字，我先给你一句结论。', 'Pick one character that matches your current state. I will start with one conclusion.', '選一個最貼近你當下狀態的漢字，我先給你一句結論。')}
+              ? tx('把此刻最有感觉的汉字写下来，不用追求好看。', 'Write a Chinese character that feels connected to this moment. It does not need to look perfect.', '把此刻最有感覺的漢字寫下來，不用追求好看。')
+              : tx('选一个最贴近你当下状态的汉字，我先给你一句结论。', 'Choose one Chinese character as a symbol for your current state. I will start with a direct answer.', '選一個最貼近你當下狀態的漢字，我先給你一句結論。')}
           </Text>
           <View style={styles.billingPreviewBar}>
             <Text style={styles.billingPreviewText}>
               {!user
-                ? tx('游客可先免费测一次，结果出来后再决定是否登录保存。', 'Try once as a guest. Log in afterward to save the reading.', '遊客可先免費測一次，結果出來後再決定是否登入保存。')
+                ? tx('游客可先免费测一次，结果出来后再决定是否登录保存。', 'Try one free symbol reading as a guest. Log in afterward to save it.', '遊客可先免費測一次，結果出來後再決定是否登入保存。')
                 : isInvitePreview
                 ? tx('邀请体验可先测一次，本次不扣积分；结果满意后再注册/补充积分继续深聊。', 'Invite preview: try once without points. Continue after registering or topping up.', '邀請體驗可先測一次，本次不扣積分；結果滿意後再註冊/補充積分繼續深聊。')
                 : t('reading.form.billingPreview', '本次将扣：{cost} 积分{memberFree} · 当前余额：{balance}')
@@ -895,11 +895,11 @@ export default function ZiScreen() {
               {/* 静心提示 - 放在书写框下方 */}
               {!ritualReady && (
                 <View style={styles.ritualCountdownCard}>
-                  <Text style={styles.ritualCountdownTitle}>{tx('🫧 写字前先定一个问题', '🫧 Center on one question first', '🫧 寫字前先定一個問題')}</Text>
+                  <Text style={styles.ritualCountdownTitle}>{tx('🫧 写字前先定一个问题', '🫧 Hold one question in mind', '🫧 寫字前先定一個問題')}</Text>
                   <Text style={styles.ritualCountdownText}>
                     {tx(
                       '把注意力放在此刻最想问的一件事上，再落笔。也可以直接写，不影响体验。',
-                      'Focus on one question first, then write. You can also write directly.',
+                      'Think of one real question first, then write. You can also skip the ritual and write directly.',
                       '把注意力放在此刻最想問的一件事上，再落筆。也可以直接寫，不影響體驗。',
                     )}
                   </Text>
@@ -961,7 +961,7 @@ export default function ZiScreen() {
                     <Text style={styles.handwritingPreviewBtnText}>
                       {isLoading || handwritingStage === 'analyzing'
                         ? tx('解读中…', 'Reading...', '解讀中…')
-                        : tx('生成深度解读', 'Generate Deep Reading', '生成深度解讀')}
+                        : tx('生成深度解读', 'Generate Deep Guidance', '生成深度解讀')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -974,7 +974,7 @@ export default function ZiScreen() {
                 style={styles.input}
                 value={inputZi}
                 onChangeText={setInputZi}
-                placeholder={tx('输入一个汉字', 'Type one Chinese character', '輸入一個漢字')}
+                placeholder={tx('输入一个汉字', 'Type one Chinese symbol', '輸入一個漢字')}
                 placeholderTextColor="#999"
                 maxLength={1}
                 autoFocus
@@ -987,7 +987,7 @@ export default function ZiScreen() {
                 {isLoading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>{tx('开始测字', 'Start Reading', '開始測字')}</Text>
+                  <Text style={styles.buttonText}>{tx('开始测字', 'Read Symbol', '開始測字')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -996,7 +996,7 @@ export default function ZiScreen() {
             <Text style={styles.loadingHint}>
               {tx(
                 'AI 深度解读约需 30 秒～2 分钟，请保持网络畅通、勿关闭页面',
-                'Deep reading usually takes 30s-2min. Keep network stable and stay on this page.',
+                'Deep guidance usually takes 30s-2min. Keep the page open.',
                 'AI 深度解讀約需 30 秒～2 分鐘，請保持網路暢通、勿關閉頁面',
               )}
             </Text>
@@ -1017,7 +1017,7 @@ export default function ZiScreen() {
               title={tx('断事老师', 'Reading companion', '斷事老師')}
               line={tx(
                 `「${result.zi.zi}」这个字先不急着判。我先看它的形，再把当下的势和下一步说清楚。`,
-                `I will first read the shape of "${result.zi.zi}", then clarify the current pattern and next step.`,
+                `I will read "${result.zi.zi}" as a symbol: its shape, emotional signal, current pattern, and next step.`,
                 `「${result.zi.zi}」這個字先不急著判。我先看它的形，再把當下的勢和下一步說清楚。`,
               )}
               style={styles.deliveryCompanion}
@@ -1030,7 +1030,7 @@ export default function ZiScreen() {
                   style={styles.tierUpgradeBtn}
                   onPress={() => router.push('/login')}
                 >
-                  <Text style={styles.tierUpgradeBtnText}>{tx('登录保存这次解读', 'Log in to save this reading', '登入保存這次解讀')}</Text>
+                  <Text style={styles.tierUpgradeBtnText}>{tx('登录保存这次解读', 'Log in to save this guidance', '登入保存這次解讀')}</Text>
                 </TouchableOpacity>
               ) : !isVip && (
                 <TouchableOpacity

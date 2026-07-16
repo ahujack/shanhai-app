@@ -63,7 +63,7 @@ export default function ProfileScreen() {
       const shareUrl = buildReferralUrl(referralCode);
       const shareMessage = tx(
         `🔮 我在山海灵境做解读\n\n邀请码: ${referralCode}\n用我的链接注册，你我各得 50 积分。\n\n立即体验: ${shareUrl}`,
-        `🔮 Shanhai Realm - Explore your destiny\n\nInvite Code: ${referralCode}\nUse my invite link to register. We both get +50 points!\n\nRegister now: ${shareUrl}`,
+        `🔮 Shanhai Realm - Eastern oracle AI for clarity\n\nInvite Code: ${referralCode}\nUse my invite link to register. We both get +50 points for readings.\n\nTry it here: ${shareUrl}`,
         `🔮 山海靈境 - 探索你的命運之旅\n\n邀請碼: ${referralCode}\n使用我的邀請連結註冊，你我都可獲得 +50 積分！\n\n立即註冊: ${shareUrl}`,
       );
       

@@ -1065,7 +1065,7 @@ export default function BaziScreen() {
         kind="bazi"
         headline={`${c.yearGanZhi} ${c.monthGanZhi} ${c.dayGanZhi} ${c.hourGanZhi}`}
         summary={normalizeChartText(c.conclusion?.overall) || normalizeChartText(c.conclusion?.mindset) || ''}
-        badge={tx('八字命盘', 'BaZi Chart', '八字命盤')}
+        badge={tx('八字命盘', 'Eastern Birth Chart', '八字命盤')}
         referralCode={user?.referralCode || (user?.id ?? null)}
       />
 

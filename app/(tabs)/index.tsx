@@ -42,6 +42,7 @@ export default function HomeScreen() {
   const { active: persona, personas, setActive } = usePersonaStore();
   const t = useI18nStore((state) => state.t);
   const language = useI18nStore((state) => state.language);
+  const tx = (zh: string, en: string, tw: string) => (language === 'en-US' ? en : language === 'zh-TW' ? tw : zh);
   const setLanguage = useI18nStore((state) => state.setLanguage);
   const { user, chart, hasChart, generateChart, checkIn, checkInStatus, loadCheckInStatus } = useUserStore();
   const { messages, isLoading, sendMessage, clearMessages, hydrateMessages } = useChatStore();
@@ -854,25 +855,29 @@ export default function HomeScreen() {
       return;
     }
     
-    let shareText = '🔮 山海灵境 - 命运探索之旅\n\n';
+    let shareText = tx(
+      '🔮 山海灵境 - 命运探索之旅\n\n',
+      '🔮 Shanhai Realm - Eastern oracle AI for clarity\n\n',
+      '🔮 山海靈境 - 命運探索之旅\n\n',
+    );
     
     // 分享今日运势
     try {
       const fortune = await fortuneApi.getDaily();
-      shareText += `✨ 今日运势：${fortune.poem.title}\n`;
+      shareText += tx('✨ 今日运势：', '✨ Daily oracle: ', '✨ 今日運勢：') + `${fortune.poem.title}\n`;
       shareText += `📝 ${fortune.day}\n`;
-      shareText += `💫 幸运数字：${fortune.lucky.number} | 幸运颜色：${fortune.lucky.color}\n\n`;
+      shareText += tx('💫 幸运数字：', '💫 Lucky number: ', '💫 幸運數字：') + `${fortune.lucky.number}` + tx(' | 幸运颜色：', ' | Lucky color: ', ' | 幸運顏色：') + `${fortune.lucky.color}\n\n`;
     } catch (e) {
       // ignore
     }
     
-    shareText += '🌟 加入我，一起探索命运的奥秘！\n';
-    shareText += '📱 下载山海灵境App';
+    shareText += tx('🌟 加入我，一起探索命运的奥秘！\n', '🌟 Try it with me and get a little more clarity.\n', '🌟 加入我，一起探索命運的奧秘！\n');
+    shareText += tx('📱 下载山海灵境App', '📱 https://www.shanhai.app', '📱 下載山海靈境App');
     
     try {
       await Share.share({
         message: shareText,
-        title: '山海灵境 - 命运探索',
+        title: tx('山海灵境 - 命运探索', 'Shanhai Realm - Eastern Oracle AI', '山海靈境 - 命運探索'),
       });
     } catch (error) {
       console.error('分享失败:', error);
