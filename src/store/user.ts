@@ -146,12 +146,17 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
     } catch (e) {
       console.error('加载用户失败:', e);
-      // 如果加载失败，清除可能存在的无效token
-      await storage.removeItem(USER_ID_KEY);
-      await storage.removeItem(AUTH_TOKEN_KEY);
-      globalAuthToken = null;
-      setGlobalAuthToken(null);
-      set({ user: null, token: null });
+      // 微信内置浏览器从后台恢复时，网络可能短暂失败。
+      // 不要因为一次 loadUser 失败就清掉本地登录态；后续请求若明确 token 过期，会由 API 层统一清理。
+      const token = await storage.getItem(AUTH_TOKEN_KEY);
+      globalAuthToken = token;
+      setGlobalAuthToken(token);
+      set((state) => ({
+        user: state.user,
+        token,
+        chart: state.chart,
+        hasChart: state.hasChart,
+      }));
     } finally {
       set({ isLoading: false });
     }

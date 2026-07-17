@@ -89,13 +89,17 @@ export function setGlobalAppLanguage(language: ClientLanguage) {
   }
 }
 
-/** 401 且判定为登录态失效时清 token 并通知 UI（含 Native） */
+function shouldClearSessionOn401(errorMsg: string): boolean {
+  const msg = String(errorMsg || '');
+  // 只在服务端明确指出 token/session 过期或 token 无效时清登录态。
+  // 微信内置浏览器切后台/恢复时，部分接口可能短暂返回 401/未授权；
+  // 如果把所有 401 都当作登出，会导致用户频繁重新登录。
+  return /登录已过期|會話已失效|登录状态已失效|token.*(过期|expired|invalid|无效)|session.*(expired|invalid)|jwt.*(expired|invalid)/i.test(msg);
+}
+
+/** 401 且明确判定为登录态失效时清 token 并通知 UI（含 Native） */
 async function clearSessionOnAuthError(errorMsg: string): Promise<void> {
-  const msg = String(errorMsg);
-  const looksAuth =
-    /登录|认证|token|Token|过期|unauthorized|请先登录|未授权|Unauthorized/i.test(msg) ||
-    /请求失败:\s*401/.test(msg);
-  if (!looksAuth) return;
+  if (!shouldClearSessionOn401(errorMsg)) return;
   setGlobalAuthToken(null);
   try {
     if (typeof localStorage !== 'undefined') {
