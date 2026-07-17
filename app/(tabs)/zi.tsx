@@ -227,6 +227,7 @@ export default function ZiScreen() {
 
   const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
+  const shouldSkipZiPointsPrecheck = isVip || hasMembershipTier;
   const displayZiCost = isVip ? 0 : ziPointsCost;
   const membershipExpiredHint = hasMembershipTier && !isVip ? t('reading.form.membershipExpired', '会员权益已过期，当前按积分扣费。') : '';
   const ziTierLabel = !result
@@ -420,7 +421,7 @@ export default function ZiScreen() {
       );
       return false;
     }
-    if (user && !isVip && !isInvitePreview) {
+    if (user && !shouldSkipZiPointsPrecheck && !isInvitePreview) {
       try {
         const checkRes = await pointsApi.check(ziPointsCost);
         // 仅当明确 false 才拦截；避免 hasEnough 缺失或与门闸关闭时后端行为不一致导致误判
@@ -505,9 +506,12 @@ export default function ZiScreen() {
     if (!prefill) return;
     const zi = prefill.charAt(0);
     if (!/[\u4e00-\u9fa5]/.test(zi)) return;
+    const fromQuery = Array.isArray(params.userQuestion) ? params.userQuestion[0] : params.userQuestion;
+    const question = fromQuery?.trim().slice(0, 120) || userQuestion;
     setInputZi(zi);
-    analyzeZiInput(zi).catch(() => null);
-  }, [params.prefillZi]);
+    if (question) setUserQuestion(question);
+    analyzeZiInput(zi, getFocusAspect(), question).catch(() => null);
+  }, [params.prefillZi, params.userQuestion]);
 
   React.useEffect(() => {
     const fromQuery = Array.isArray(params.userQuestion) ? params.userQuestion[0] : params.userQuestion;

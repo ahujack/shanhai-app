@@ -33,6 +33,21 @@ const DRAW_ANIMATION_CONFIG = {
   resultGlowMs: 1800,
 };
 const D1_RETURN_KEY = 'analytics_last_active_date';
+const ZI_STOP_CHARS = new Set('的一是在和了我你他她它们这那有就都很还又但如果因为所以然后就是不是可以需要想要觉得感觉怎么办该不该能不能为什么'.split(''));
+
+function extractZiFromUserText(text: string): string {
+  const quoted = text.match(/[「“"']([\u4e00-\u9fa5])[」”"']/);
+  if (quoted?.[1]) return quoted[1];
+  const chars = text.match(/[\u4e00-\u9fa5]/g) || [];
+  if (!chars.length) return '';
+  const meaningful = chars.filter((char) => !ZI_STOP_CHARS.has(char));
+  const pool = meaningful.length ? meaningful : chars;
+  const emotionalPriority = ['爱', '缘', '心', '困', '累', '怕', '乱', '烦', '急', '钱', '财', '工', '业', '职', '家', '病', '睡', '走', '留', '等', '变', '断', '合', '离', '稳', '进'];
+  const priority = emotionalPriority.find((char) => pool.includes(char));
+  if (priority) return priority;
+  return pool[Math.floor(pool.length / 2)] || '';
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -261,14 +276,7 @@ export default function HomeScreen() {
 
   const hasShownZiNudgeToday = ziNudgeShownDate === getLocalDateKey();
 
-  const extractZiCandidate = (text: string): string => {
-    const quoted = text.match(/[「“"']([\u4e00-\u9fa5])[」”"']/);
-    if (quoted?.[1]) return quoted[1];
-    const chars = text.match(/[\u4e00-\u9fa5]/g) || [];
-    if (!chars.length) return '';
-    // 对较长文本，优先给中间位置的字，避免总是首字触发
-    return chars[Math.floor(chars.length / 2)] || '';
-  };
+  const extractZiCandidate = extractZiFromUserText;
 
   const shouldSuggestZi = (text: string): boolean => {
     const clean = text.trim();
@@ -1591,17 +1599,12 @@ function ChatBubble({ message, userQuestionSeed, onRetry }: { message: ChatMessa
   const isUser = message.role === 'user';
   const router = useRouter();
   const { setLastReading } = useDivinationStore();
-  const extractFirstZi = (text?: string): string | undefined => {
-    if (!text) return undefined;
-    const match = text.match(/[\u4e00-\u9fa5]/);
-    return match?.[0];
-  };
-
   const openZiDetail = () => {
     const ziFromFullResult = message.artifacts?.zi?.zi?.zi;
-    const ziFromSuggestion = (message.artifacts as any)?.ziSuggestion?.zi;
-    const ziFromContent = extractFirstZi(message.content);
-    const zi = ziFromFullResult || ziFromSuggestion || ziFromContent;
+    const ziFromUserQuestion = userQuestionSeed ? extractZiFromUserText(userQuestionSeed) : '';
+    const ziFromSuggestion = message.artifacts?.ziSuggestion?.zi;
+    const ziFromContent = extractZiFromUserText(message.content);
+    const zi = ziFromFullResult || ziFromUserQuestion || ziFromSuggestion || ziFromContent;
     const safeQuestion = (userQuestionSeed || '').trim();
     router.push({
       pathname: '/(tabs)/zi',

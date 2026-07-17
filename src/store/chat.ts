@@ -16,6 +16,7 @@ export interface ChatMessage {
     fortune?: FortuneSlip;
     meditation?: Meditation;
     zi?: ZiResult;
+    ziSuggestion?: { zi: string | null };
   };
   actions?: Array<{
     type: string;
