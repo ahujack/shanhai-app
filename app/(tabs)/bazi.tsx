@@ -910,6 +910,64 @@ export default function BaziScreen() {
     { key: 'water', label: tx('水', 'Water', '水'), value: c.wuxingStrength?.water || 0, color: '#5AA8FF' },
   ];
   const dominantWuxing = [...wuxingBars].sort((a, b) => b.value - a.value)[0];
+  const weakestWuxing = [...wuxingBars].sort((a, b) => a.value - b.value)[0];
+  const elementLifestyleMap: Record<string, {
+    nature: string;
+    support: string;
+    colors: string;
+    crystals: Array<{ name: string; en: string; wear: string; note: string }>;
+  }> = {
+    wood: {
+      nature: tx('生发、规划、学习与关系成长', 'growth, planning, learning, and relationship development', '生發、規劃、學習與關係成長'),
+      support: tx('多接触绿色、植物、阅读学习和长期计划，适合把目标拆成小周期推进。', 'Add green, plants, learning, and long-term planning. Break goals into small cycles.', '多接觸綠色、植物、閱讀學習和長期計畫，適合把目標拆成小週期推進。'),
+      colors: tx('绿色、青色、浅木色', 'green, teal, light wood tones', '綠色、青色、淺木色'),
+      crystals: [
+        { name: '绿幽灵', en: 'Green Phantom Quartz', wear: tx('心轮 / 左手', 'heart area / left wrist', '心輪 / 左手'), note: tx('事业生发、增强信心与行动感。', 'Career growth, confidence, and forward motion.', '事業生發、增強信心與行動感。') },
+        { name: '碧玺', en: 'Tourmaline', wear: tx('眉心轮 / 左手', 'brow area / left wrist', '眉心輪 / 左手'), note: tx('平衡内外状态，适合情绪起伏时佩戴。', 'Balances inner and outer state, useful during emotional swings.', '平衡內外狀態，適合情緒起伏時佩戴。') },
+      ],
+    },
+    fire: {
+      nature: tx('热情、表达、行动力与被看见', 'passion, expression, action, and visibility', '熱情、表達、行動力與被看見'),
+      support: tx('多用暖色、晒太阳、公开表达和规律运动，先把能量点燃再求突破。', 'Use warm colors, sunlight, expression, and regular movement. Ignite energy before pushing breakthrough.', '多用暖色、曬太陽、公開表達和規律運動，先把能量點燃再求突破。'),
+      colors: tx('红色、橙色、玫瑰色', 'red, orange, rose tones', '紅色、橙色、玫瑰色'),
+      crystals: [
+        { name: '红玛瑙', en: 'Red Agate', wear: tx('脐轮 / 左手', 'navel area / left wrist', '臍輪 / 左手'), note: tx('缓解压力、增强行动力与稳定感。', 'Grounding, pressure release, and stronger action.', '緩解壓力、增強行動力與穩定感。') },
+        { name: '太阳石', en: 'Sunstone', wear: tx('脐轮 / 左手', 'navel area / left wrist', '臍輪 / 左手'), note: tx('提升自信、注意力和人际热度。', 'Confidence, focus, and warmer social presence.', '提升自信、注意力和人際熱度。') },
+        { name: '草莓晶', en: 'Strawberry Quartz', wear: tx('心轮 / 左手', 'heart area / left wrist', '心輪 / 左手'), note: tx('增加亲和力、人缘与感情吸引力。', 'Affinity, charm, and relationship attraction.', '增加親和力、人緣與感情吸引力。') },
+      ],
+    },
+    earth: {
+      nature: tx('稳定、承载、财务秩序与消化吸收', 'stability, grounding, financial order, and digestion of stress', '穩定、承載、財務秩序與消化吸收'),
+      support: tx('建立预算、固定作息、规律饮食和可持续节奏，先稳住底盘。', 'Build budget, routine, steady meals, and sustainable pace. Stabilize the base first.', '建立預算、固定作息、規律飲食和可持續節奏，先穩住底盤。'),
+      colors: tx('黄色、米色、棕金色', 'yellow, beige, earthy gold', '黃色、米色、棕金色'),
+      crystals: [
+        { name: '黄水晶', en: 'Citrine', wear: tx('海底轮 / 左手', 'root area / left wrist', '海底輪 / 左手'), note: tx('调节情绪、增加自信，偏财务秩序与执行。', 'Confidence, emotional regulation, money order, and execution.', '調節情緒、增加自信，偏財務秩序與執行。') },
+        { name: '虎眼石', en: "Tiger's Eye", wear: tx('海底轮 / 左手', 'root area / left wrist', '海底輪 / 左手'), note: tx('保持活力、增强事业推进与自信。', 'Vitality, career push, and grounded confidence.', '保持活力、增強事業推進與自信。') },
+        { name: '金发晶', en: 'Rutile Quartz', wear: tx('脐轮 / 左手', 'navel area / left wrist', '臍輪 / 左手'), note: tx('提升旺气、行动力与目标感。', 'Momentum, action, and stronger goal focus.', '提升旺氣、行動力與目標感。') },
+      ],
+    },
+    metal: {
+      nature: tx('边界、决断、效率、规则与整理', 'boundaries, decision-making, efficiency, rules, and refinement', '邊界、決斷、效率、規則與整理'),
+      support: tx('减少杂乱、建立清单、做取舍和断舍离，适合提升工作效率。', 'Reduce clutter, use checklists, decide what to keep or cut, and improve efficiency.', '減少雜亂、建立清單、做取捨和斷捨離，適合提升工作效率。'),
+      colors: tx('白色、银色、金色、透明色', 'white, silver, gold, clear tones', '白色、銀色、金色、透明色'),
+      crystals: [
+        { name: '白水晶', en: 'Clear Quartz', wear: tx('顶轮 / 左手', 'crown area / left wrist', '頂輪 / 左手'), note: tx('净化磁场、增强专注与学习/工作效率。', 'Clarity, focus, and study/work efficiency.', '淨化磁場、增強專注與學習/工作效率。') },
+        { name: '白幽灵', en: 'White Phantom Quartz', wear: tx('太阳轮 / 双手均可', 'solar plexus / either wrist', '太陽輪 / 雙手均可'), note: tx('净化杂念、缓解情绪、提高睡眠质量。', 'Mental clearing, emotional ease, and sleep-quality support.', '淨化雜念、緩解情緒、提高睡眠品質。') },
+        { name: '黑发晶', en: 'Black Tourmaline Quartz', wear: tx('海底轮 / 右手', 'root area / right wrist', '海底輪 / 右手'), note: tx('排除负能量、增强边界与落地执行。', 'Boundary support, grounding, and clearing heavy energy.', '排除負能量、增強邊界與落地執行。') },
+      ],
+    },
+    water: {
+      nature: tx('流动、沟通、直觉、休息与情绪调节', 'flow, communication, intuition, rest, and emotional regulation', '流動、溝通、直覺、休息與情緒調節'),
+      support: tx('靠近水、规律睡眠、写日记和慢节奏沟通，避免长期硬扛。', 'Add water, sleep rhythm, journaling, and slower communication. Avoid forcing through stress.', '靠近水、規律睡眠、寫日記和慢節奏溝通，避免長期硬扛。'),
+      colors: tx('蓝色、黑色、紫色、透明冷色', 'blue, black, purple, cool clear tones', '藍色、黑色、紫色、透明冷色'),
+      crystals: [
+        { name: '海蓝宝', en: 'Aquamarine', wear: tx('喉轮 / 左手', 'throat area / left wrist', '喉輪 / 左手'), note: tx('增强沟通、自信和思维清晰度。', 'Communication, confidence, and clear thinking.', '增強溝通、自信和思維清晰度。') },
+        { name: '紫水晶', en: 'Amethyst', wear: tx('眉轮 / 左手', 'brow area / left wrist', '眉輪 / 左手'), note: tx('提升记忆力、学习专注与内在稳定。', 'Memory, study focus, and inner steadiness.', '提升記憶力、學習專注與內在穩定。') },
+        { name: '黑曜石', en: 'Obsidian', wear: tx('海底轮 / 右手', 'root area / right wrist', '海底輪 / 右手'), note: tx('舒缓压力、增强边界，适合能量消耗大时。', 'Pressure relief and energetic boundaries during draining periods.', '舒緩壓力、增強邊界，適合能量消耗大時。') },
+      ],
+    },
+  };
+  const weakestAdvice = elementLifestyleMap[weakestWuxing?.key || 'water'];
   const tenGodValues = [c.tenGods?.year, c.tenGods?.month, c.tenGods?.day, c.tenGods?.hour].filter(Boolean) as string[];
   const tenGodStats = Array.from(new Set(tenGodValues)).map((name) => ({
     name,
@@ -993,6 +1051,47 @@ export default function BaziScreen() {
             <Text style={styles.lifeTagText}>{normalizeChartText(c.fortuneSummary?.love) || tx('先看沟通节奏，再看承诺。', 'Read communication rhythm before commitment.', '先看溝通節奏，再看承諾。')}</Text>
           </View>
         </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>{tx('补五行与佩戴建议', 'Element Support & Jewelry', '補五行與佩戴建議')}</Text>
+        <View style={styles.elementSummaryRow}>
+          <View style={styles.elementSummaryChip}>
+            <Text style={styles.elementSummaryLabel}>{tx('相对偏弱', 'Relatively low', '相對偏弱')}</Text>
+            <Text style={[styles.elementSummaryValue, { color: weakestWuxing?.color || '#F8D05F' }]}>
+              {weakestWuxing?.label || '-'} · {weakestWuxing?.value || 0}%
+            </Text>
+          </View>
+          <View style={styles.elementSummaryChip}>
+            <Text style={styles.elementSummaryLabel}>{tx('适合补充', 'Support with', '適合補充')}</Text>
+            <Text style={styles.elementSummaryValue}>{weakestAdvice.nature}</Text>
+          </View>
+        </View>
+        <Text style={styles.bodyMuted}>
+          {tx('建议颜色：', 'Suggested colors: ', '建議顏色：')}{weakestAdvice.colors}
+        </Text>
+        <Text style={styles.bodyMuted}>
+          {weakestAdvice.support}
+        </Text>
+        <View style={styles.crystalGrid}>
+          {weakestAdvice.crystals.map((item) => (
+            <View key={`${weakestWuxing?.key}_${item.name}`} style={styles.crystalCard}>
+              <View style={styles.crystalTopRow}>
+                <Text style={styles.crystalName}>{item.name}</Text>
+                <Text style={styles.crystalWear}>{item.wear}</Text>
+              </View>
+              <Text style={styles.crystalEn}>{item.en}</Text>
+              <Text style={styles.crystalNote}>{item.note}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.disclaimerText}>
+          {tx(
+            '水晶与佩戴建议仅作传统文化娱乐参考，不代表医疗、心理或投资建议；真正的改变仍以行动、作息和现实决策为主。',
+            'Crystal and jewelry suggestions are for cultural entertainment and self-reflection only, not medical, psychological, or financial advice. Real change still comes from action, rest, and practical decisions.',
+            '水晶與佩戴建議僅作傳統文化娛樂參考，不代表醫療、心理或投資建議；真正的改變仍以行動、作息和現實決策為主。',
+          )}
+        </Text>
       </View>
 
       <View style={styles.card}>
@@ -1386,6 +1485,76 @@ const styles = StyleSheet.create({
     color: '#D0D2E3',
     fontSize: 13,
     lineHeight: 20,
+  },
+  elementSummaryRow: {
+    gap: 8,
+    marginBottom: 10,
+  },
+  elementSummaryChip: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#352A4E',
+    backgroundColor: '#1A132A',
+    padding: 10,
+  },
+  elementSummaryLabel: {
+    color: '#9C8FB2',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  elementSummaryValue: {
+    color: '#F2EEF9',
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 19,
+  },
+  crystalGrid: {
+    gap: 8,
+    marginTop: 10,
+  },
+  crystalCard: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.18)',
+    backgroundColor: '#1D172B',
+    padding: 10,
+  },
+  crystalTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 2,
+  },
+  crystalName: {
+    color: '#F8D05F',
+    fontSize: 14,
+    fontWeight: '900',
+    flexShrink: 0,
+  },
+  crystalWear: {
+    color: '#D7C9EE',
+    fontSize: 11,
+    fontWeight: '800',
+    flex: 1,
+    textAlign: 'right',
+  },
+  crystalEn: {
+    color: '#A89EBE',
+    fontSize: 12,
+    marginBottom: 5,
+  },
+  crystalNote: {
+    color: '#E6E0F0',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  disclaimerText: {
+    color: '#837690',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 10,
   },
   ratioRow: {
     flexDirection: 'row',
