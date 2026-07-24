@@ -20,6 +20,8 @@ import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
 import { useI18nStore } from '../src/store/i18n';
 import { localizeAuthMessage } from '../src/utils/authMessage';
 import LanguageToggle from '../components/LanguageToggle';
+import { SeoHead } from '../components/SeoHead';
+import { SEO_SITE } from '../src/seo/site';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -255,6 +257,12 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={isWeb ? 'height' : Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <SeoHead
+        title="Log In | Shanhai Realm"
+        description="Log in to Shanhai Realm to continue saved readings, points, and membership benefits."
+        canonical={`${SEO_SITE.url}/login`}
+        noindex
+      />
       {/* Toast 提示（带淡入淡出） */}
       {toast.visible && (
         <Animated.View

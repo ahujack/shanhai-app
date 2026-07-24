@@ -1,6 +1,6 @@
 export const SEO_SITE = {
   url: 'https://www.shanhai.app',
-  name: 'Shanhai Realm',
+  name: '山海灵境 Shanhai Realm',
   nameZh: '山海灵境',
   ogImage: 'https://www.shanhai.app/og-image.png',
   twitterHandle: '@shanhaiapp',
@@ -17,9 +17,9 @@ export type SeoMeta = {
 };
 
 export const HOME_SEO: SeoMeta = {
-  title: 'Shanhai Realm | Eastern Oracle AI for Clarity, Love & Life Decisions',
+  title: '山海灵境 Shanhai Realm | Eastern Oracle AI for Love, Career & Life Decisions',
   description:
-    'Shanhai Realm turns Eastern oracle traditions into simple AI guidance for modern questions. Try symbol readings, I Ching-style oracle guidance, birth-chart patterns, and companion chat. Entertainment only.',
+    '山海灵境 Shanhai Realm turns Eastern oracle traditions into simple AI guidance for modern questions. Try symbol readings, I Ching-style guidance, birth-chart patterns, and companion chat. Entertainment only.',
   keywords:
     'shanhai realm, eastern oracle ai, ai fortune reading, spiritual ai companion, chinese astrology, bazi calculator, symbol reading, i ching reading, chinese character divination, 八字, 测字, 易经占卜, 山海灵境',
   canonical: SEO_SITE.url,

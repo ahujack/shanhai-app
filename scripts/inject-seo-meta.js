@@ -13,9 +13,9 @@ const OG_IMAGE = 'https://www.shanhai.app/og-image.png';
 const PAGES = [
   {
     file: 'index.html',
-    title: 'Shanhai Realm | AI BaZi, CeZi, I Ching & Daily Fortune',
+    title: '山海灵境 Shanhai Realm | AI BaZi, CeZi, I Ching & Daily Fortune',
     description:
-      'Shanhai Realm is an AI-assisted Eastern metaphysics companion: BaZi Four Pillars chart, Chinese character divination (测字), I Ching readings, and daily oracle slips. Entertainment only.',
+      '山海灵境 Shanhai Realm is an AI-assisted Eastern oracle companion: BaZi Four Pillars chart, Chinese character divination (测字), I Ching readings, and daily oracle slips. Entertainment only.',
     keywords:
       'shanhai realm, bazi calculator, chinese character divination, cezi, i ching reading, daily fortune, 八字, 测字, 占卜, 山海灵境',
     canonical: 'https://www.shanhai.app/',
@@ -55,6 +55,24 @@ const PAGES = [
     keywords:
       'daily chinese fortune, oracle slip, daily luck, chinese horoscope daily, 每日运势, 灵签',
     canonical: 'https://www.shanhai.app/daily-fortune',
+  },
+  {
+    file: 'overseas-chinese-metaphysics-ai.html',
+    title: 'Eastern Oracle AI Companion for Global Users | Shanhai Realm',
+    description:
+      'An Eastern oracle-style AI companion for love, career, identity, timing, and uncertainty. Explore symbol readings, I Ching-inspired guidance, birth-chart patterns, and empathetic chat.',
+    keywords:
+      'eastern oracle ai, spiritual ai companion, chinese astrology app, ai fortune reading, overseas chinese ai companion, 华人玄学AI, AI算命',
+    canonical: 'https://www.shanhai.app/overseas-chinese-metaphysics-ai',
+  },
+  {
+    file: 'ai-cezi-vs-fortune-teller.html',
+    title: 'AI Symbol Reading vs Traditional Fortune Teller | Chinese Character Reading Explained',
+    description:
+      'Compare AI Chinese symbol reading with traditional fortune-telling: what one-character readings can clarify, where the limits are, and how to use them for reflection.',
+    keywords:
+      'ai cezi, ai chinese character reading, cezi vs fortune teller, 测字AI, AI测字, chinese divination online',
+    canonical: 'https://www.shanhai.app/ai-cezi-vs-fortune-teller',
   },
   {
     file: 'tools.html',
@@ -119,13 +137,18 @@ function injectPage(config) {
   const canonical = escapeHtml(config.canonical);
   const ogImage = escapeHtml(OG_IMAGE);
 
-  html = html.replace(/<title[^>]*>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
-  html = html.replace(
-    /<meta name="description" content="[^"]*"\/>/i,
-    `<meta name="description" content="${description}"/>`,
-  );
+  html = html
+    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+    .replace(/<meta\s+name=["']description["'][^>]*>/gi, '')
+    .replace(/<meta\s+name=["']keywords["'][^>]*>/gi, '')
+    .replace(/<meta\s+name=["']robots["'][^>]*>/gi, '')
+    .replace(/<meta\s+property=["']og:(title|description|url|image)["'][^>]*>/gi, '')
+    .replace(/<meta\s+name=["']twitter:(title|description|image)["'][^>]*>/gi, '')
+    .replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '');
 
   const extraMeta = [
+    `<title>${title}</title>`,
+    `<meta name="description" content="${description}"/>`,
     `<meta name="keywords" content="${keywords}"/>`,
     `<meta name="robots" content="index, follow"/>`,
     `<meta property="og:title" content="${title}"/>`,
@@ -138,7 +161,7 @@ function injectPage(config) {
     `<link rel="canonical" href="${canonical}"/>`,
   ].join('');
 
-  html = html.replace('</head>', `${extraMeta}</head>`);
+  html = html.replace(/<head>/i, `<head>${extraMeta}`);
   fs.writeFileSync(filePath, html, 'utf8');
   console.log(`[seo-inject] updated ${config.file}`);
 }

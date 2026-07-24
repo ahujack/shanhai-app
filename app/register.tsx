@@ -21,6 +21,8 @@ import { localizeAuthMessage } from '../src/utils/authMessage';
 import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
 import { clearStoredReferralCode, getStoredReferralCode } from '../src/utils/referralAttribution';
 import LanguageToggle from '../components/LanguageToggle';
+import { SeoHead } from '../components/SeoHead';
+import { SEO_SITE } from '../src/seo/site';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -241,6 +243,12 @@ export default function RegisterScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <SeoHead
+        title="Create Account | Shanhai Realm"
+        description="Create a Shanhai Realm account to save readings, points, and membership benefits."
+        canonical={`${SEO_SITE.url}/register`}
+        noindex
+      />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Logo 和标题 */}
         <View style={styles.header}>
