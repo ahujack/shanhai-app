@@ -132,6 +132,15 @@ export default function ReadingScreen() {
         .replace('{balance}', String(availablePoints ?? '--'));
   const membershipExpiredHint =
     hasMembershipTier && !isVip ? t('reading.form.membershipExpired', '会员权益已过期，当前按积分扣费。') : '';
+  const conversionLine = t(
+    'reading.form.conversionLine',
+    '免费版先看方向，深度版给时间窗口、风险点和行动方案。',
+  );
+  const submitLabel = !user
+    ? t('reading.form.submitGuest', '免费试一次')
+    : isVip
+    ? t('reading.form.submitMember', '会员深度解读')
+    : t('reading.form.submit', '开始解读');
 
   useEffect(() => {
     let alive = true;
@@ -650,24 +659,10 @@ export default function ReadingScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
     >
-      <Text style={styles.sectionTitle}>{t('reading.form.title', '🔮 深度解读')}</Text>
-      <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
-        <Text style={styles.tierTitle}>{t('reading.form.tierTitle', '解读档位对比')}</Text>
-        <Text style={styles.tierLine}>{t('reading.form.tierLine.basic', '简版：一句结论 + 基础建议（适合快速判断）')}</Text>
-        <Text style={styles.tierLine}>{t('reading.form.tierLine.standard', '完整版：本卦/变卦/动爻拆解 + 三条行动建议')}</Text>
-        <Text style={styles.tierLine}>{t('reading.form.tierLine.deep', '深度版：逐句回应你的问题 + 风险拆解 + 追问模式')}</Text>
-        {!isVip && (
-          <TouchableOpacity
-            style={styles.tierUpgradeBtn}
-            onPress={() => {
-              trackNamedEvent('plan_select', { plan: 'vip', source: 'reading_tier_card' });
-              router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } });
-            }}
-          >
-            <Text style={styles.tierUpgradeText}>{t('reading.form.unlockNow', '立即解锁当前结果（可继续追问）')}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <Text style={styles.sectionTitle}>{t('reading.form.title', '🔮 问事占卜')}</Text>
+      <Text style={styles.sectionSubtitle}>
+        {t('reading.form.subtitle', '适合一个具体问题，不适合泛泛算命。')}
+      </Text>
 
       {fromFortune && lastFortune && (
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -713,23 +708,15 @@ export default function ReadingScreen() {
         </View>
       )}
       
-      <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <View style={[styles.card, styles.questionCard, { backgroundColor: colors.surface }]}>
+        <Text style={styles.questionLead}>{t('reading.form.questionLead', '先写下你真正想问的那件事')}</Text>
         <Text style={styles.hint}>
-          {`${t('reading.form.inputHint', '将心中困惑如实道来，字数不限，可附加时间、人物或地点，以便匹配更精准的卦象。')}${
-            isVip
-              ? t('reading.form.cost.free', '当前会员有效期内免扣积分（本次扣 0 积分）。')
-              : !user
-              ? t('reading.form.guestPreviewInline', '游客可先体验一次，结果出来后再登录保存。')
-              : t('reading.form.cost.guestInline', '免费用户本次 {cost} 积分。').replace(
-                  '{cost}',
-                  String(readingPointsCost),
-                )
-          }`}
+          {t('reading.form.inputHint', '把时间、人物、担心点写出来，结果会更贴近真实处境。')}
         </Text>
-        
+
         <TextInput
           style={styles.textInput}
-          placeholder={t('reading.form.placeholder', '例：我即将换工作，但对新团队心里没底，也担心签证问题...')}
+          placeholder={t('reading.form.placeholder', '例：我未来三个月适不适合换工作？')}
           placeholderTextColor="#6F6287"
           value={question}
           onChangeText={setQuestion}
@@ -760,9 +747,7 @@ export default function ReadingScreen() {
           ))}
         </View>
         
-        <View style={styles.billingPreviewBar}>
-          <Text style={styles.billingPreviewText}>{billingPreviewText}</Text>
-        </View>
+        <Text style={styles.conversionLine}>{conversionLine}</Text>
         {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
 
         {showSmartCta && !isVip && (
@@ -807,7 +792,7 @@ export default function ReadingScreen() {
               <Text style={styles.loadingHint}>{loadingHint}</Text>
             </View>
           ) : (
-            <Text style={styles.submitButtonText}>{t('reading.form.submit', '开始解读')}</Text>
+            <Text style={styles.submitButtonText}>{submitLabel}</Text>
           )}
         </TouchableOpacity>
         
@@ -821,10 +806,30 @@ export default function ReadingScreen() {
           </View>
         )}
       </View>
-      
-      {/* 说明 */}
-      <View style={[styles.card, { backgroundColor: colors.surface }]}>
-        <Text style={styles.cardTitle}>{t('reading.form.includes', '📋 解读包含内容')}</Text>
+
+      <View style={[styles.card, styles.tierCard, { backgroundColor: colors.surface }]}>
+        <Text style={styles.tierTitle}>{t('reading.form.tierTitle', '你会拿到什么')}</Text>
+        <Text style={styles.tierLine}>{t('reading.form.tierLine.basic', '先看结论：适合快速判断方向')}</Text>
+        <Text style={styles.tierLine}>{t('reading.form.tierLine.standard', '再看依据：本卦、变卦、动爻一起拆')}</Text>
+        <Text style={styles.tierLine}>{t('reading.form.tierLine.deep', '最后落地：风险提醒、行动步骤、继续追问')}</Text>
+        <View style={styles.billingPreviewBar}>
+          <Text style={styles.billingPreviewText}>{billingPreviewText}</Text>
+        </View>
+        {!isVip && (
+          <TouchableOpacity
+            style={styles.tierUpgradeBtn}
+            onPress={() => {
+              trackNamedEvent('plan_select', { plan: 'vip', source: 'reading_tier_card' });
+              router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } });
+            }}
+          >
+            <Text style={styles.tierUpgradeText}>{t('reading.form.unlockNow', '解锁深度追问')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={[styles.card, styles.includesCard, { backgroundColor: colors.surface }]}>
+        <Text style={styles.cardTitle}>{t('reading.form.includes', '📋 结果会包含')}</Text>
         <View style={styles.featureItem}>
           <Text style={styles.featureText}>{t('reading.form.includes.item1', '• 卦象摘要：六爻起卦 + 变爻提示')}</Text>
         </View>
@@ -854,7 +859,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#D6B36A',
-    marginBottom: 20,
+    marginBottom: 8,
+  },
+  sectionSubtitle: {
+    color: '#AAB3C5',
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 16,
   },
   card: {
     backgroundColor: '#121827',
@@ -867,6 +878,15 @@ const styles = StyleSheet.create({
   tierCard: {
     borderColor: '#2A3448',
     borderWidth: 1,
+  },
+  questionCard: {
+    paddingTop: 18,
+  },
+  questionLead: {
+    color: '#E8ECF3',
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 8,
   },
   tierTitle: {
     color: '#D6B36A',
@@ -964,9 +984,9 @@ const styles = StyleSheet.create({
   },
   hint: {
     color: '#94A0B8',
-    fontSize: 14,
-    lineHeight: 22,
-    marginBottom: 16,
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 12,
   },
   textInput: {
     backgroundColor: '#1A2233',
@@ -974,7 +994,7 @@ const styles = StyleSheet.create({
     padding: 16,
     color: '#E8ECF3',
     fontSize: 15,
-    minHeight: 140,
+    minHeight: 118,
     borderWidth: 1,
     borderColor: '#2A3448',
     marginBottom: 16,
@@ -988,7 +1008,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 20,
+    marginBottom: 14,
   },
   categoryButton: {
     paddingHorizontal: 16,
@@ -1025,8 +1045,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   billingPreviewBar: {
-    marginTop: 12,
-    marginBottom: 12,
+    marginTop: 10,
+    marginBottom: 0,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
@@ -1038,6 +1058,12 @@ const styles = StyleSheet.create({
     color: '#AAB3C5',
     fontSize: 13,
     lineHeight: 20,
+  },
+  conversionLine: {
+    color: '#D6B36A',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 12,
   },
   membershipExpiredHint: {
     marginTop: 8,
@@ -1385,6 +1411,9 @@ const styles = StyleSheet.create({
   },
   featureItem: {
     marginBottom: 8,
+  },
+  includesCard: {
+    paddingTop: 16,
   },
   featureText: {
     color: '#AAB3C5',
