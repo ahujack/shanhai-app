@@ -12,7 +12,6 @@ import { agentApi, fortuneApi, FortuneSlip } from '../../src/services/api';
 import { trackFeature, trackNamedEvent } from '../../src/services/analytics';
 import PersonaPicker from '../../components/PersonaPicker';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
-import OnboardingModal from '../../components/OnboardingModal';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 import CompanionPresence from '../../components/CompanionPresence';
 import { useI18nStore } from '../../src/store/i18n';
@@ -95,19 +94,19 @@ export default function HomeScreen() {
   const quickStartPrompts = React.useMemo(
     () => [
       {
-        label: t('home.quick.relationship.label', '要不要继续'),
-        sub: t('home.quick.relationship.sub', '关系卡住时'),
+        label: t('home.quick.relationship.label', '这段关系该继续吗？'),
+        sub: t('home.quick.relationship.sub', '先看取舍，再看下一步'),
         prompt: t('home.quick.relationship.prompt', '我现在这段关系让我很消耗，但又放不下。请先给一句结论，再用卦象/心理状态帮我判断下一步。'),
       },
       {
-        label: t('home.quick.career.label', '要不要换方向'),
-        sub: t('home.quick.career.sub', '工作/签证压力'),
+        label: t('home.quick.career.label', '接下来该不该换方向？'),
+        sub: t('home.quick.career.sub', '工作、身份、长期节奏'),
         prompt: t('home.quick.career.prompt', '我最近在工作和身份规划上很纠结，想知道现在该稳住、跳槽，还是先做准备。请给我一个清晰判断。'),
       },
       {
-        label: t('home.quick.chart.label', '下个月重点'),
-        sub: t('home.quick.chart.sub', '用命盘看节奏'),
-        prompt: t('home.quick.chart.prompt', '结合我的命盘，帮我看接下来一个月最该抓住什么、避开什么，以及哪件事先别急。'),
+        label: t('home.quick.state.label', '我最近为什么这么累？'),
+        sub: t('home.quick.state.sub', '适合焦虑、内耗、睡眠差'),
+        prompt: t('home.quick.state.prompt', '我最近很累，也说不清到底哪里卡住了。请先帮我判断这是一种什么状态，再给我一个今天能做的小动作。'),
       },
       {
         label: t('home.quick.zi.label', '一个字看状态'),
@@ -118,26 +117,6 @@ export default function HomeScreen() {
     [t, language],
   );
   const visibleQuickStartPrompts = quickStartPrompts.slice(0, 3);
-  const methodSignals = React.useMemo(
-    () => [
-      {
-        seal: '字',
-        title: t('home.method.cezi.title', '测字'),
-        text: t('home.method.cezi.text', '一字见当下'),
-      },
-      {
-        seal: '卦',
-        title: t('home.method.iching.title', '易经'),
-        text: t('home.method.iching.text', '一问定取舍'),
-      },
-      {
-        seal: '命',
-        title: t('home.method.bazi.title', '八字'),
-        text: t('home.method.bazi.text', '看长期节奏'),
-      },
-    ],
-    [t, language],
-  );
   const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
   const languageLabelShort: Record<AppLanguage, string> = {
@@ -1000,9 +979,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 新用户引导 */}
-        <OnboardingModal />
-
         {/* 角色选择弹窗 */}
         {showPersonaPicker && (
           <PersonaPicker
@@ -1052,24 +1028,12 @@ export default function HomeScreen() {
                 </TouchableOpacity>
                 <Text style={styles.welcomeTag}>{t('home.welcome.tag', '中国传统玄学 AI 陪伴')}</Text>
                 <Text style={styles.welcomeText}>
-                  {t('home.welcome.hero', '问一件事，取一个象。')}
+                  {t('home.welcome.hero', '最近卡住你的事是什么？')}
                 </Text>
                 <Text style={styles.welcomeHint}>
-                  {t('home.welcome.hint', '测字、易经、八字，把关系、工作和身份规划先理出方向。')}
+                  {t('home.welcome.hint', '先说真实问题，云游子会帮你取字、起卦或看五行，不用自己选工具。')}
                 </Text>
-                <View style={styles.methodGrid}>
-                  {methodSignals.map((item) => (
-                    <View key={item.title} style={styles.methodTile}>
-                      <View style={styles.methodSeal}>
-                        <Text style={styles.methodSealText}>{item.seal}</Text>
-                      </View>
-                      <Text style={styles.methodTitle}>{item.title}</Text>
-                      <Text style={styles.methodText}>{item.text}</Text>
-                    </View>
-                  ))}
-                </View>
-                {/* 试试问我 - 示例问题 */}
-                <Text style={styles.suggestedTitle}>{t('home.quick.title', '不知道怎么问，就从这里开始')}</Text>
+                <Text style={styles.suggestedTitle}>{t('home.quick.title', '直接点一个开始')}</Text>
                 <View style={styles.suggestedChips}>
                   {visibleQuickStartPrompts.map((item) => (
                     <TouchableOpacity

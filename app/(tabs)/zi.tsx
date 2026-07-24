@@ -836,6 +836,17 @@ export default function ZiScreen() {
     if (!raw) return '';
     return tx(`这个字给出的提醒是：${raw}`, `The reading says: ${raw}`, `這個字給出的提醒是：${raw}`);
   };
+  const deliveryAnchors = React.useMemo(() => {
+    if (!result) return [];
+    const candidates = [
+      ...(result.interpretation.focusReading?.anchors || []),
+      ...(result.coldReadings || []),
+      ...(result.interpretation.advice || []),
+    ]
+      .map((item) => normalizeZiText(item).trim())
+      .filter(Boolean);
+    return Array.from(new Set(candidates)).slice(0, 3);
+  }, [result, language]);
   
   // 点击继续聊聊，AI自动发送一个问题，等待用户回答
   const handleFollowUpQuestion = async (_question: string) => {
@@ -1131,6 +1142,37 @@ export default function ZiScreen() {
               )}
               style={styles.deliveryCompanion}
             />
+            <View style={styles.deliverySummaryCard}>
+              <View style={styles.deliverySummaryTop}>
+                <Text style={styles.deliveryZiSeal}>{result.zi.zi}</Text>
+                <View style={styles.deliverySummaryTitleWrap}>
+                  <Text style={styles.deliverySummaryEyebrow}>{tx('先给结论', 'Direct answer first', '先給結論')}</Text>
+                  <Text style={styles.deliverySummaryTitle}>
+                    {normalizeZiText(result.interpretation.focusReading?.summary || result.interpretation.overall)}
+                  </Text>
+                </View>
+              </View>
+              {deliveryAnchors.length ? (
+                <View style={styles.deliveryAnchorList}>
+                  {deliveryAnchors.map((item, index) => (
+                    <View key={`${item}_${index}`} style={styles.deliveryAnchorRow}>
+                      <Text style={styles.deliveryAnchorIndex}>{index + 1}</Text>
+                      <Text style={styles.deliveryAnchorText}>{item}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              <View style={styles.deliverySummaryActions}>
+                <TouchableOpacity style={styles.deliveryPrimaryAction} onPress={() => handleFollowUpQuestion('')}>
+                  <Text style={styles.deliveryPrimaryActionText}>{tx('继续追问', 'Ask follow-up', '繼續追問')}</Text>
+                </TouchableOpacity>
+                {!user ? (
+                  <TouchableOpacity style={styles.deliverySecondaryAction} onPress={() => router.push('/login')}>
+                    <Text style={styles.deliverySecondaryActionText}>{tx('登录保存', 'Log in to save', '登入保存')}</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            </View>
             <View style={styles.tierCard}>
               <Text style={styles.tierTitle}>{tx('当前解读档位：', 'Current tier: ', '當前解讀檔位：')}{ziTierLabel}</Text>
               <Text style={styles.tierDesc}>{ziTierDesc}</Text>
@@ -1712,6 +1754,105 @@ const styles = StyleSheet.create({
   },
   deliveryCompanion: {
     marginBottom: 14,
+  },
+  deliverySummaryCard: {
+    marginBottom: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#101827',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.32)',
+  },
+  deliverySummaryTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  deliveryZiSeal: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+    textAlign: 'center',
+    lineHeight: 48,
+    color: '#1A1026',
+    backgroundColor: '#F8D05F',
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  deliverySummaryTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  deliverySummaryEyebrow: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 5,
+  },
+  deliverySummaryTitle: {
+    color: '#F7F2E8',
+    fontSize: 16,
+    lineHeight: 23,
+    fontWeight: '700',
+  },
+  deliveryAnchorList: {
+    marginTop: 12,
+    gap: 8,
+  },
+  deliveryAnchorRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  deliveryAnchorIndex: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    overflow: 'hidden',
+    textAlign: 'center',
+    lineHeight: 20,
+    color: '#F8D05F',
+    backgroundColor: 'rgba(248, 208, 95, 0.12)',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  deliveryAnchorText: {
+    flex: 1,
+    color: '#C9D1E0',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  deliverySummaryActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  deliveryPrimaryAction: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+    backgroundColor: '#F8D05F',
+  },
+  deliveryPrimaryActionText: {
+    color: '#1A1026',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  deliverySecondaryAction: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.42)',
+  },
+  deliverySecondaryActionText: {
+    color: '#F8D05F',
+    fontSize: 13,
+    fontWeight: '800',
   },
   languageRefreshBanner: {
     marginBottom: 14,

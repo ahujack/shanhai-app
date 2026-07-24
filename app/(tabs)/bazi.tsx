@@ -397,6 +397,7 @@ export default function BaziScreen() {
   const [guestGender, setGuestGender] = React.useState<'male' | 'female'>('male');
   const [guestCalendarType, setGuestCalendarType] = React.useState<'solar' | 'lunar'>('solar');
   const [guestLeap, setGuestLeap] = React.useState(false);
+  const [showGuestAdvanced, setShowGuestAdvanced] = React.useState(false);
   const [guestPreviewLoading, setGuestPreviewLoading] = React.useState(false);
   const [showInlineBirthForm, setShowInlineBirthForm] = React.useState(false);
   const [inlineBirthDate, setInlineBirthDate] = React.useState('');
@@ -404,6 +405,7 @@ export default function BaziScreen() {
   const [inlineGender, setInlineGender] = React.useState<'male' | 'female'>('male');
   const [inlineCalendarType, setInlineCalendarType] = React.useState<'solar' | 'lunar'>('solar');
   const [inlineLeap, setInlineLeap] = React.useState(false);
+  const [showInlineAdvanced, setShowInlineAdvanced] = React.useState(false);
   const [inlineSaving, setInlineSaving] = React.useState(false);
 
   const effectiveChart = chart ?? guestChart;
@@ -656,12 +658,12 @@ export default function BaziScreen() {
     if (!user) {
       return (
         <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-          <Text style={styles.title}>{tx('📜 八字看盘', '📜 Bazi Chart', '📜 八字看盤')}</Text>
-          <Text style={styles.sub}>{tx('未登录也能先试算。登录后可保存命盘，并在对话里继续追问。', 'Preview as a guest. Log in to save the chart and continue in chat.', '未登入也能先試算。登入後可保存命盤，並在對話裡繼續追問。')}</Text>
+          <Text style={styles.title}>{tx('📜 五行先看一眼', '📜 Five Elements Preview', '📜 五行先看一眼')}</Text>
+          <Text style={styles.sub}>{tx('不用登录，先看五行强弱和适合补什么。结果出来后再登录保存。', 'No login needed. Preview element balance first, then log in to save.', '不用登入，先看五行強弱和適合補什麼。結果出來後再登入保存。')}</Text>
           <Text style={styles.fieldLabel}>{tx('出生日期', 'Birth Date', '出生日期')}</Text>
           <TextInput
             style={styles.input}
-            placeholder={tx('如 1999-07-22 / 1999.7.22', 'e.g. 1999-07-22 / 1999.7.22', '如 1999-07-22 / 1999.7.22')}
+            placeholder={tx('选择或输入出生日期', 'Choose or type birth date', '選擇或輸入出生日期')}
             placeholderTextColor="#6F6287"
             value={guestBirthDate}
             onChangeText={setGuestBirthDate}
@@ -689,7 +691,7 @@ export default function BaziScreen() {
           <Text style={styles.fieldLabel}>{tx('出生时间', 'Birth Time', '出生時間')}</Text>
           <TextInput
             style={styles.input}
-            placeholder={tx('如 20:45 / 20.45 / 2045', 'e.g. 20:45 / 20.45 / 2045', '如 20:45 / 20.45 / 2045')}
+            placeholder={tx('选择或输入出生时间', 'Choose or type birth time', '選擇或輸入出生時間')}
             placeholderTextColor="#6F6287"
             value={guestBirthTime}
             onChangeText={setGuestBirthTime}
@@ -714,29 +716,6 @@ export default function BaziScreen() {
               })}
             </View>
           )}
-          <Text style={styles.inputHint}>{tx('支持多种输入：`YYYY-MM-DD`、`YYYY/MM/DD`、`YYYY.MM.DD`、`YYYY年M月D日`', 'Accepted: YYYY-MM-DD / YYYY.MM.DD / YYYY/MM/DD', '支持多種輸入：`YYYY-MM-DD`、`YYYY/MM/DD`、`YYYY.MM.DD`、`YYYY年M月D日`')}</Text>
-          <Text style={styles.inputHint}>{tx('时间支持：`20:45`、`20.45`、`2045`、`20点45`', 'Time: 20:45 / 20.45 / 2045', '時間支持：`20:45`、`20.45`、`2045`、`20點45`')}</Text>
-          <Text style={styles.fieldLabel}>{tx('历法', 'Calendar', '曆法')}</Text>
-          <View style={styles.guestRow}>
-            <TouchableOpacity
-              style={[styles.guestChip, guestCalendarType === 'solar' && styles.guestChipActive]}
-              onPress={() => setGuestCalendarType('solar')}
-            >
-              <Text style={[styles.guestChipText, guestCalendarType === 'solar' && styles.guestChipTextActive]}>{tx('阳历', 'Solar', '陽曆')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.guestChip, guestCalendarType === 'lunar' && styles.guestChipActive]}
-              onPress={() => setGuestCalendarType('lunar')}
-            >
-              <Text style={[styles.guestChipText, guestCalendarType === 'lunar' && styles.guestChipTextActive]}>{tx('农历', 'Lunar', '農曆')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.guestChip, guestLeap && styles.guestChipActive]}
-              onPress={() => setGuestLeap((v) => !v)}
-            >
-              <Text style={[styles.guestChipText, guestLeap && styles.guestChipTextActive]}>{tx('闰月', 'Leap Month', '閏月')}</Text>
-            </TouchableOpacity>
-          </View>
           <Text style={styles.fieldLabel}>{tx('性别', 'Gender', '性別')}</Text>
           <View style={styles.guestRow}>
             <TouchableOpacity
@@ -752,6 +731,34 @@ export default function BaziScreen() {
               <Text style={[styles.guestChipText, guestGender === 'female' && styles.guestChipTextActive]}>{tx('女', 'Female', '女')}</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity style={styles.advancedToggle} onPress={() => setShowGuestAdvanced((v) => !v)}>
+            <Text style={styles.advancedToggleText}>{showGuestAdvanced ? tx('收起历法选项', 'Hide calendar options', '收起曆法選項') : tx('历法/闰月高级选项', 'Calendar / leap month options', '曆法/閏月進階選項')}</Text>
+          </TouchableOpacity>
+          {showGuestAdvanced ? (
+            <View style={styles.advancedPanel}>
+              <Text style={styles.inputHint}>{tx('多数用户保持“阳历”即可；农历生日再切换农历。', 'Most users can keep Solar; use Lunar only for lunar-calendar birthdays.', '多數用戶保持「陽曆」即可；農曆生日再切換農曆。')}</Text>
+              <View style={styles.guestRow}>
+                <TouchableOpacity
+                  style={[styles.guestChip, guestCalendarType === 'solar' && styles.guestChipActive]}
+                  onPress={() => setGuestCalendarType('solar')}
+                >
+                  <Text style={[styles.guestChipText, guestCalendarType === 'solar' && styles.guestChipTextActive]}>{tx('阳历', 'Solar', '陽曆')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.guestChip, guestCalendarType === 'lunar' && styles.guestChipActive]}
+                  onPress={() => setGuestCalendarType('lunar')}
+                >
+                  <Text style={[styles.guestChipText, guestCalendarType === 'lunar' && styles.guestChipTextActive]}>{tx('农历', 'Lunar', '農曆')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.guestChip, guestLeap && styles.guestChipActive]}
+                  onPress={() => setGuestLeap((v) => !v)}
+                >
+                  <Text style={[styles.guestChipText, guestLeap && styles.guestChipTextActive]}>{tx('闰月', 'Leap Month', '閏月')}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
           {genError ? <Text style={styles.errorText}>{genError}</Text> : null}
           <TouchableOpacity
             style={[styles.primaryBtn, { marginTop: 8 }]}
@@ -761,7 +768,7 @@ export default function BaziScreen() {
             {guestPreviewLoading ? (
               <ActivityIndicator color="#1A0A18" />
             ) : (
-              <Text style={styles.primaryBtnText}>{tx('先试算一次', 'Preview once', '先試算一次')}</Text>
+              <Text style={styles.primaryBtnText}>{tx('免费看看五行强弱', 'Preview five elements free', '免費看看五行強弱')}</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/login')} style={{ marginTop: 16 }}>
@@ -788,7 +795,7 @@ export default function BaziScreen() {
             <Text style={styles.fieldLabel}>{tx('出生日期', 'Birth Date', '出生日期')}</Text>
             <TextInput
               style={styles.input}
-              placeholder={tx('如 1999-07-22 / 1999.7.22', 'e.g. 1999-07-22 / 1999.7.22', '如 1999-07-22 / 1999.7.22')}
+              placeholder={tx('选择或输入出生日期', 'Choose or type birth date', '選擇或輸入出生日期')}
               placeholderTextColor="#6F6287"
               value={inlineBirthDate}
               onChangeText={setInlineBirthDate}
@@ -816,7 +823,7 @@ export default function BaziScreen() {
             <Text style={styles.fieldLabel}>{tx('出生时间', 'Birth Time', '出生時間')}</Text>
             <TextInput
               style={styles.input}
-              placeholder={tx('如 20:45 / 20.45 / 2045', 'e.g. 20:45 / 20.45 / 2045', '如 20:45 / 20.45 / 2045')}
+              placeholder={tx('选择或输入出生时间', 'Choose or type birth time', '選擇或輸入出生時間')}
               placeholderTextColor="#6F6287"
               value={inlineBirthTime}
               onChangeText={setInlineBirthTime}
@@ -841,29 +848,6 @@ export default function BaziScreen() {
                 })}
               </View>
             )}
-            <Text style={styles.inputHint}>支持多种输入：`YYYY-MM-DD`、`YYYY/MM/DD`、`YYYY.MM.DD`、`YYYY年M月D日`</Text>
-            <Text style={styles.inputHint}>时间支持：`20:45`、`20.45`、`2045`、`20点45`</Text>
-            <Text style={styles.fieldLabel}>历法</Text>
-            <View style={styles.guestRow}>
-              <TouchableOpacity
-                style={[styles.guestChip, inlineCalendarType === 'solar' && styles.guestChipActive]}
-                onPress={() => setInlineCalendarType('solar')}
-              >
-                <Text style={[styles.guestChipText, inlineCalendarType === 'solar' && styles.guestChipTextActive]}>阳历</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.guestChip, inlineCalendarType === 'lunar' && styles.guestChipActive]}
-                onPress={() => setInlineCalendarType('lunar')}
-              >
-                <Text style={[styles.guestChipText, inlineCalendarType === 'lunar' && styles.guestChipTextActive]}>农历</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.guestChip, inlineLeap && styles.guestChipActive]}
-                onPress={() => setInlineLeap((v) => !v)}
-              >
-                <Text style={[styles.guestChipText, inlineLeap && styles.guestChipTextActive]}>闰月</Text>
-              </TouchableOpacity>
-            </View>
             <Text style={styles.fieldLabel}>性别</Text>
             <View style={styles.guestRow}>
               <TouchableOpacity
@@ -879,6 +863,34 @@ export default function BaziScreen() {
                 <Text style={[styles.guestChipText, inlineGender === 'female' && styles.guestChipTextActive]}>女</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity style={styles.advancedToggle} onPress={() => setShowInlineAdvanced((v) => !v)}>
+              <Text style={styles.advancedToggleText}>{showInlineAdvanced ? tx('收起历法选项', 'Hide calendar options', '收起曆法選項') : tx('历法/闰月高级选项', 'Calendar / leap month options', '曆法/閏月進階選項')}</Text>
+            </TouchableOpacity>
+            {showInlineAdvanced ? (
+              <View style={styles.advancedPanel}>
+                <Text style={styles.inputHint}>{tx('多数用户保持“阳历”即可；农历生日再切换农历。', 'Most users can keep Solar; use Lunar only for lunar-calendar birthdays.', '多數用戶保持「陽曆」即可；農曆生日再切換農曆。')}</Text>
+                <View style={styles.guestRow}>
+                  <TouchableOpacity
+                    style={[styles.guestChip, inlineCalendarType === 'solar' && styles.guestChipActive]}
+                    onPress={() => setInlineCalendarType('solar')}
+                  >
+                    <Text style={[styles.guestChipText, inlineCalendarType === 'solar' && styles.guestChipTextActive]}>{tx('阳历', 'Solar', '陽曆')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.guestChip, inlineCalendarType === 'lunar' && styles.guestChipActive]}
+                    onPress={() => setInlineCalendarType('lunar')}
+                  >
+                    <Text style={[styles.guestChipText, inlineCalendarType === 'lunar' && styles.guestChipTextActive]}>{tx('农历', 'Lunar', '農曆')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.guestChip, inlineLeap && styles.guestChipActive]}
+                    onPress={() => setInlineLeap((v) => !v)}
+                  >
+                    <Text style={[styles.guestChipText, inlineLeap && styles.guestChipTextActive]}>{tx('闰月', 'Leap Month', '閏月')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : null}
             <TouchableOpacity
               style={[styles.primaryBtn, styles.inlineSubmitBtn]}
               onPress={handleInlineSaveAndGenerate}
@@ -887,7 +899,7 @@ export default function BaziScreen() {
               {inlineSaving || isLoading ? (
                 <ActivityIndicator color="#1A0A18" />
               ) : (
-                <Text style={styles.primaryBtnText}>保存并生成命盘</Text>
+                <Text style={styles.primaryBtnText}>{tx('保存并生成命盘', 'Save and generate chart', '保存並生成命盤')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -1753,6 +1765,26 @@ const styles = StyleSheet.create({
   webPickerRow: {
     alignSelf: 'stretch',
     marginTop: 8,
+  },
+  advancedToggle: {
+    alignSelf: 'stretch',
+    marginTop: 8,
+    paddingVertical: 8,
+  },
+  advancedToggleText: {
+    color: '#CDBBFF',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  advancedPanel: {
+    alignSelf: 'stretch',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#322650',
+    backgroundColor: '#151024',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 4,
   },
   guestRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6, marginBottom: 4 },
   guestChip: {

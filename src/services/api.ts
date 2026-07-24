@@ -54,6 +54,7 @@ function resolveApiBaseUrl(): string {
 export const API_BASE_URL = resolveApiBaseUrl();
 type ClientLanguage = 'zh-CN' | 'en-US' | 'zh-TW';
 let globalAppLanguage: ClientLanguage = 'zh-CN';
+const GUEST_SESSION_KEY = 'shanhai_guest_session_id';
 
 // 全局 token 变量
 let globalAuthToken: string | null = null;
@@ -87,6 +88,39 @@ export function setGlobalAppLanguage(language: ClientLanguage) {
   } else {
     globalAppLanguage = 'zh-CN';
   }
+}
+
+function createGuestSessionId(): string {
+  const randomPart =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  return `guest_${randomPart}`;
+}
+
+export function getGuestSessionId(): string {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const existing = localStorage.getItem(GUEST_SESSION_KEY);
+      if (existing?.trim()) return existing;
+      const next = createGuestSessionId();
+      localStorage.setItem(GUEST_SESSION_KEY, next);
+      return next;
+    }
+  } catch {
+    /* ignore */
+  }
+  return createGuestSessionId();
+}
+
+function withClientContext<T extends Record<string, unknown>>(
+  dto: T,
+): T & { language: ClientLanguage; guestSessionId: string } {
+  return {
+    ...dto,
+    language: (dto.language as ClientLanguage | undefined) || globalAppLanguage,
+    guestSessionId: getGuestSessionId(),
+  };
 }
 
 function shouldClearSessionOn401(errorMsg: string): boolean {
@@ -544,7 +578,7 @@ export const chartApi = {
   preview: (dto: ChartPreviewDto) =>
     request<BaziChart>('/charts/preview', {
       method: 'POST',
-      body: JSON.stringify({ ...dto, language: dto.language || globalAppLanguage }),
+      body: JSON.stringify(withClientContext(dto as unknown as Record<string, unknown>)),
     }),
 
   generate: (userId: string, gender: 'male' | 'female') =>
@@ -663,7 +697,7 @@ export const readingApi = {
   create: (dto: CreateReadingDto) =>
     request<DivinationResult>('/readings', {
       method: 'POST',
-      body: JSON.stringify({ ...dto, language: dto.language || globalAppLanguage }),
+      body: JSON.stringify(withClientContext(dto as unknown as Record<string, unknown>)),
     }),
 };
 
@@ -766,7 +800,7 @@ export const ziApi = {
       '/zi/analyze',
       {
         method: 'POST',
-        body: JSON.stringify({ zi, focusAspect, handwriting, userQuestion, invitePreview }),
+        body: JSON.stringify(withClientContext({ zi, focusAspect, handwriting, userQuestion, invitePreview })),
       },
       { timeoutMs: ZI_TEXT_ANALYZE_TIMEOUT_MS },
     ),
@@ -844,7 +878,7 @@ export const agentApi = {
   chat: (dto: AgentChatDto) =>
     request<AgentResponse>('/agent/chat', {
       method: 'POST',
-      body: JSON.stringify({ ...dto, language: dto.language || globalAppLanguage }),
+      body: JSON.stringify(withClientContext(dto as unknown as Record<string, unknown>)),
     }),
   /** 流式聊天，onChunk 收到每个文本片段，返回完整 AgentResponse */
   chatStream: async (
@@ -860,7 +894,7 @@ export const agentApi = {
         'X-App-Language': globalAppLanguage,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ ...dto, language: dto.language || globalAppLanguage }),
+      body: JSON.stringify(withClientContext(dto as unknown as Record<string, unknown>)),
     });
     if (!res.ok) {
       let errText = '';
