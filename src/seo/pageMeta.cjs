@@ -110,6 +110,49 @@ const PAGES = [
     keywords: '山海灵境服务条款, terms of service, 免责声明',
     canonical: `${SITE}/terms`,
   },
+  {
+    file: 'guides.html',
+    title: '玄学使用指南 | 八字教程·测字例子·占卜提问模板 | 山海灵境',
+    description:
+      '山海灵境内容指南：八字排盘教程、测字例子、易经提问模板。用可执行步骤学会东方符号工具，再去在线体验。',
+    keywords: '八字教程, 测字例子, 易经提问模板, 玄学指南, 山海灵境指南',
+    canonical: `${SITE}/guides`,
+  },
+  {
+    file: 'guides/index.html',
+    title: '玄学使用指南 | 八字教程·测字例子·占卜提问模板 | 山海灵境',
+    description:
+      '山海灵境内容指南：八字排盘教程、测字例子、易经提问模板。用可执行步骤学会东方符号工具，再去在线体验。',
+    keywords: '八字教程, 测字例子, 易经提问模板, 玄学指南, 山海灵境指南',
+    canonical: `${SITE}/guides`,
+  },
+  {
+    file: 'guides/bazi-chart-tutorial.html',
+    title: '八字排盘教程：怎么看年柱月柱日柱时柱 | 山海灵境',
+    description:
+      '零基础八字排盘教程：如何输入生日时辰、认识四柱、日主与五行强弱，以及怎样用AI白话解读做自我反思。附常见误区与在线排盘入口。',
+    keywords:
+      '八字排盘教程, 怎么看八字, 四柱八字, 日主, 五行, 在线八字排盘, AI八字, 生辰八字入门',
+    canonical: `${SITE}/guides/bazi-chart-tutorial`,
+  },
+  {
+    file: 'guides/cezi-examples.html',
+    title: '测字例子大全：感情事业怎么测更准 | 山海灵境',
+    description:
+      '用真实场景讲测字例子：感情复合、跳槽、合作是否合适。教你怎么选字、怎么提问、怎么读结果，并附可直接套用的测字模板。',
+    keywords:
+      '测字例子, AI测字, 测字占卜示例, 感情测字, 事业测字, 怎么测字, 汉字测字',
+    canonical: `${SITE}/guides/cezi-examples`,
+  },
+  {
+    file: 'guides/iching-question-templates.html',
+    title: '易经占卜提问模板：这样问才有用 | 山海灵境',
+    description:
+      '易经/六爻提问模板大全：感情、事业、时机三类可直接套用的问题句式。教你避免空泛提问，拿到可执行的卦象指引。',
+    keywords:
+      '易经占卜提问, 六爻怎么问, 占卜问题模板, 易经问题示例, AI占卜, 卦象解读',
+    canonical: `${SITE}/guides/iching-question-templates`,
+  },
 ];
 
 module.exports = {

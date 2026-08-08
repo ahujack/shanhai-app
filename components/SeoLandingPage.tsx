@@ -18,7 +18,17 @@ import {
   LANDING_PAGES,
   type LandingPageConfig,
 } from '../src/seo/landingPages';
+import { SEO_ARTICLES } from '../src/seo/articles';
 import { SEO_SITE, buildBreadcrumbJsonLd } from '../src/seo/site';
+
+const LANDING_GUIDE_MAP: Record<string, string[]> = {
+  'bazi-calculator': ['bazi-chart-tutorial'],
+  'character-divination': ['cezi-examples'],
+  'i-ching-reading': ['iching-question-templates'],
+  'daily-fortune': ['iching-question-templates'],
+  'overseas-chinese-metaphysics-ai': ['bazi-chart-tutorial', 'cezi-examples'],
+  'ai-cezi-vs-fortune-teller': ['cezi-examples'],
+};
 
 const colors = theme.dark;
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
@@ -66,6 +76,9 @@ export default function SeoLandingPage({ page }: Props) {
 
   const related = page.relatedSlugs
     .map((slug) => LANDING_PAGES[slug])
+    .filter(Boolean);
+  const relatedGuides = (LANDING_GUIDE_MAP[page.slug] || [])
+    .map((slug) => SEO_ARTICLES[slug])
     .filter(Boolean);
 
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
@@ -161,6 +174,32 @@ export default function SeoLandingPage({ page }: Props) {
               {openFaq === idx ? <Text style={styles.faqAnswer}>{item.answer}</Text> : null}
             </TouchableOpacity>
           ))}
+
+          {relatedGuides.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>相关指南（适合收藏分享）</Text>
+              <View style={styles.relatedRow}>
+                {relatedGuides.map((guide) => (
+                  <TouchableOpacity
+                    key={guide.slug}
+                    style={[styles.relatedChip, webPointer]}
+                    onPress={() => {
+                      trackNamedEvent('seo_landing_guide', { from: page.slug, to: guide.slug });
+                      router.push(guide.path as '/guides/bazi-chart-tutorial');
+                    }}
+                  >
+                    <Text style={styles.relatedChipText}>{guide.hero.badge}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={[styles.relatedChip, webPointer]}
+                  onPress={() => router.push('/guides')}
+                >
+                  <Text style={styles.relatedChipText}>全部指南</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
 
           {related.length > 0 && (
             <>

@@ -14,6 +14,10 @@ The product is for entertainment, inspiration, and emotional companionship only.
 - BaZi chart calculator: https://www.shanhai.app/bazi-calculator
 - Daily fortune slip: https://www.shanhai.app/daily-fortune
 - Tools hub: https://www.shanhai.app/tools
+- Guides hub: https://www.shanhai.app/guides
+- BaZi chart tutorial: https://www.shanhai.app/guides/bazi-chart-tutorial
+- CeZi examples guide: https://www.shanhai.app/guides/cezi-examples
+- I Ching question templates: https://www.shanhai.app/guides/iching-question-templates
 - FAQ: https://www.shanhai.app/faq
 - Pricing: https://www.shanhai.app/pricing
 - Terms: https://www.shanhai.app/terms

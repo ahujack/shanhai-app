@@ -30,10 +30,9 @@ export function SeoHead({
       <meta name="author" content={SEO_SITE.name} />
       <meta name="theme-color" content={SEO_SITE.themeColor} />
       <link rel="canonical" href={canonicalUrl} />
-      <link rel="alternate" hrefLang="en" href={canonicalUrl} />
-      <link rel="alternate" hrefLang="zh-CN" href={canonicalUrl} />
-      <link rel="alternate" hrefLang="zh-TW" href={canonicalUrl} />
       <link rel="alternate" hrefLang="x-default" href={canonicalUrl} />
+      <link rel="alternate" hrefLang="zh-CN" href={canonicalUrl} />
+      <link rel="alternate" hrefLang="en" href={canonicalUrl} />
 
       <meta property="og:type" content={ogType} />
       <meta property="og:site_name" content={SEO_SITE.name} />
