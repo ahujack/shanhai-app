@@ -22,12 +22,12 @@ import { SEO_ARTICLES } from '../src/seo/articles';
 import { SEO_SITE, buildBreadcrumbJsonLd } from '../src/seo/site';
 
 const LANDING_GUIDE_MAP: Record<string, string[]> = {
-  'bazi-calculator': ['bazi-chart-tutorial'],
-  'character-divination': ['cezi-examples'],
+  'bazi-calculator': ['bazi-chart-tutorial', 'bazi-day-master'],
+  'character-divination': ['cezi-examples', 'cezi-character-pitfalls'],
   'i-ching-reading': ['iching-question-templates'],
   'daily-fortune': ['iching-question-templates'],
-  'overseas-chinese-metaphysics-ai': ['bazi-chart-tutorial', 'cezi-examples'],
-  'ai-cezi-vs-fortune-teller': ['cezi-examples'],
+  'overseas-chinese-metaphysics-ai': ['bazi-day-master', 'cezi-character-pitfalls'],
+  'ai-cezi-vs-fortune-teller': ['cezi-examples', 'cezi-character-pitfalls'],
 };
 
 const colors = theme.dark;

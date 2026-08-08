@@ -16,7 +16,9 @@ The product is for entertainment, inspiration, and emotional companionship only.
 - Tools hub: https://www.shanhai.app/tools
 - Guides hub: https://www.shanhai.app/guides
 - BaZi chart tutorial: https://www.shanhai.app/guides/bazi-chart-tutorial
+- BaZi day master guide: https://www.shanhai.app/guides/bazi-day-master
 - CeZi examples guide: https://www.shanhai.app/guides/cezi-examples
+- CeZi character pitfalls checklist: https://www.shanhai.app/guides/cezi-character-pitfalls
 - I Ching question templates: https://www.shanhai.app/guides/iching-question-templates
 - FAQ: https://www.shanhai.app/faq
 - Pricing: https://www.shanhai.app/pricing
