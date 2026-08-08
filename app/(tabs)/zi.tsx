@@ -113,6 +113,8 @@ export default function ZiScreen() {
   const [ziPointsCost, setZiPointsCost] = useState(10);
   const [availablePoints, setAvailablePoints] = useState<number | null>(null);
   const [showSmartCta, setShowSmartCta] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [membershipExpiryOverride, setMembershipExpiryOverride] = useState<string | null | undefined>(undefined);
   const [showLanguageRefreshHint, setShowLanguageRefreshHint] = useState(false);
   const prevLanguageRevisionRef = useRef(0);
   // 新增：手写模式
@@ -152,7 +154,29 @@ export default function ZiScreen() {
     return map[wuxing || ''] || { bg: '#1a1a2e', glow: 'rgba(255,255,255,0.06)' };
   };
   
-  const { user } = useUserStore();
+  const { user, loadUser } = useUserStore();
+
+  const notifyUser = (
+    title: string,
+    message: string,
+    buttons?: Array<{ text: string; style?: 'cancel' | 'default' | 'destructive'; onPress?: () => void }>,
+  ) => {
+    // Web 上带 buttons 的 Alert.alert 可能失败/不展示，且抛错会中断后续状态清理。
+    if (Platform.OS === 'web') {
+      const text = message ? `${title}\n\n${message}` : title;
+      try {
+        if (typeof window !== 'undefined') window.alert(text);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+    try {
+      Alert.alert(title, message, buttons);
+    } catch {
+      // ignore
+    }
+  };
   const language = useI18nStore((state) => state.language);
   const languageRevision = useI18nStore((state) => state.languageRevision);
   const t = useI18nStore((state) => state.t);
@@ -225,9 +249,15 @@ export default function ZiScreen() {
     ],
   };
 
-  const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
-  const isVip = isMembershipActive(user);
-  const shouldSkipZiPointsPrecheck = isVip || hasMembershipTier;
+  const membershipUser = {
+    membership: user?.membership,
+    membershipExpiryAt:
+      membershipExpiryOverride !== undefined ? membershipExpiryOverride : user?.membershipExpiryAt,
+  };
+  const hasMembershipTier = membershipUser.membership === 'vip' || membershipUser.membership === 'premium';
+  const isVip = isMembershipActive(membershipUser);
+  // 只有有效会员才跳过积分预检；过期会员必须按积分扣费，否则会误显示“会员免扣”。
+  const shouldSkipZiPointsPrecheck = isVip;
   const displayZiCost = isVip ? 0 : ziPointsCost;
   const membershipExpiredHint = hasMembershipTier && !isVip ? t('reading.form.membershipExpired', '会员权益已过期，当前按积分扣费。') : '';
   const ziTierLabel = !result
@@ -261,21 +291,31 @@ export default function ZiScreen() {
   }, []);
 
   useEffect(() => {
+    // 进入测字页时刷新会员到期时间，避免本地缓存把已过期会员显示成免扣。
+    loadUser().catch(() => null);
+  }, [loadUser]);
+
+  useEffect(() => {
     let alive = true;
     if (!user) {
       setAvailablePoints(null);
+      setMembershipExpiryOverride(undefined);
       return () => {
         alive = false;
       };
     }
-    pointsApi
-      .getSummary()
-      .then((summary) => {
-        if (alive && Number.isFinite(summary?.availablePoints)) {
-          setAvailablePoints(Math.max(0, Number(summary.availablePoints)));
-        }
-      })
-      .catch(() => null);
+    Promise.all([
+      pointsApi.getSummary().catch(() => null),
+      pointsApi.getMembershipValue().catch(() => null),
+    ]).then(([summary, membershipValue]) => {
+      if (!alive) return;
+      if (summary && Number.isFinite(summary.availablePoints)) {
+        setAvailablePoints(Math.max(0, Number(summary.availablePoints)));
+      }
+      if (membershipValue) {
+        setMembershipExpiryOverride(membershipValue.membershipExpiryAt ?? null);
+      }
+    });
     return () => {
       alive = false;
     };
@@ -411,14 +451,13 @@ export default function ZiScreen() {
     const zi = rawZi.trim().charAt(0);
     const normalizedQuestion = (questionText ?? userQuestion).trim();
     if (!/[\u4e00-\u9fa5]/.test(zi)) {
-      Alert.alert(
-        t('common.notice', '提示'),
-        tx(
-          '请输入一个有效的汉字',
-          'Symbol reading needs one Chinese character. If you only have an English word, use the suggestions below first.',
-          '請輸入一個有效的漢字',
-        ),
+      const invalidMsg = tx(
+        '请输入一个有效的汉字',
+        'Symbol reading needs one Chinese character. If you only have an English word, use the suggestions below first.',
+        '請輸入一個有效的漢字',
       );
+      setActionError(invalidMsg);
+      notifyUser(t('common.notice', '提示'), invalidMsg);
       return false;
     }
     if (user && !shouldSkipZiPointsPrecheck && !isInvitePreview) {
@@ -428,10 +467,13 @@ export default function ZiScreen() {
         if (checkRes.hasEnough === false) {
           setShowSmartCta(true);
           await refreshPointsBalance();
-          Alert.alert(
-            tx('积分不足', 'Insufficient points', '積分不足'),
-            tx(`测字需要 ${ziPointsCost} 积分，请使用下方快捷入口补充权益`, `This reading needs ${ziPointsCost} points. Please use the quick actions below.`, `測字需要 ${ziPointsCost} 積分，請使用下方快捷入口補充權益`),
+          const pointsMsg = tx(
+            `测字需要 ${ziPointsCost} 积分，请使用下方快捷入口补充权益`,
+            `This reading needs ${ziPointsCost} points. Please use the quick actions below.`,
+            `測字需要 ${ziPointsCost} 積分，請使用下方快捷入口補充權益`,
           );
+          setActionError(pointsMsg);
+          notifyUser(tx('积分不足', 'Insufficient points', '積分不足'), pointsMsg);
           return false;
         }
       } catch {
@@ -440,6 +482,7 @@ export default function ZiScreen() {
     }
 
     const previousResult = result;
+    setActionError('');
     setIsLoading(true);
     setResult(buildPreviewResult(zi, focusAspect));
     setResultStage('preview');
@@ -448,6 +491,7 @@ export default function ZiScreen() {
       setResult(data);
       setResultStage('full');
       setShowLanguageRefreshHint(false);
+      setActionError('');
       trackFeature('zi_analyze_complete', { zi: data?.zi?.zi, aspect: focusAspect || null });
       setHandwritingPreview(null);
       setShowSmartCta(false);
@@ -455,38 +499,23 @@ export default function ZiScreen() {
       return true;
     } catch (err: any) {
       console.error('测字失败:', err);
-      const rawMsg = String(err?.message || '');
+      const rawMsg = String(err?.message || '').replace(/\(请求ID:[^)]+\)/g, '').trim();
       const isDeepTimeout = /深度解读|生成超时|已保留首轮结果|timeout|timed out|请求超时/i.test(rawMsg);
-      const msg = localizeAuthMessage({
-        rawMessage: rawMsg,
-        language,
-        fallback: {
-          zhCN: tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
-          enUS: tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
-          zhTW: tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
-        },
-      });
-      if (/(积分不足|積分不足|insufficient points)/i.test(rawMsg || msg)) {
-        setShowSmartCta(true);
-        await refreshPointsBalance();
-        Alert.alert(tx('积分不足', 'Insufficient points', '積分不足'), msg || tx('请使用下方快捷入口补充权益', 'Please use quick actions below to top up', '請使用下方快捷入口補充權益'));
-      } else if (rawMsg.includes('请输入一个有效的汉字') || rawMsg.toLowerCase().includes('valid chinese character')) {
-        Alert.alert(tx('输入无效', 'Invalid input', '輸入無效'), msg);
-      } else if (isDeepTimeout) {
-        Alert.alert(
-          tx('已先给出首轮结果', 'First-pass result is ready', '已先給出首輪結果'),
-          msg || tx('深度解读暂时响应较慢，你可以先查看当前结果，稍后再试。', 'Deep reading is slow right now. You can review the current result and retry later.', '深度解讀暫時較慢，你可以先查看目前結果，稍後再試。'),
-        );
-      } else {
-        Alert.alert(
-          tx('测字失败', 'Character reading failed', '測字失敗'),
-          msg || tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
-          [
-            { text: tx('知道了', 'OK', '知道了'), style: 'cancel' },
-            { text: t('common.retry', '重试'), onPress: () => analyzeZiInput(rawZi, focusAspect, normalizedQuestion) },
-          ]
-        );
-      }
+      const isMembershipExpired = /会员权益已过期|會員權益已過期|membership.*(expired|expire)/i.test(rawMsg);
+      const isPointsIssue = isMembershipExpired || /(积分不足|積分不足|需积分|需積分|insufficient points)/i.test(rawMsg);
+      const msg = isMembershipExpired
+        ? rawMsg || t('reading.form.membershipExpired', '会员权益已过期，当前按积分扣费。')
+        : localizeAuthMessage({
+            rawMessage: rawMsg,
+            language,
+            fallback: {
+              zhCN: tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
+              enUS: tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
+              zhTW: tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試'),
+            },
+          });
+
+      // 先清掉“正在生成”预览，避免 Alert 异常时界面卡死在假进度。
       const previousZi = previousResult?.zi?.zi?.trim().charAt(0) || '';
       const shouldRestorePrevious = !!(previousResult && previousZi && previousZi === zi);
       if (isDeepTimeout) {
@@ -494,6 +523,42 @@ export default function ZiScreen() {
       } else {
         setResultStage(shouldRestorePrevious ? 'full' : 'idle');
         setResult(shouldRestorePrevious ? previousResult : null);
+      }
+
+      if (isPointsIssue) {
+        setShowSmartCta(true);
+        setActionError(msg || tx('积分不足，请续费会员或补充积分后重试', 'Not enough points. Renew membership or top up points.', '積分不足，請續費會員或補充積分後重試'));
+        await refreshPointsBalance();
+        // 后端已判定过期时，立即按非会员展示扣费。
+        if (isMembershipExpired) {
+          setMembershipExpiryOverride(new Date(0).toISOString());
+        }
+        notifyUser(
+          isMembershipExpired
+            ? tx('会员已过期', 'Membership expired', '會員已過期')
+            : tx('积分不足', 'Insufficient points', '積分不足'),
+          msg || tx('请使用下方快捷入口补充权益', 'Please use quick actions below to top up', '請使用下方快捷入口補充權益'),
+        );
+      } else if (rawMsg.includes('请输入一个有效的汉字') || rawMsg.toLowerCase().includes('valid chinese character')) {
+        setActionError(msg);
+        notifyUser(tx('输入无效', 'Invalid input', '輸入無效'), msg);
+      } else if (isDeepTimeout) {
+        setActionError(msg || tx('深度解读暂时响应较慢，你可以先查看当前结果，稍后再试。', 'Deep reading is slow right now. You can review the current result and retry later.', '深度解讀暫時較慢，你可以先查看目前結果，稍後再試。'));
+        notifyUser(
+          tx('已先给出首轮结果', 'First-pass result is ready', '已先給出首輪結果'),
+          msg || tx('深度解读暂时响应较慢，你可以先查看当前结果，稍后再试。', 'Deep reading is slow right now. You can review the current result and retry later.', '深度解讀暫時較慢，你可以先查看目前結果，稍後再試。'),
+        );
+      } else {
+        const fallback = msg || tx('连接出现问题，请检查网络后重试', 'Network issue, please retry', '連線出現問題，請檢查網路後重試');
+        setActionError(fallback);
+        notifyUser(
+          tx('测字失败', 'Character reading failed', '測字失敗'),
+          fallback,
+          [
+            { text: tx('知道了', 'OK', '知道了'), style: 'cancel' },
+            { text: t('common.retry', '重试'), onPress: () => analyzeZiInput(rawZi, focusAspect, normalizedQuestion) },
+          ],
+        );
       }
       return false;
     } finally {
@@ -944,6 +1009,17 @@ export default function ZiScreen() {
             </Text>
           </View>
           {!!membershipExpiredHint && <Text style={styles.membershipExpiredHint}>{membershipExpiredHint}</Text>}
+          {!!actionError && (
+            <View style={styles.actionErrorBox}>
+              <Text style={styles.actionErrorText}>{actionError}</Text>
+              <TouchableOpacity
+                style={styles.actionErrorDismiss}
+                onPress={() => setActionError('')}
+              >
+                <Text style={styles.actionErrorDismissText}>{tx('关闭', 'Dismiss', '關閉')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {showSmartCta && !isVip && (
             <View style={styles.smartCtaWrap}>
               <Text style={styles.smartCtaTitle}>{tx('积分不够，先选一个补充方式', 'Not enough points. Choose one way to continue.', '積分不夠，先選一個補充方式')}</Text>
@@ -2248,6 +2324,32 @@ const styles = StyleSheet.create({
     color: '#F7B267',
     fontSize: 12,
     lineHeight: 18,
+  },
+  actionErrorBox: {
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 113, 113, 0.45)',
+    backgroundColor: 'rgba(127, 29, 29, 0.28)',
+  },
+  actionErrorText: {
+    color: '#FECACA',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  actionErrorDismiss: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(254, 202, 202, 0.12)',
+  },
+  actionErrorDismissText: {
+    color: '#FECACA',
+    fontSize: 12,
+    fontWeight: '700',
   },
   smartCtaWrap: {
     marginBottom: 12,

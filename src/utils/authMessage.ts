@@ -38,7 +38,8 @@ const MAPPINGS: Array<{ pattern: RegExp; text: TripleText }> = [
     },
   },
   {
-    pattern: /(验证码|驗證碼|code|otp).*(错误|無效|无效|过期|過期|invalid|expired)/i,
+    // 避免误匹配业务文案里的 “过期/expired”（如会员权益已过期）
+    pattern: /(验证码|驗證碼|otp|verification code).*(错误|無效|无效|过期|過期|invalid|expired)/i,
     text: {
       zhCN: '验证码错误或已过期，请重新获取。',
       enUS: 'Verification code is invalid or expired. Please request a new one.',
