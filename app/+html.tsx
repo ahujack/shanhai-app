@@ -8,7 +8,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
   const softwareJsonLd = JSON.stringify(buildSoftwareApplicationJsonLd());
 
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -19,10 +19,12 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta name="author" content={SEO_SITE.name} />
         <meta name="theme-color" content={SEO_SITE.themeColor} />
         <link rel="canonical" href={HOME_SEO.canonical} />
-        <link rel="alternate" hrefLang="en" href={HOME_SEO.canonical} />
-        <link rel="alternate" hrefLang="zh-CN" href={HOME_SEO.canonical} />
-        <link rel="alternate" hrefLang="zh-TW" href={HOME_SEO.canonical} />
+        {/* Only self-referencing hreflang on the homepage shell.
+            Landing pages get per-route alternates via inject-seo-meta.js.
+            Do NOT point every language tag at the homepage from all routes. */}
         <link rel="alternate" hrefLang="x-default" href={HOME_SEO.canonical} />
+        <link rel="alternate" hrefLang="zh-CN" href={HOME_SEO.canonical} />
+        <link rel="alternate" hrefLang="en" href={HOME_SEO.canonical} />
 
         <meta property="og:site_name" content={SEO_SITE.name} />
         <meta property="og:type" content="website" />

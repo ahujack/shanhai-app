@@ -1,0 +1,119 @@
+/**
+ * Single source of truth for static SEO meta used by scripts/inject-seo-meta.js.
+ * Keep titles/descriptions in sync with src/seo/site.ts and landingPages.ts.
+ */
+const SITE = 'https://www.shanhai.app';
+const OG_IMAGE = `${SITE}/og-image.png`;
+
+const PAGES = [
+  {
+    file: 'index.html',
+    title: '山海灵境 | AI八字排盘·测字·易经占卜·每日运势 Shanhai Realm',
+    description:
+      '山海灵境 Shanhai Realm：在线AI八字排盘、测字占卜、易经/六爻解读与每日灵签。用东方符号系统帮你梳理感情、事业与时机选择。仅供娱乐与自我反思。',
+    keywords:
+      '山海灵境, AI八字, 八字排盘, 在线八字, AI测字, 测字占卜, 易经占卜, 六爻, 每日运势, AI算命, bazi calculator, chinese character divination, i ching, shanhai realm',
+    canonical: `${SITE}/`,
+  },
+  {
+    file: 'bazi-calculator.html',
+    title: '在线八字排盘 | AI四柱解读·免费BaZi计算器 | 山海灵境',
+    description:
+      '免费在线八字排盘（四柱命盘）：输入生日时辰，生成年柱月柱日柱时辰，并获得AI通俗解读。适合快速了解性格、关系与运势节奏。仅供娱乐。',
+    keywords:
+      '八字排盘, 在线八字, AI八字, 四柱排盘, 生辰八字, bazi calculator, four pillars, chinese astrology, 山海灵境',
+    canonical: `${SITE}/bazi-calculator`,
+  },
+  {
+    file: 'character-divination.html',
+    title: 'AI测字占卜在线 | 写一字看意象与指引 | 山海灵境',
+    description:
+      '在线AI测字：手写或输入一个汉字，解读字形、意象与情绪信号，并给出感情/事业等方向的实用指引。无需懂古文也能上手。',
+    keywords:
+      'AI测字, 测字占卜, 在线测字, 汉字测字, chinese character divination, cezi, symbol reading, 山海灵境',
+    canonical: `${SITE}/character-divination`,
+  },
+  {
+    file: 'i-ching-reading.html',
+    title: '易经AI占卜在线 | 六爻卦象·决策指引 | 山海灵境',
+    description:
+      '提出一个具体问题，获得结构化易经/六爻风格解读：直接结论、行动步骤、风险提醒与一周节奏。面向真实决策，而非空泛运势。',
+    keywords:
+      '易经占卜, AI占卜, 六爻在线, 卦象解读, i ching reading, hexagram, chinese divination, 山海灵境',
+    canonical: `${SITE}/i-ching-reading`,
+  },
+  {
+    file: 'daily-fortune.html',
+    title: '每日运势灵签 | 今日幸运色·数字·小任务 | 山海灵境',
+    description:
+      '每日抽一支灵签：诗句、幸运色、幸运数字与今日小任务。可一键把主题延伸到完整占卜解读，养成轻量晨间仪式。',
+    keywords:
+      '每日运势, 每日灵签, 今日运势, 幸运色, daily chinese fortune, oracle slip, 山海灵境',
+    canonical: `${SITE}/daily-fortune`,
+  },
+  {
+    file: 'overseas-chinese-metaphysics-ai.html',
+    title: '华人玄学AI伴侣 | 感情事业时机的东方指引 | 山海灵境',
+    description:
+      '面向全球华人与国际用户的东方玄学AI伴侣：测字、易经、八字与共情对话，用白话帮你梳理感情、事业与不确定性。',
+    keywords:
+      '华人玄学AI, AI算命, 海外华人占卜, eastern oracle ai, spiritual ai companion, 山海灵境, shanhai realm',
+    canonical: `${SITE}/overseas-chinese-metaphysics-ai`,
+  },
+  {
+    file: 'ai-cezi-vs-fortune-teller.html',
+    title: 'AI测字 vs 传统算命师 | 汉字测字能做什么 | 山海灵境',
+    description:
+      '对比AI测字与传统算命：一字解读适合澄清什么、边界在哪里，以及如何把它当作自我反思工具而非绝对预言。',
+    keywords:
+      'AI测字对比, 测字AI, AI算命 vs 算命师, cezi vs fortune teller, chinese character reading, 山海灵境',
+    canonical: `${SITE}/ai-cezi-vs-fortune-teller`,
+  },
+  {
+    file: 'tools.html',
+    title: '东方玄学AI工具箱 | 八字·测字·易经·每日运势 | 山海灵境',
+    description:
+      '一站体验山海灵境工具：在线八字排盘、AI测字、易经占卜与每日灵签。AI辅助解读，仅供娱乐与灵感。',
+    keywords:
+      '玄学AI工具, 八字工具, 测字工具, 易经工具, bazi, cezi, i ching, daily fortune, 山海灵境',
+    canonical: `${SITE}/tools`,
+  },
+  {
+    file: 'pricing.html',
+    title: '会员与定价 | 山海灵境 VIP权益对比',
+    description:
+      '对比山海灵境免费版与VIP：更深八字年运、完整解读、积分消耗更省。支持积分包补充。',
+    keywords: '山海灵境会员, VIP定价, 积分, shanhai realm pricing, membership',
+    canonical: `${SITE}/pricing`,
+  },
+  {
+    file: 'faq.html',
+    title: '常见问题 | 山海灵境 AI八字·测字·易经帮助',
+    description:
+      '关于山海灵境的常见问题：积分获取、VIP权益、邀请奖励、隐私保护，以及AI八字/测字/易经如何使用。',
+    keywords: '山海灵境帮助, FAQ, 积分, VIP, 八字帮助, 测字帮助',
+    canonical: `${SITE}/faq`,
+  },
+  {
+    file: 'privacy.html',
+    title: '隐私政策 | 山海灵境 Shanhai Realm',
+    description:
+      '山海灵境如何收集、使用与保护你的账号、命盘与使用数据。我们不会出售个人信息。',
+    keywords: '山海灵境隐私政策, privacy policy, 数据保护',
+    canonical: `${SITE}/privacy`,
+  },
+  {
+    file: 'terms.html',
+    title: '服务条款 | 山海灵境 Shanhai Realm',
+    description:
+      '使用山海灵境AI玄学工具的服务条款。所有解读仅供娱乐与灵感，不构成医疗、法律或财务建议。',
+    keywords: '山海灵境服务条款, terms of service, 免责声明',
+    canonical: `${SITE}/terms`,
+  },
+];
+
+module.exports = {
+  SITE,
+  OG_IMAGE,
+  PAGES,
+};

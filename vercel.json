@@ -19,7 +19,7 @@
       "destination": "https://shanhai-production.up.railway.app/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!robots\\.txt|sitemap\\.xml|llms\\.txt|og-image\\.png|favicon\\.ico|.*\\..*).*)",
       "destination": "/"
     }
   ]

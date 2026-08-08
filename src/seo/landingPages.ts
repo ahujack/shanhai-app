@@ -34,17 +34,17 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/bazi',
     relatedSlugs: ['character-divination', 'i-ching-reading', 'daily-fortune'],
     seo: {
-      title: 'Eastern Birth Chart Calculator | BaZi / Four Pillars AI Reading | Shanhai Realm',
+      title: '在线八字排盘 | AI四柱解读·免费BaZi计算器 | 山海灵境',
       description:
-        'Free Eastern birth chart calculator based on BaZi / Four Pillars. Enter birth date and time to explore personality patterns, life timing, and AI guidance in plain English. Entertainment only.',
+        '免费在线八字排盘（四柱命盘）：输入生日时辰，生成年柱月柱日柱时辰，并获得AI通俗解读。适合快速了解性格、关系与运势节奏。仅供娱乐。',
       keywords:
-        'bazi calculator, four pillars chart, chinese astrology, ba zi online, birth chart calculator, 八字排盘, 在线八字',
+        '八字排盘, 在线八字, AI八字, 四柱排盘, 生辰八字, bazi calculator, four pillars, chinese astrology, 山海灵境',
     },
     hero: {
-      badge: 'Eastern Birth Chart · BaZi',
-      title: 'Explore Your Eastern Birth Chart',
+      badge: '八字排盘 · BaZi Four Pillars',
+      title: '在线八字排盘，读懂你的四柱命盘',
       subtitle:
-        'Turn birth date and time into a Four Pillars chart, then get plain-language insight on personality, relationships, career rhythm, and timing windows.',
+        '输入生日时辰，生成年柱、月柱、日柱、时柱，再用白话看性格倾向、关系模式、事业节奏与时机窗口。仅供娱乐与自我反思。',
     },
     features: [
       {
@@ -94,17 +94,17 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/zi',
     relatedSlugs: ['bazi-calculator', 'i-ching-reading', 'daily-fortune'],
     seo: {
-      title: 'Chinese Symbol Reading Online | AI Character Divination | Shanhai Realm',
+      title: 'AI测字占卜在线 | 写一字看意象与指引 | 山海灵境',
       description:
-        'Try an AI Chinese symbol reading. Write or type one character and receive a simple interpretation of its shape, imagery, emotional signal, and practical guidance.',
+        '在线AI测字：手写或输入一个汉字，解读字形、意象与情绪信号，并给出感情/事业等方向的实用指引。无需懂古文也能上手。',
       keywords:
-        'chinese character divination, cezi, 测字, character reading, oracle bone script, handwriting analysis',
+        'AI测字, 测字占卜, 在线测字, 汉字测字, chinese character divination, cezi, symbol reading, 山海灵境',
     },
     hero: {
-      badge: 'Symbol Reading · Character Ritual',
-      title: 'Pick One Chinese Character. Read the Sign.',
+      badge: 'AI测字 · Character Ritual',
+      title: '写一个字，看意象与当下指引',
       subtitle:
-        'You do not need to know Chinese. Choose a character as a symbol, and Shanhai explains its shape, image, mood, and next-step meaning in plain language.',
+        '手写或输入一个汉字即可开始。山海灵境会解读字形、意象与情绪信号，并给出感情、事业等方向的白话建议。',
     },
     features: [
       {
@@ -152,17 +152,17 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/reading',
     relatedSlugs: ['daily-fortune', 'bazi-calculator', 'character-divination'],
     seo: {
-      title: 'Eastern Oracle AI Reading Online | I Ching-Style Guidance | Shanhai Realm',
+      title: '易经AI占卜在线 | 六爻卦象·决策指引 | 山海灵境',
       description:
-        'Ask one clear question and receive structured Eastern oracle guidance with a direct answer, action steps, risks, and weekly rhythm. Built for decisions, not vague fortune cookies.',
+        '提出一个具体问题，获得结构化易经/六爻风格解读：直接结论、行动步骤、风险提醒与一周节奏。面向真实决策，而非空泛运势。',
       keywords:
-        'i ching reading, iching divination online, hexagram reading, chinese divination, 六爻, 占卜',
+        '易经占卜, AI占卜, 六爻在线, 卦象解读, i ching reading, hexagram, chinese divination, 山海灵境',
     },
     hero: {
-      badge: 'Oracle Guidance · I Ching-Inspired',
-      title: 'Ask One Question. Get a Clear Reading.',
+      badge: '易经占卜 · I Ching-Inspired',
+      title: '问一个具体问题，拿到清晰卦象指引',
       subtitle:
-        'Bring a real question — stay or leave, pivot or wait — and get a direct answer plus practical next steps.',
+        '适合“该不该”“何时做”“是否适合”这类决策问题：先给直接结论，再给行动步骤与风险提醒。',
     },
     features: [
       {
@@ -210,17 +210,17 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/index',
     relatedSlugs: ['i-ching-reading', 'character-divination', 'bazi-calculator'],
     seo: {
-      title: 'Daily Chinese Fortune & Oracle Slip | Shanhai Realm',
+      title: '每日运势灵签 | 今日幸运色·数字·小任务 | 山海灵境',
       description:
-        'Draw a daily fortune slip with poem, lucky color, number, and mission. Optional deep divination follow-up for the same theme.',
+        '每日抽一支灵签：诗句、幸运色、幸运数字与今日小任务。可一键把主题延伸到完整占卜解读，养成轻量晨间仪式。',
       keywords:
-        'daily chinese fortune, oracle slip, daily luck, chinese horoscope daily, 每日运势, 灵签',
+        '每日运势, 每日灵签, 今日运势, 幸运色, daily chinese fortune, oracle slip, 山海灵境',
     },
     hero: {
-      badge: 'Daily · Oracle Slip',
-      title: 'Daily Fortune Slip & Lucky Ritual',
+      badge: '每日运势 · Oracle Slip',
+      title: '每日灵签：幸运色、数字与今日小任务',
       subtitle:
-        'A one-minute morning ritual — draw today’s slip, note your lucky anchors, and optionally deepen the same theme with divination.',
+        '一分钟晨间仪式——抽今日灵签，记下幸运锚点，也可把同一主题延伸成完整占卜。',
     },
     features: [
       {
@@ -268,17 +268,17 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/index',
     relatedSlugs: ['character-divination', 'i-ching-reading', 'bazi-calculator'],
     seo: {
-      title: 'Eastern Oracle AI Companion for Global Users | Shanhai Realm',
+      title: '华人玄学AI伴侣 | 感情事业时机的东方指引 | 山海灵境',
       description:
-        'An Eastern oracle-style AI companion for love, career, identity, timing, and uncertainty. Explore symbol readings, I Ching-inspired guidance, birth-chart patterns, and empathetic chat.',
+        '面向全球华人与国际用户的东方玄学AI伴侣：测字、易经、八字与共情对话，用白话帮你梳理感情、事业与不确定性。',
       keywords:
-        'eastern oracle ai, spiritual ai companion, chinese astrology app, ai fortune reading, overseas chinese ai companion, 华人玄学AI, AI算命',
+        '华人玄学AI, AI算命, 海外华人占卜, eastern oracle ai, spiritual ai companion, 山海灵境, shanhai realm',
     },
     hero: {
-      badge: 'Eastern Oracle · AI Companion',
-      title: 'Eastern Rituals for Modern Uncertainty',
+      badge: '华人玄学AI · AI Companion',
+      title: '东方符号，服务现代人的不确定时刻',
       subtitle:
-        'Shanhai Realm turns traditional Chinese symbolic systems into approachable AI guidance for anyone seeking clarity before a life decision.',
+        '山海灵境把测字、易经与八字做成可随时使用的AI伴侣，帮你在感情、事业与时机选择前先理清思路。',
     },
     features: [
       {
@@ -328,17 +328,17 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/zi',
     relatedSlugs: ['character-divination', 'i-ching-reading', 'overseas-chinese-metaphysics-ai'],
     seo: {
-      title: 'AI Symbol Reading vs Traditional Fortune Teller | Chinese Character Reading Explained',
+      title: 'AI测字 vs 传统算命师 | 汉字测字能做什么 | 山海灵境',
       description:
-        'Compare AI Chinese symbol reading with traditional fortune-telling: what one-character readings can clarify, where the limits are, and how to use them for reflection.',
+        '对比AI测字与传统算命：一字解读适合澄清什么、边界在哪里，以及如何把它当作自我反思工具而非绝对预言。',
       keywords:
-        'ai cezi, ai chinese character reading, cezi vs fortune teller, 测字AI, AI测字, chinese divination online',
+        'AI测字对比, 测字AI, AI算命 vs 算命师, cezi vs fortune teller, chinese character reading, 山海灵境',
     },
     hero: {
-      badge: 'Symbol Reading Guide · AI vs Human',
-      title: 'AI Symbol Reading Works Best as Focused Reflection',
+      badge: '测字指南 · AI vs 传统算命',
+      title: 'AI测字更适合做聚焦式自我反思',
       subtitle:
-        'Traditional fortune-tellers rely on human experience and ritual context. AI symbol reading is faster, private, repeatable, and useful when you need a first layer of clarity.',
+        '传统算命依赖人的经验与仪式语境；AI测字更快、更私密、可反复尝试，适合先拿一层清晰感再做现实决策。',
     },
     features: [
       {
@@ -391,13 +391,13 @@ export const TOOLS_HUB = {
   path: '/tools',
   canonical: `${SITE}/tools`,
   seo: {
-    title: 'Eastern Oracle AI Tools | Symbol Reading, Birth Chart, I Ching | Shanhai Realm',
+    title: '东方玄学AI工具箱 | 八字·测字·易经·每日运势 | 山海灵境',
     description:
-      'Explore Shanhai Realm tools: Eastern birth chart calculator, Chinese symbol reading, I Ching-style oracle guidance, and daily fortune slips — AI-assisted, entertainment only.',
-    keywords: 'eastern oracle ai, chinese metaphysics app, bazi, symbol reading, i ching, daily fortune, shanhai realm',
+      '一站体验山海灵境工具：在线八字排盘、AI测字、易经占卜与每日灵签。AI辅助解读，仅供娱乐与灵感。',
+    keywords: '玄学AI工具, 八字工具, 测字工具, 易经工具, bazi, cezi, i ching, daily fortune, 山海灵境',
   },
   hero: {
-    title: 'AI Tools for Eastern Insight',
-    subtitle: 'Pick a path — explore your birth chart, read one symbol, ask the oracle, or draw today’s slip.',
+    title: '东方玄学 AI 工具箱',
+    subtitle: '选一条路开始：八字排盘、AI测字、易经占卜，或抽今日灵签。',
   },
 };
