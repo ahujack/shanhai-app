@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export --platform web && node scripts/inject-seo-meta.js",
+  "buildCommand": "npx expo export --platform web && node scripts/inject-seo-meta.js && node scripts/verify-seo-dist.js",
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "cleanUrls": true,
@@ -17,10 +17,6 @@
     {
       "source": "/api/:path*",
       "destination": "https://shanhai-production.up.railway.app/api/:path*"
-    },
-    {
-      "source": "/((?!robots\\.txt|sitemap\\.xml|llms\\.txt|og-image\\.png|favicon\\.ico|.*\\..*).*)",
-      "destination": "/"
     }
   ]
 }
