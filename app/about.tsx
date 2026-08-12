@@ -46,7 +46,8 @@ export default function AboutScreen() {
           ],
           ctaPrimary: 'Try a free reading',
           ctaSecondary: 'View pricing',
-          ctaReport: 'Get a deep destiny report ($19.9)',
+          ctaReport: 'Get a deep destiny report ($9.9)',
+          ctaViewReport: 'Open my saved report',
         }
       : language === 'zh-TW'
         ? {
@@ -69,7 +70,8 @@ export default function AboutScreen() {
             ],
             ctaPrimary: '先免費體驗一次',
             ctaSecondary: '查看定價',
-            ctaReport: '獲取深度命運報告（$19.9）',
+            ctaReport: '獲取深度命運報告（$9.9）',
+            ctaViewReport: '打開我已保存的報告',
           }
         : {
             title: '关于山海灵境',
@@ -91,7 +93,8 @@ export default function AboutScreen() {
             ],
             ctaPrimary: '先免费体验一次',
             ctaSecondary: '查看定价',
-            ctaReport: '获取深度命运报告（$19.9）',
+            ctaReport: '获取深度命运报告（$9.9）',
+            ctaViewReport: '打开我已保存的报告',
           };
 
   return (
@@ -152,6 +155,13 @@ export default function AboutScreen() {
         onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'report' } })}
       >
         <Text style={styles.reportBtnText}>{copy.ctaReport}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.secondaryBtn, webPointer]}
+        onPress={() => router.push('/deep-destiny-report')}
+      >
+        <Text style={styles.secondaryBtnText}>{copy.ctaViewReport}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity

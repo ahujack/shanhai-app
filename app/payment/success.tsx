@@ -36,14 +36,15 @@ export default function PaymentSuccessScreen() {
    * 支付完成时的商品类型：必须在 await 之前同步写入 ref，避免 setState 批处理与异步间隔导致
    * 「文案已是积分、按钮仍显示订阅」的错配。
    */
-  const paymentKindRef = useRef<'points' | 'subscription' | null>(null);
+  const paymentKindRef = useRef<'points' | 'subscription' | 'report' | null>(null);
 
-  const donePrimaryKind = useMemo((): 'points' | 'subscription' | 'neutral' => {
+  const donePrimaryKind = useMemo((): 'points' | 'subscription' | 'report' | 'neutral' => {
     if (phase !== 'done') return 'neutral';
     const r = paymentKindRef.current;
-    if (r === 'points' || r === 'subscription') return r;
+    if (r === 'points' || r === 'subscription' || r === 'report') return r;
     if (message.includes('积分已到账')) return 'points';
     if (message.includes('会员权益已生效')) return 'subscription';
+    if (message.includes('命运报告')) return 'report';
     return 'neutral';
   }, [phase, message]);
   const nextStepTip = useMemo(() => {
@@ -53,6 +54,9 @@ export default function PaymentSuccessScreen() {
     }
     if (donePrimaryKind === 'subscription') {
       return '下一步建议：先确认会员有效期，再进入占卜页继续当前问题。';
+    }
+    if (donePrimaryKind === 'report') {
+      return '下一步建议：打开报告页阅读完整解读；之后也可随时回来重开。';
     }
     return '下一步建议：回到灵石页确认权益状态后继续使用。';
   }, [phase, donePrimaryKind]);
@@ -107,12 +111,19 @@ export default function PaymentSuccessScreen() {
           const st = await paymentApi.getByIdStatus(paymentId);
           if (st.status === 'completed') {
             if (!cancelled) {
-              const kind = st.productType === 'subscription' ? 'subscription' : 'points';
+              const kind =
+                st.productCode === 'deep_destiny_report' || st.productType === 'one_time'
+                  ? 'report'
+                  : st.productType === 'subscription'
+                    ? 'subscription'
+                    : 'points';
               paymentKindRef.current = kind;
               setMessage(
                 kind === 'subscription'
                   ? t('payment.success.syncMembership', '支付已确认，正在同步会员信息…')
-                  : t('payment.success.syncPoints', '支付已确认，正在同步积分与账户…'),
+                  : kind === 'report'
+                    ? t('payment.success.syncReport', '支付已确认，正在生成深度命运报告…')
+                    : t('payment.success.syncPoints', '支付已确认，正在同步积分与账户…'),
               );
               await syncUser();
               setPhase('done');
@@ -120,11 +131,17 @@ export default function PaymentSuccessScreen() {
                 source: 'success_page_polling',
                 paymentId,
                 productType: kind,
+                productCode: st.productCode || null,
               });
               let msg =
                 kind === 'subscription'
                   ? t('payment.success.membershipDone', '会员权益已生效，感谢支持！')
-                  : t('payment.success.pointsDone', '积分已到账，感谢支持！');
+                  : kind === 'report'
+                    ? t(
+                        'payment.success.reportDone',
+                        '深度命运报告已就绪，可随时在「我的报告」中重开阅读。',
+                      )
+                    : t('payment.success.pointsDone', '积分已到账，感谢支持！');
               if (kind === 'subscription' && st.membershipExpiryAt) {
                 const zh = new Date(st.membershipExpiryAt).toLocaleDateString('zh-CN', {
                   year: 'numeric',
@@ -184,6 +201,11 @@ export default function PaymentSuccessScreen() {
     router.replace({ pathname: '/points', params: { tab: 'subscription' } } as any);
   const goPointsMall = () =>
     router.replace({ pathname: '/points', params: { tab: 'mall' } } as any);
+  const goReport = () =>
+    router.replace({
+      pathname: '/deep-destiny-report',
+      params: paymentId ? { paymentId } : {},
+    } as any);
   const goReading = () => {
     trackNamedEvent('plan_select', { plan: 'continue_reading', source: 'payment_success_page' });
     router.replace('/(tabs)/reading' as any);
@@ -213,6 +235,12 @@ export default function PaymentSuccessScreen() {
             ) : phase === 'done' && donePrimaryKind === 'subscription' ? (
               <TouchableOpacity style={styles.primary} onPress={goSubscription} activeOpacity={0.85}>
                 <Text style={styles.primaryText}>{t('payment.success.primary.subscription', '查看订阅权益与到期时间')}</Text>
+              </TouchableOpacity>
+            ) : phase === 'done' && donePrimaryKind === 'report' ? (
+              <TouchableOpacity style={styles.primary} onPress={goReport} activeOpacity={0.85}>
+                <Text style={styles.primaryText}>
+                  {t('payment.success.primary.report', '打开我的深度命运报告')}
+                </Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity

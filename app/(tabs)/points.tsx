@@ -201,13 +201,26 @@ export default function PointsMallScreen() {
             Alert.alert(
               t('common.payment.success', '支付成功'),
               paymentStatus.productType === 'one_time'
-                ? t('points.alert.report.arrived', '深度命运报告权益已到账，已开通 30 天 VIP。')
+                ? t(
+                    'points.alert.report.arrived',
+                    '深度命运报告已生成，可随时在「我的报告」中重开阅读。',
+                  )
                 : t('points.alert.vip.arrived', '会员权益已到账，八字高级解读已解锁。'),
             );
-            router.push({
-              pathname: '/(tabs)/bazi',
-              params: { highlight: 'master', fromPayment: '1' },
-            });
+            if (
+              paymentStatus.productType === 'one_time' ||
+              paymentStatus.productCode === 'deep_destiny_report'
+            ) {
+              router.push({
+                pathname: '/deep-destiny-report',
+                params: { paymentId },
+              });
+            } else {
+              router.push({
+                pathname: '/(tabs)/bazi',
+                params: { highlight: 'master', fromPayment: '1' },
+              });
+            }
           } else {
             const pts = await pointsApi.getSummary().catch(() => null);
             setPointsSummary(pts);
@@ -400,13 +413,23 @@ export default function PointsMallScreen() {
                     Alert.alert(
                       t('common.success', '成功'),
                       product.code === 'deep_destiny_report'
-                        ? t('points.alert.report.opened', '深度命运报告权益已开通（含 30 天 VIP）！')
+                        ? t(
+                            'points.alert.report.opened',
+                            '深度命运报告已生成（含 30 天 VIP），可随时重开阅读！',
+                          )
                         : t('points.alert.vip.opened', 'VIP会员已开通！'),
                     );
-                    router.push({
-                      pathname: '/(tabs)/bazi',
-                      params: { highlight: 'master', fromPayment: '1' },
-                    });
+                    if (product.code === 'deep_destiny_report') {
+                      router.push({
+                        pathname: '/deep-destiny-report',
+                        params: { paymentId: result.paymentId },
+                      });
+                    } else {
+                      router.push({
+                        pathname: '/(tabs)/bazi',
+                        params: { highlight: 'master', fromPayment: '1' },
+                      });
+                    }
                   } else {
                     const pts = await pointsApi.getSummary().catch(() => null);
                     setPointsSummary(pts);
@@ -714,13 +737,27 @@ export default function PointsMallScreen() {
               >
                 <Text style={styles.sectionTitle}>{t('points.section.report', '📜 深度命运报告')}</Text>
                 <Text style={styles.sectionSubtitle}>
-                  {t('points.section.reportSub', '一次看清方向：含 30 天 VIP，先完整体验再决定是否订阅')}
+                  {t(
+                    'points.section.reportSub',
+                    '买的是一份可保存、可重开的专属报告；另赠 30 天 VIP 体验',
+                  )}
                 </Text>
                 {highlightReport ? (
                   <Text style={styles.focusTip}>
-                    {t('points.focus.report', '推荐：适合想先做一次深度八字/命运解读的用户')}
+                    {t(
+                      'points.focus.report',
+                      '推荐：适合想带走一份完整命运解读、而不只是开通几天会员的用户',
+                    )}
                   </Text>
                 ) : null}
+                <TouchableOpacity
+                  style={styles.viewReportLink}
+                  onPress={() => router.push('/deep-destiny-report')}
+                >
+                  <Text style={styles.viewReportLinkText}>
+                    {t('points.report.viewMine', '查看我已购买的报告 →')}
+                  </Text>
+                </TouchableOpacity>
                 {reportProducts.map((product) => {
                   const isPurchasing = purchasing === product.id;
                   const features = parseProductFeatures(product.features);
@@ -734,7 +771,7 @@ export default function PointsMallScreen() {
                       <View style={styles.vipProductHeader}>
                         <View style={styles.vipProductNameWrap}>
                           <Text style={styles.vipProductName}>{product.name}</Text>
-                          <Text style={styles.recommendedTag}>{t('points.report.tag', '深度体验')}</Text>
+                          <Text style={styles.recommendedTag}>{t('points.report.tag', '可交付报告')}</Text>
                         </View>
                         <Text style={styles.vipProductPrice}>${formatUsd(product.price)}</Text>
                       </View>
@@ -742,7 +779,7 @@ export default function PointsMallScreen() {
                       <Text style={styles.planFitHint}>
                         {t(
                           'points.report.fit',
-                          '支付后开通 30 天 VIP，可立刻使用八字老师傅批注与深度解签。',
+                          '支付后生成 VIP 级八字报告快照，永久保存在「我的报告」；另赠 30 天 VIP。',
                         )}
                       </Text>
                       <View style={styles.featuresList}>
@@ -767,14 +804,14 @@ export default function PointsMallScreen() {
                           <Text style={styles.subscribeButtonText}>
                             {!user
                               ? t('common.loginFirst', '请先登录')
-                              : t('points.report.buy', '购买深度报告')}
+                              : t('points.report.buy', '购买并生成报告')}
                           </Text>
                         )}
                       </TouchableOpacity>
                       <Text style={styles.checkoutTrustText}>
                         {t(
                           'points.trust.report',
-                          '支付后开通 30 天 VIP。异常可携订单号联系 support@shanhai.app',
+                          '支付成功后即可打开报告；异常可携订单号联系 support@shanhai.app',
                         )}
                       </Text>
                     </TouchableOpacity>
@@ -1383,6 +1420,15 @@ const styles = StyleSheet.create({
     color: ui.gold,
     fontSize: 12,
     marginBottom: 10,
+  },
+  viewReportLink: {
+    marginBottom: 12,
+    paddingVertical: 4,
+  },
+  viewReportLinkText: {
+    color: ui.primary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   decisionCard: {
     marginBottom: 12,

@@ -1184,9 +1184,97 @@ export interface PaymentStatusResult {
   paymentId: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
   productType: 'points' | 'subscription' | 'one_time';
+  productCode?: string;
+  reportStatus?: string | null;
   membership: 'free' | 'premium' | 'vip';
   membershipExpiryAt?: string | null;
   completedAt: string | null;
+}
+
+export interface DestinyReportPayload {
+  version?: number;
+  generatedAt?: string;
+  bonusVipDays?: number;
+  message?: string;
+  pillars?: {
+    year?: string;
+    month?: string;
+    day?: string;
+    hour?: string;
+  };
+  dayMaster?: string;
+  tenGods?: {
+    year?: string;
+    month?: string;
+    day?: string;
+    hour?: string;
+    summary?: string[];
+  };
+  wuxingStrength?: {
+    wood?: number;
+    fire?: number;
+    earth?: number;
+    metal?: number;
+    water?: number;
+  };
+  personalityTraits?: string[];
+  fortuneSummary?: {
+    career?: string;
+    wealth?: string;
+    love?: string;
+    health?: string;
+  };
+  suggestions?: string[];
+  conclusion?: {
+    overall?: string;
+    mindset?: string;
+  };
+  detailedReading?: {
+    corePattern?: string;
+    relationship?: string;
+    career?: string;
+    wealth?: string;
+    health?: string;
+    decadeRhythm?: string[];
+    luckCycles?: {
+      startAge?: number;
+      direction?: string;
+      cycles?: Array<{
+        ageRange?: string;
+        ganZhi?: string;
+        focus?: string;
+      }>;
+    };
+    annualForecast?: Array<{
+      year?: number;
+      ganZhi?: string;
+      tenGod?: string;
+      hint?: string;
+      favorable?: string;
+      caution?: string;
+      windowMonths?: string[];
+      masterCommentary?: string;
+    }>;
+    yearlyTips?: string[];
+    disclaimer?: string;
+  };
+  birth?: {
+    birthDate?: string;
+    birthTime?: string;
+    gender?: string;
+  };
+}
+
+export interface DestinyReport {
+  id: string;
+  userId: string;
+  paymentId: string;
+  status: 'generating' | 'awaiting_profile' | 'ready' | 'failed';
+  title: string;
+  payload: DestinyReportPayload | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const paymentApi = {
@@ -1220,6 +1308,19 @@ export const paymentApi = {
   // 获取用户支付历史
   getHistory: (limit?: number, offset?: number) =>
     request<Payment[]>(`/payment/history${limit ? `?limit=${limit}` : ''}`),
+};
+
+export const reportsApi = {
+  getLatestDeepDestiny: () =>
+    request<{ report: DestinyReport | null }>('/reports/deep-destiny/latest'),
+
+  getDeepDestinyByPayment: (paymentId: string) =>
+    request<{ report: DestinyReport }>(`/reports/deep-destiny/${paymentId}`),
+
+  refreshDeepDestiny: (paymentId: string) =>
+    request<{ report: DestinyReport }>(`/reports/deep-destiny/${paymentId}/refresh`, {
+      method: 'POST',
+    }),
 };
 
 // ========== Analytics & 反馈 ==========
