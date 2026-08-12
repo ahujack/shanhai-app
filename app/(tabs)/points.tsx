@@ -714,7 +714,7 @@ export default function PointsMallScreen() {
               >
                 <Text style={styles.sectionTitle}>{t('points.section.report', '📜 深度命运报告')}</Text>
                 <Text style={styles.sectionSubtitle}>
-                  {t('points.section.reportSub', '一次性高客单：先看透一次，再决定是否长期订阅')}
+                  {t('points.section.reportSub', '一次看清方向：含 30 天 VIP，先完整体验再决定是否订阅')}
                 </Text>
                 {highlightReport ? (
                   <Text style={styles.focusTip}>
@@ -734,7 +734,7 @@ export default function PointsMallScreen() {
                       <View style={styles.vipProductHeader}>
                         <View style={styles.vipProductNameWrap}>
                           <Text style={styles.vipProductName}>{product.name}</Text>
-                          <Text style={styles.recommendedTag}>{t('points.report.tag', '一次看透')}</Text>
+                          <Text style={styles.recommendedTag}>{t('points.report.tag', '深度体验')}</Text>
                         </View>
                         <Text style={styles.vipProductPrice}>${formatUsd(product.price)}</Text>
                       </View>
@@ -742,7 +742,7 @@ export default function PointsMallScreen() {
                       <Text style={styles.planFitHint}>
                         {t(
                           'points.report.fit',
-                          '买断式入口：含 30 天 VIP，可立刻做八字老师傅批注与深度解签。',
+                          '支付后开通 30 天 VIP，可立刻使用八字老师傅批注与深度解签。',
                         )}
                       </Text>
                       <View style={styles.featuresList}>
@@ -774,7 +774,7 @@ export default function PointsMallScreen() {
                       <Text style={styles.checkoutTrustText}>
                         {t(
                           'points.trust.report',
-                          '一次性商品；支付后开通 30 天 VIP。异常可携订单号联系 support@shanhai.app',
+                          '支付后开通 30 天 VIP。异常可携订单号联系 support@shanhai.app',
                         )}
                       </Text>
                     </TouchableOpacity>
