@@ -22,6 +22,8 @@ import { trackFeature } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import ResultShareCard from '../../components/ResultShareCard';
 import EmailCaptureCard from '../../components/EmailCaptureCard';
+import { buildZiShareLabel } from '../../src/utils/shareLabel';
+import { saveTodayTip } from '../../src/utils/todayTipStorage';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import CompanionPresence from '../../components/CompanionPresence';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
@@ -494,6 +496,17 @@ export default function ZiScreen() {
       setShowLanguageRefreshHint(false);
       setActionError('');
       trackFeature('zi_analyze_complete', { zi: data?.zi?.zi, aspect: focusAspect || null });
+      const tip =
+        normalizeZiText(data.interpretation?.advice?.[0]).trim() ||
+        normalizeZiText(data.coldReadings?.[0]).trim() ||
+        normalizeZiText(data.interpretation?.focusReading?.summary).trim();
+      if (tip) {
+        void saveTodayTip({
+          tip,
+          source: 'zi',
+          headline: data.zi?.zi ? `测字「${data.zi.zi}」` : '测字',
+        });
+      }
       setHandwritingPreview(null);
       setShowSmartCta(false);
       await refreshPointsBalance();
@@ -1760,6 +1773,12 @@ export default function ZiScreen() {
                 kind="zi"
                 headline={buildZiShareHeadline(result.zi.zi)}
                 summary={buildZiShareSummary(result)}
+                shareLabel={buildZiShareLabel({
+                  zi: result.zi?.zi,
+                  jixiong: normalizeZiText(result.zi?.jixiong),
+                  coldReading: normalizeZiText(result.coldReadings?.[0]),
+                  focusSummary: result.interpretation.focusReading?.summary,
+                })}
                 badge={ziTierLabel}
                 referralCode={user?.referralCode || (user?.id ?? null)}
               />

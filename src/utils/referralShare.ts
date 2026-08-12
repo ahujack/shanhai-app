@@ -79,10 +79,12 @@ export function buildResultShareCopy(params: {
   kind: ResultShareKind;
   headline: string;
   summary: string;
+  shareLabel?: string | null;
   referralCode?: string | null;
 }): ShareCopy {
-  const { language, kind, headline, summary, referralCode } = params;
+  const { language, kind, headline, summary, shareLabel, referralCode } = params;
   const { label, inviteLine } = pickCopy(language, kind);
+  const safeLabel = String(shareLabel || '').trim().slice(0, 32);
   const safeHeadline = headline.trim().slice(0, 120);
   const safeSummary = summary.trim().slice(0, 280);
   const url = referralCode ? buildReferralUrl(referralCode) : 'https://www.shanhai.app';
@@ -92,6 +94,7 @@ export function buildResultShareCopy(params: {
       title: 'Shanhai Realm',
       body: [
         `🔮 I just tried Shanhai Realm, an Eastern oracle AI, for a ${label}`,
+        safeLabel ? `🏷️ Label: ${safeLabel}` : '',
         safeHeadline ? `📌 Main takeaway: ${safeHeadline}` : '',
         safeSummary ? `💬 Note: ${safeSummary}` : '',
         referralCode ? `\nInvite code: ${referralCode}` : '',
@@ -109,6 +112,7 @@ export function buildResultShareCopy(params: {
   const intro = language === 'zh-TW'
     ? `🔮 我剛在${brand}看了一次${label}`
     : `🔮 我刚在${brand}看了一次${label}`;
+  const tagLabel = language === 'zh-TW' ? '🏷️ 狀態標籤：' : '🏷️ 状态标签：';
   const resultLabel = language === 'zh-TW' ? '📌 主要提醒：' : '📌 主要提醒：';
   const summaryLabel = language === 'zh-TW' ? '💬 其中一句：' : '💬 其中一句：';
   const tryLabel = language === 'zh-TW' ? '立即體驗：' : '立即体验：';
@@ -120,6 +124,7 @@ export function buildResultShareCopy(params: {
     title: brand,
     body: [
       intro,
+      safeLabel ? `${tagLabel}${safeLabel}` : '',
       safeHeadline ? `${resultLabel}${safeHeadline}` : '',
       safeSummary ? `${summaryLabel}${safeSummary}` : '',
       referralCode ? `\n邀请码：${referralCode}` : '',
@@ -138,6 +143,7 @@ export async function shareResultCopy(params: {
   kind: ResultShareKind;
   headline: string;
   summary: string;
+  shareLabel?: string | null;
   referralCode?: string | null;
   onCopied?: () => void;
 }): Promise<boolean> {

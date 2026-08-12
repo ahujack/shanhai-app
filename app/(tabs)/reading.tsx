@@ -8,6 +8,8 @@ import { trackFeature, trackNamedEvent } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import ResultShareCard from '../../components/ResultShareCard';
 import EmailCaptureCard from '../../components/EmailCaptureCard';
+import { buildReadingShareLabel } from '../../src/utils/shareLabel';
+import { saveTodayTip } from '../../src/utils/todayTipStorage';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
@@ -227,6 +229,16 @@ export default function ReadingScreen() {
       });
       setResult(deepReading);
       trackFeature('reading_complete', { source: 'fortune', category: inferCategoryFromFortuneTheme() });
+      const tip =
+        String(deepReading.conclusion?.nextStep || '').trim() ||
+        String(deepReading.recommendations?.[0] || '').trim();
+      if (tip) {
+        void saveTodayTip({
+          tip,
+          source: 'reading',
+          headline: deepReading.conclusion?.verdict || '深度解签',
+        });
+      }
       setShowDetails(false);
       setShowSmartCta(false);
       await refreshPointsBalance();
@@ -287,6 +299,16 @@ export default function ReadingScreen() {
       const reading = await readingApi.create(dto);
       setResult(reading);
       trackFeature('reading_complete', { source: 'form', category });
+      const tip =
+        String(reading.conclusion?.nextStep || '').trim() ||
+        String(reading.recommendations?.[0] || '').trim();
+      if (tip) {
+        void saveTodayTip({
+          tip,
+          source: 'reading',
+          headline: reading.conclusion?.verdict || '占卜',
+        });
+      }
       setShowSmartCta(false);
       await refreshPointsBalance();
     } catch (err: any) {
@@ -638,6 +660,11 @@ export default function ReadingScreen() {
           kind="reading"
           headline={result.conclusion?.verdict || result.interpretation.overall}
           summary={result.conclusion?.nextStep || result.recommendations?.[0] || result.interpretation.guidance || question.trim()}
+          shareLabel={buildReadingShareLabel({
+            verdict: result.conclusion?.verdict,
+            emotionalTone: result.conclusion?.emotionalTone,
+            nextStep: result.conclusion?.nextStep,
+          })}
           badge={readingTierLabel}
           referralCode={user?.referralCode || (user?.id ?? null)}
         />

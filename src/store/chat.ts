@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { agentApi, AgentChatDto, AgentResponse, DivinationResult, FortuneSlip, Meditation, ZiResult } from '../services/api';
+import { trackNamedEvent } from '../services/analytics';
+import { saveTodayTip } from '../utils/todayTipStorage';
 
 const CHAT_SESSION_KEY = 'shanhai_current_chat_session_v1';
 
@@ -191,6 +193,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
             currentIntent: response.intent,
           };
         });
+        if (response.intent && response.intent !== 'chat') {
+          trackNamedEvent('agent_auto_route', { intent: response.intent, mode: 'stream' });
+        }
+        // Persist 「今日一招」 from fortune artifact when available
+        const fortuneMission =
+          (response.artifacts as any)?.fortune?.mission ||
+          (response.artifacts as any)?.fortune?.advice?.[0];
+        if (fortuneMission) {
+          void saveTodayTip({
+            tip: String(fortuneMission).trim(),
+            source: 'chat',
+            headline: (response.artifacts as any)?.fortune?.poem?.title || '今日签',
+          });
+        }
         return;
       } catch (streamErr) {
         if (flushTimer) {
@@ -245,6 +261,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
           currentIntent: response.intent,
         };
       });
+      if (response.intent && response.intent !== 'chat') {
+        trackNamedEvent('agent_auto_route', { intent: response.intent, mode: 'fallback' });
+      }
     } catch (error) {
       if (flushTimer) {
         clearTimeout(flushTimer);

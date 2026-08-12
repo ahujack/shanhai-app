@@ -15,8 +15,19 @@ import AccuracyFeedback from '../../components/AccuracyFeedback';
 import ProofDemoSection from '../../components/ProofDemoSection';
 import EmailCaptureCard from '../../components/EmailCaptureCard';
 import ResultShareCard from '../../components/ResultShareCard';
+import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 import CompanionPresence from '../../components/CompanionPresence';
+import { buildFortuneShareLabel } from '../../src/utils/shareLabel';
+import {
+  buildFollowUpPrompt,
+  dismissTodayTip,
+  loadTodayTip,
+  markTodayTipFollowedUp,
+  saveTodayTip,
+  shouldShowFollowUp,
+  type TodayTipRecord,
+} from '../../src/utils/todayTipStorage';
 import { useI18nStore } from '../../src/store/i18n';
 import type { AppLanguage } from '../../src/i18n/translations';
 import { isMembershipActive } from '../../src/utils/membership';
@@ -71,6 +82,42 @@ export default function HomeScreen() {
       loadCheckInStatus();
     }
   }, [user?.id]);
+
+  // 次日「今日一招」回访
+  useEffect(() => {
+    let alive = true;
+    loadTodayTip().then((record) => {
+      if (!alive) return;
+      if (shouldShowFollowUp(record)) {
+        setFollowUpTip(record);
+        trackNamedEvent('home_followup_show', {
+          source: record?.source,
+          tipDate: record?.date,
+        });
+      } else {
+        setFollowUpTip(null);
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [messages.length]);
+
+  const handleFollowUpContinue = async () => {
+    if (!followUpTip) return;
+    const prompt = buildFollowUpPrompt(followUpTip);
+    trackNamedEvent('home_followup_continue', { source: followUpTip.source });
+    await markTodayTipFollowedUp();
+    setFollowUpTip(null);
+    await sendUserMessage(prompt, 'manual');
+  };
+
+  const handleFollowUpDismiss = async () => {
+    if (!followUpTip) return;
+    trackNamedEvent('home_followup_dismiss', { source: followUpTip.source });
+    await dismissTodayTip();
+    setFollowUpTip(null);
+  };
   
   const [inputText, setInputText] = useState('');
   const [showPersonaPicker, setShowPersonaPicker] = useState(false);
@@ -92,6 +139,7 @@ export default function HomeScreen() {
   const [detectedZi, setDetectedZi] = useState('');
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [followUpTip, setFollowUpTip] = useState<TodayTipRecord | null>(null);
   const [achievementUnlock, setAchievementUnlock] = useState<{ name: string; description: string; icon: string } | null>(null);
   const [lastCheckInPoints, setLastCheckInPoints] = useState(0);
   const quickStartPrompts = React.useMemo(
@@ -423,6 +471,17 @@ export default function HomeScreen() {
         drawCode: fortune.drawCode ?? null,
         rank: fortune.fortuneRank ?? null,
       });
+      const tip =
+        String(fortune.mission || '').trim() ||
+        String(fortune.funTip || '').trim() ||
+        String(fortune.advice?.[0] || '').trim();
+      if (tip) {
+        void saveTodayTip({
+          tip,
+          source: 'fortune',
+          headline: fortune.poem?.title || fortune.fortuneRank || '今日签',
+        });
+      }
     } catch (error) {
       showToast(t('home.toast.drawFailed', '抽签失败，请稍后重试'), 'error');
     } finally {
@@ -1034,9 +1093,12 @@ export default function HomeScreen() {
                   {t('home.welcome.hero', '最近卡住你的事是什么？')}
                 </Text>
                 <Text style={styles.welcomeHint}>
-                  {t('home.welcome.hint', '先说真实问题，云游子会帮你取字、起卦或看五行，不用自己选工具。')}
+                  {t(
+                    'home.welcome.hint',
+                    '直接说卡住你的事。云游子会自动选用测字、起卦或八字，并告诉你「这次为什么用这个」。不用先选工具。',
+                  )}
                 </Text>
-                <Text style={styles.suggestedTitle}>{t('home.quick.title', '直接点一个开始')}</Text>
+                <Text style={styles.suggestedTitle}>{t('home.quick.title', '或点一个场景直接开始')}</Text>
                 <View style={styles.suggestedChips}>
                   {visibleQuickStartPrompts.map((item) => (
                     <TouchableOpacity
@@ -1055,6 +1117,26 @@ export default function HomeScreen() {
               </View>
               <ProofDemoSection />
             </>
+          )}
+
+          {!!followUpTip && (
+            <DeliveryNextStepCard
+              title={t('home.followup.title', '昨天的今日一招')}
+              summary={
+                followUpTip.headline
+                  ? `${followUpTip.headline}\n${followUpTip.tip}`
+                  : followUpTip.tip
+              }
+              primary={{
+                label: t('home.followup.continue', '继续聊这招'),
+                onPress: () => void handleFollowUpContinue(),
+                disabled: isLoading,
+              }}
+              secondary={{
+                label: t('home.followup.dismiss', '先跳过'),
+                onPress: () => void handleFollowUpDismiss(),
+              }}
+            />
           )}
 
           {/* 聊天消息 */}
@@ -1366,6 +1448,12 @@ export default function HomeScreen() {
                         ? drawFortune.interpretation
                         : drawFortune.interpretation?.overall || drawFortune.socialLine || ''
                     }
+                    shareLabel={buildFortuneShareLabel({
+                      fortuneRank: drawFortune.fortuneRank,
+                      socialLine: drawFortune.socialLine,
+                      mission: drawFortune.mission,
+                      poemTitle: drawFortune.poem?.title,
+                    })}
                     badge={getFortuneGrade(drawFortune).label}
                     referralCode={user?.referralCode || (user?.id ?? null)}
                     requireLogin={false}
@@ -1647,6 +1735,21 @@ function ChatBubble({ message, userQuestionSeed, onRetry }: { message: ChatMessa
         Platform.OS === 'web' ? styles.bubbleWeb : styles.bubbleMobile,
         isUser ? styles.userBubble : styles.assistantBubble
       ]}>
+        {!isUser && message.intent && message.intent !== 'chat' ? (
+          <Text style={styles.intentRouteChip}>
+            {message.intent === 'zi'
+              ? '这次用【测字】'
+              : message.intent === 'divination'
+                ? '这次用【占卜】'
+                : message.intent === 'chart'
+                  ? '这次用【八字】'
+                  : message.intent === 'fortune'
+                    ? '这次用【今日签】'
+                    : message.intent === 'meditation'
+                      ? '这次用【静心】'
+                      : '这次我帮你选了工具'}
+          </Text>
+        ) : null}
         <Text style={[
           styles.bubbleText,
           isUser ? styles.userBubbleText : styles.assistantBubbleText
@@ -2476,6 +2579,14 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 3,
     borderWidth: 1,
     borderColor: 'rgba(214, 179, 106, 0.14)',
+  },
+  intentRouteChip: {
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+    color: '#D6B36A',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   bubbleText: {
     fontSize: 15,

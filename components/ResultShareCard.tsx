@@ -32,6 +32,8 @@ type Props = {
   kind: ResultShareKind;
   headline: string;
   summary: string;
+  /** 可截图式短标签，如「边界松的给予型」 */
+  shareLabel?: string;
   badge?: string;
   referralCode?: string | null;
   requireLogin?: boolean;
@@ -49,6 +51,7 @@ export default function ResultShareCard({
   kind,
   headline,
   summary,
+  shareLabel,
   badge,
   referralCode,
   requireLogin = false,
@@ -65,6 +68,7 @@ export default function ResultShareCard({
     language === 'en-US' ? en : language === 'zh-TW' ? tw : zh;
 
   const meta = KIND_META[kind];
+  const displayLabel = (shareLabel || '').trim().slice(0, 32);
   const displayHeadline = headline.trim() || tx('我刚做了一次解读', 'My reading result', '我剛做了一次解讀');
   const displaySummary = summary.trim().slice(0, 160);
   const inviteUrl = referralCode ? buildReferralUrl(referralCode) : 'https://www.shanhai.app';
@@ -88,8 +92,12 @@ export default function ResultShareCard({
     trackNamedEvent('result_share', {
       kind,
       hasReferral: !!referralCode,
+      hasLabel: !!displayLabel,
       platform: Platform.OS,
     });
+    if (displayLabel) {
+      trackNamedEvent('result_label_share', { kind, label: displayLabel.slice(0, 40) });
+    }
 
     try {
       if (canShareImage && shotRef.current?.capture) {
@@ -109,6 +117,7 @@ export default function ResultShareCard({
         kind,
         headline: displayHeadline,
         summary: displaySummary,
+        shareLabel: displayLabel,
         referralCode,
       });
 
@@ -147,6 +156,14 @@ export default function ResultShareCard({
               </View>
             </View>
           </View>
+
+          {!!displayLabel && (
+            <View style={styles.labelChip}>
+              <Text style={styles.labelChipText} numberOfLines={1}>
+                {displayLabel}
+              </Text>
+            </View>
+          )}
 
           <Text style={styles.headline} numberOfLines={2}>
             {displayHeadline}
@@ -253,6 +270,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     marginTop: 5,
+  },
+  labelChip: {
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(214, 179, 106, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.45)',
+  },
+  labelChipText: {
+    color: '#F5E6C8',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   companionMark: {
     width: 58,

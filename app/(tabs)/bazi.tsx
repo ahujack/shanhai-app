@@ -11,6 +11,8 @@ import { useI18nStore } from '../../src/store/i18n';
 import { normalizeBackendText } from '../../src/utils/backendText';
 import ResultShareCard from '../../components/ResultShareCard';
 import EmailCaptureCard from '../../components/EmailCaptureCard';
+import { buildBaziShareLabel } from '../../src/utils/shareLabel';
+import { saveTodayTip } from '../../src/utils/todayTipStorage';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 
 const colors = theme.dark;
@@ -502,6 +504,18 @@ export default function BaziScreen() {
     if (!highlightMaster || !annualSectionY) return;
     scrollRef.current?.scrollTo({ y: Math.max(annualSectionY - 24, 0), animated: true });
   }, [highlightMaster, annualSectionY]);
+
+  React.useEffect(() => {
+    const tip =
+      normalizeChartText(effectiveChart?.conclusion?.mindset).trim() ||
+      normalizeChartText(effectiveChart?.conclusion?.overall).trim();
+    if (!tip) return;
+    void saveTodayTip({
+      tip,
+      source: 'bazi',
+      headline: effectiveChart?.dayGanZhi ? `日柱 ${effectiveChart.dayGanZhi}` : '八字',
+    });
+  }, [effectiveChart?.dayGanZhi, effectiveChart?.conclusion?.overall, effectiveChart?.conclusion?.mindset, normalizeChartText]);
 
   const goBaziDeepChat = () => {
     const c = chart ?? guestChart;
@@ -1177,6 +1191,11 @@ export default function BaziScreen() {
         kind="bazi"
         headline={`${c.yearGanZhi} ${c.monthGanZhi} ${c.dayGanZhi} ${c.hourGanZhi}`}
         summary={normalizeChartText(c.conclusion?.overall) || normalizeChartText(c.conclusion?.mindset) || ''}
+        shareLabel={buildBaziShareLabel({
+          overall: normalizeChartText(c.conclusion?.overall),
+          mindset: normalizeChartText(c.conclusion?.mindset),
+          dayGanZhi: c.dayGanZhi,
+        })}
         badge={tx('八字命盘', 'Eastern Birth Chart', '八字命盤')}
         referralCode={user?.referralCode || (user?.id ?? null)}
       />
