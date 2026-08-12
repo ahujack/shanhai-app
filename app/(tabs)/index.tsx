@@ -66,7 +66,11 @@ export default function HomeScreen() {
   const router = useRouter();
   const screenWidth = Dimensions.get('window').width;
   const isCompactLayout = Platform.OS === 'web' || screenWidth < 560;
-  const params = useLocalSearchParams<{ skipZiNudgeUntil?: string }>();
+  const params = useLocalSearchParams<{
+    skipZiNudgeUntil?: string;
+    prefill?: string | string[];
+    from?: string | string[];
+  }>();
   const { active: persona, personas, setActive } = usePersonaStore();
   const t = useI18nStore((state) => state.t);
   const language = useI18nStore((state) => state.language);
@@ -82,6 +86,18 @@ export default function HomeScreen() {
       loadCheckInStatus();
     }
   }, [user?.id]);
+
+  // 从报告页等入口预填追问
+  useEffect(() => {
+    const raw = params.prefill;
+    const text = Array.isArray(raw) ? raw[0] : raw;
+    if (!text?.trim()) return;
+    setInputText(text.trim());
+    trackNamedEvent('home_prefill', {
+      from: Array.isArray(params.from) ? params.from[0] : params.from || null,
+      length: text.trim().length,
+    });
+  }, [params.prefill, params.from]);
 
   // 次日「今日一招」回访
   useEffect(() => {
@@ -1121,7 +1137,11 @@ export default function HomeScreen() {
 
           {!!followUpTip && (
             <DeliveryNextStepCard
-              title={t('home.followup.title', '昨天的今日一招')}
+              title={
+                followUpTip.source === 'report'
+                  ? t('home.followup.titleReport', '昨天的报告一招')
+                  : t('home.followup.title', '昨天的今日一招')
+              }
               summary={
                 followUpTip.headline
                   ? `${followUpTip.headline}\n${followUpTip.tip}`

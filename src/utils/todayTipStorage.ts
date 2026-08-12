@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type TodayTipSource = 'fortune' | 'reading' | 'zi' | 'bazi' | 'chat';
+export type TodayTipSource = 'fortune' | 'reading' | 'zi' | 'bazi' | 'chat' | 'report';
 
 export type TodayTipRecord = {
   date: string; // YYYY-MM-DD local
@@ -98,5 +98,8 @@ export async function dismissTodayTip(): Promise<void> {
 
 export function buildFollowUpPrompt(record: TodayTipRecord): string {
   const tip = record.tip;
+  if (record.source === 'report') {
+    return `昨天深度命运报告里给我的「本周一招」是：${tip}。我今天想继续聊聊：做了 / 没做 / 想换一招都可以，先帮我接住现状，再给下一步。`;
+  }
   return `昨天给我的「今日一招」是：${tip}。我今天想继续聊聊：做了 / 没做 / 想换一招都可以，先帮我接住现状，再给下一步。`;
 }

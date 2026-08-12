@@ -28,6 +28,8 @@ import {
   MembershipValueSnapshot,
   userApi,
   chartApi,
+  reportsApi,
+  type DestinyReport,
 } from '../../src/services/api';
 import { membershipExpiryDate, isMembershipActive } from '../../src/utils/membership';
 import { trackNamedEvent } from '../../src/services/analytics';
@@ -119,7 +121,7 @@ type TabType = 'subscription' | 'mall';
 export default function PointsMallScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ focus?: string; tab?: string }>();
+  const params = useLocalSearchParams<{ focus?: string; tab?: string; from?: string }>();
   const { user } = useUserStore();
   const t = useI18nStore((state) => state.t);
   const scrollRef = React.useRef<ScrollView>(null);
@@ -128,6 +130,7 @@ export default function PointsMallScreen() {
   const [subscriptionProducts, setSubscriptionProducts] = useState<PaymentProduct[]>([]);
   const [reportProducts, setReportProducts] = useState<PaymentProduct[]>([]);
   const [pointsProducts, setPointsProducts] = useState<PaymentProduct[]>([]);
+  const [ownedReport, setOwnedReport] = useState<DestinyReport | null>(null);
   const [reportSectionY, setReportSectionY] = useState(0);
   const [highlightReport, setHighlightReport] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -291,14 +294,16 @@ export default function PointsMallScreen() {
     const focusVip = params.focus === 'vip';
     const focusReport = params.focus === 'report';
     if (focusVip) {
-      trackNamedEvent('paywall_show', { source: 'points_focus_vip' });
+      trackNamedEvent('paywall_show', {
+        source: params.from === 'deep_report' ? 'deep_report_upgrade' : 'points_focus_vip',
+      });
     }
     if (focusReport) {
       trackNamedEvent('paywall_show', { source: 'points_focus_report' });
     }
     if (tab === 'mall') setActiveTab('mall');
     else if (tab === 'subscription' || focusVip || focusReport) setActiveTab('subscription');
-  }, [params.tab, params.focus]);
+  }, [params.tab, params.focus, params.from]);
 
   useEffect(() => {
     if (params.focus !== 'vip') return;
@@ -347,10 +352,15 @@ export default function PointsMallScreen() {
       setPointsSummary(pointsData);
       setBillingRules(rulesData);
       if (user?.id) {
-        const value = await pointsApi.getMembershipValue().catch(() => null);
+        const [value, latestReportResp] = await Promise.all([
+          pointsApi.getMembershipValue().catch(() => null),
+          reportsApi.getLatestDeepDestiny().catch(() => ({ report: null })),
+        ]);
         setMembershipValue(value);
+        setOwnedReport(latestReportResp.report || null);
       } else {
         setMembershipValue(null);
+        setOwnedReport(null);
       }
     } catch (error) {
       console.error('Failed to load products:', error);
@@ -737,10 +747,15 @@ export default function PointsMallScreen() {
               >
                 <Text style={styles.sectionTitle}>{t('points.section.report', '📜 深度命运报告')}</Text>
                 <Text style={styles.sectionSubtitle}>
-                  {t(
-                    'points.section.reportSub',
-                    '买的是一份可保存、可重开的专属报告；另赠 30 天 VIP 体验',
-                  )}
+                  {ownedReport
+                    ? t(
+                        'points.section.reportSubOwned',
+                        '你已拥有可重开的专属报告；需要时可再买一份新快照，或升级月卡持续追问。',
+                      )
+                    : t(
+                        'points.section.reportSub',
+                        '买的是一份可保存、可重开的专属报告；另赠 30 天 VIP 体验',
+                      )}
                 </Text>
                 {highlightReport ? (
                   <Text style={styles.focusTip}>
@@ -750,37 +765,88 @@ export default function PointsMallScreen() {
                     )}
                   </Text>
                 ) : null}
-                <TouchableOpacity
-                  style={styles.viewReportLink}
-                  onPress={() => router.push('/deep-destiny-report')}
-                >
-                  <Text style={styles.viewReportLinkText}>
-                    {t('points.report.viewMine', '查看我已购买的报告 →')}
-                  </Text>
-                </TouchableOpacity>
+
+                {ownedReport ? (
+                  <View style={styles.ownedReportCard}>
+                    <Text style={styles.ownedReportTitle}>
+                      {t('points.report.ownedTitle', '我的深度命运报告')}
+                    </Text>
+                    <Text style={styles.ownedReportMeta}>
+                      {ownedReport.status === 'ready'
+                        ? t('points.report.statusReady', '状态：可阅读')
+                        : ownedReport.status === 'awaiting_profile'
+                          ? t('points.report.statusAwaiting', '状态：待完善出生信息')
+                          : ownedReport.status === 'generating'
+                            ? t('points.report.statusGenerating', '状态：生成中')
+                            : t('points.report.statusOther', `状态：${ownedReport.status}`)}
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.subscribeButton, { marginTop: 12 }]}
+                      onPress={() => {
+                        trackNamedEvent('report_cta_click', {
+                          cta: 'open_owned_from_points',
+                          paymentId: ownedReport.paymentId,
+                          reportStatus: ownedReport.status,
+                        });
+                        router.push({
+                          pathname: '/deep-destiny-report',
+                          params: { paymentId: ownedReport.paymentId },
+                        });
+                      }}
+                    >
+                      <Text style={styles.subscribeButtonText}>
+                        {ownedReport.status === 'awaiting_profile'
+                          ? t('points.report.openAwaiting', '完善信息并生成报告')
+                          : t('points.report.openMine', '打开我的报告')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : user ? (
+                  <TouchableOpacity
+                    style={styles.viewReportLink}
+                    onPress={() => router.push('/deep-destiny-report')}
+                  >
+                    <Text style={styles.viewReportLinkText}>
+                      {t('points.report.viewMine', '查看我已购买的报告 →')}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+
                 {reportProducts.map((product) => {
                   const isPurchasing = purchasing === product.id;
                   const features = parseProductFeatures(product.features);
                   return (
                     <TouchableOpacity
                       key={product.id}
-                      style={[styles.vipProductCard, styles.recommendedCard]}
+                      style={[
+                        styles.vipProductCard,
+                        ownedReport ? undefined : styles.recommendedCard,
+                      ]}
                       onPress={() => handlePurchase(product)}
                       disabled={isPurchasingAny || !user}
                     >
                       <View style={styles.vipProductHeader}>
                         <View style={styles.vipProductNameWrap}>
                           <Text style={styles.vipProductName}>{product.name}</Text>
-                          <Text style={styles.recommendedTag}>{t('points.report.tag', '可交付报告')}</Text>
+                          <Text style={styles.recommendedTag}>
+                            {ownedReport
+                              ? t('points.report.tagAgain', '再买一份')
+                              : t('points.report.tag', '可交付报告')}
+                          </Text>
                         </View>
                         <Text style={styles.vipProductPrice}>${formatUsd(product.price)}</Text>
                       </View>
                       <Text style={styles.vipProductDesc}>{product.description}</Text>
                       <Text style={styles.planFitHint}>
-                        {t(
-                          'points.report.fit',
-                          '支付后生成 VIP 级八字报告快照，永久保存在「我的报告」；另赠 30 天 VIP。',
-                        )}
+                        {ownedReport
+                          ? t(
+                              'points.report.fitOwned',
+                              '已有报告可随时重开。再购将生成新的支付订单与快照（适合重大节点复盘）。',
+                            )
+                          : t(
+                              'points.report.fit',
+                              '支付后生成 VIP 级八字报告快照，永久保存在「我的报告」；另赠 30 天 VIP。',
+                            )}
                       </Text>
                       <View style={styles.featuresList}>
                         {features.map((feature: string, index: number) => (
@@ -804,7 +870,9 @@ export default function PointsMallScreen() {
                           <Text style={styles.subscribeButtonText}>
                             {!user
                               ? t('common.loginFirst', '请先登录')
-                              : t('points.report.buy', '购买并生成报告')}
+                              : ownedReport
+                                ? t('points.report.buyAgain', '再购一份新报告')
+                                : t('points.report.buy', '购买并生成报告')}
                           </Text>
                         )}
                       </TouchableOpacity>
@@ -1429,6 +1497,25 @@ const styles = StyleSheet.create({
     color: ui.primary,
     fontSize: 13,
     fontWeight: '600',
+  },
+  ownedReportCard: {
+    marginBottom: 14,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.4)',
+    backgroundColor: 'rgba(214, 179, 106, 0.08)',
+  },
+  ownedReportTitle: {
+    color: ui.gold,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  ownedReportMeta: {
+    color: ui.textSub,
+    fontSize: 13,
+    lineHeight: 20,
   },
   decisionCard: {
     marginBottom: 12,

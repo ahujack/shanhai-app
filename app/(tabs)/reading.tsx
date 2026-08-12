@@ -90,8 +90,8 @@ export default function ReadingScreen() {
   };
 
   useEffect(() => {
-    if (!fromFortune) return;
-    if (!question && suggestedQuestion) {
+    if (!suggestedQuestion) return;
+    if (!question) {
       setQuestion(suggestedQuestion);
     }
     if (suggestedCategory) {
