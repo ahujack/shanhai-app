@@ -1,6 +1,4 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, useColorScheme, View, ActivityIndicator } from 'react-native';
@@ -20,29 +18,14 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  // 不再阻塞等 SpaceMono/FontAwesome：Web 上字体下载会拖慢首屏。
+  // Ionicons 由各页按需加载，系统字体先渲染即可。
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
+    void SplashScreen.hideAsync();
+  }, []);
 
   return <RootLayoutNav />;
 }
@@ -57,15 +40,30 @@ function RootLayoutNav() {
   const authPromptLockRef = useRef(false);
 
   useEffect(() => {
-    // 延迟一下让 Zustand 初始化完成，然后加载用户
-    const init = async () => {
-      await loadLanguage();
-      await captureReferralFromUrl();
-      // 加载用户信息（从 localStorage 恢复登录状态）
-      await loadUser();
-      setIsReady(true);
+    let cancelled = false;
+    const INIT_BUDGET_MS = 600;
+
+    const finish = () => {
+      if (!cancelled) setIsReady(true);
     };
+
+    const init = async () => {
+      try {
+        await Promise.all([loadLanguage(), captureReferralFromUrl(), loadUser()]);
+      } catch {
+        // 初始化失败也不挡首屏
+      } finally {
+        finish();
+      }
+    };
+
     init();
+    // 超时强制进入，避免慢存储/慢网络把首屏卡死
+    const timer = setTimeout(finish, INIT_BUDGET_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [loadLanguage, loadUser]);
 
   useEffect(() => {
@@ -116,33 +114,33 @@ function RootLayoutNav() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         {/* 所有页面都可以访问，登录是可选的 */}
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ 
+        <Stack.Screen
+          name="(tabs)"
+          options={{
             headerShown: false,
-          }} 
+          }}
         />
-        <Stack.Screen 
-          name="login" 
-          options={{ 
+        <Stack.Screen
+          name="login"
+          options={{
             headerShown: false,
-            presentation: 'modal'
-          }} 
+            presentation: 'modal',
+          }}
         />
-        <Stack.Screen 
-          name="register" 
-          options={{ 
+        <Stack.Screen
+          name="register"
+          options={{
             headerShown: false,
-            presentation: 'modal'
-          }} 
+            presentation: 'modal',
+          }}
         />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        <Stack.Screen 
-          name="oauth/google" 
-          options={{ 
+        <Stack.Screen
+          name="oauth/google"
+          options={{
             headerShown: false,
-            presentation: 'modal'
-          }} 
+            presentation: 'modal',
+          }}
         />
       </Stack>
     </ThemeProvider>
