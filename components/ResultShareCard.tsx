@@ -51,7 +51,7 @@ export default function ResultShareCard({
   summary,
   badge,
   referralCode,
-  requireLogin = true,
+  requireLogin = false,
   disabled = false,
 }: Props) {
   const router = useRouter();
@@ -167,8 +167,16 @@ export default function ResultShareCard({
                 </Text>
               </>
             ) : (
-              <Text style={styles.inviteHint}>{inviteUrl.replace('https://', '')}</Text>
+              <Text style={styles.inviteHint}>
+                {tx('打开链接即可体验', 'Open the link to try', '打開連結即可體驗')}
+              </Text>
             )}
+            <Text style={styles.brandUrl} numberOfLines={1}>
+              {inviteUrl.replace(/^https?:\/\//, '')}
+            </Text>
+            <Text style={styles.watermark}>
+              {tx('山海灵境 · shanhai.app', 'Shanhai Realm · shanhai.app', '山海靈境 · shanhai.app')}
+            </Text>
             <Text style={styles.disclaimer}>
               {tx('仅供娱乐参考', 'For entertainment only', '僅供娛樂參考')}
             </Text>
@@ -309,6 +317,19 @@ const styles = StyleSheet.create({
   inviteHint: {
     color: 'rgba(232, 236, 243, 0.7)',
     fontSize: 12,
+  },
+  brandUrl: {
+    marginTop: 8,
+    color: colors.tabIconSelected,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  watermark: {
+    marginTop: 4,
+    color: 'rgba(214, 179, 106, 0.55)',
+    fontSize: 11,
+    fontWeight: '600',
   },
   disclaimer: {
     marginTop: 10,

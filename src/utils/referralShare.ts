@@ -95,13 +95,13 @@ export function buildResultShareCopy(params: {
         safeHeadline ? `📌 Main takeaway: ${safeHeadline}` : '',
         safeSummary ? `💬 Note: ${safeSummary}` : '',
         referralCode ? `\nInvite code: ${referralCode}` : '',
-        inviteLine,
+        referralCode ? inviteLine : 'Try the Eastern oracle AI yourself.',
         `\nTry it here: ${url}`,
-        '\nFor entertainment and self-reflection only.',
+        '\nFor entertainment and self-reflection only. — shanhai.app',
       ]
         .filter(Boolean)
         .join('\n'),
-      cta: inviteLine,
+      cta: referralCode ? inviteLine : 'Try it on shanhai.app',
     };
   }
 
@@ -112,7 +112,10 @@ export function buildResultShareCopy(params: {
   const resultLabel = language === 'zh-TW' ? '📌 主要提醒：' : '📌 主要提醒：';
   const summaryLabel = language === 'zh-TW' ? '💬 其中一句：' : '💬 其中一句：';
   const tryLabel = language === 'zh-TW' ? '立即體驗：' : '立即体验：';
-  const disclaimer = language === 'zh-TW' ? '僅供娛樂參考，不構成專業建議。' : '仅供娱乐参考，不构成专业建议。';
+  const disclaimer = language === 'zh-TW'
+    ? '僅供娛樂參考，不構成專業建議。— shanhai.app'
+    : '仅供娱乐参考，不构成专业建议。— shanhai.app';
+  const guestCta = language === 'zh-TW' ? '你也可以打開連結自己試一次。' : '你也可以打开链接自己试一次。';
   return {
     title: brand,
     body: [
@@ -120,13 +123,13 @@ export function buildResultShareCopy(params: {
       safeHeadline ? `${resultLabel}${safeHeadline}` : '',
       safeSummary ? `${summaryLabel}${safeSummary}` : '',
       referralCode ? `\n邀请码：${referralCode}` : '',
-      inviteLine,
+      referralCode ? inviteLine : guestCta,
       `\n${tryLabel}${url}`,
       `\n${disclaimer}`,
     ]
       .filter(Boolean)
       .join('\n'),
-    cta: inviteLine,
+    cta: referralCode ? inviteLine : guestCta,
   };
 }
 

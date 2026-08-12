@@ -126,7 +126,10 @@ export default function PointsMallScreen() {
 
   const [activeTab, setActiveTab] = useState<TabType>('subscription');
   const [subscriptionProducts, setSubscriptionProducts] = useState<PaymentProduct[]>([]);
+  const [reportProducts, setReportProducts] = useState<PaymentProduct[]>([]);
   const [pointsProducts, setPointsProducts] = useState<PaymentProduct[]>([]);
+  const [reportSectionY, setReportSectionY] = useState(0);
+  const [highlightReport, setHighlightReport] = useState(false);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [creemConfigured, setCreemConfigured] = useState<boolean | null>(null);
@@ -191,8 +194,16 @@ export default function PointsMallScreen() {
             paymentId,
           });
           await refreshMembershipAndChart();
-          if (paymentStatus.productType === 'subscription') {
-            Alert.alert(t('common.payment.success', '支付成功'), t('points.alert.vip.arrived', '会员权益已到账，八字高级解读已解锁。'));
+          if (
+            paymentStatus.productType === 'subscription' ||
+            paymentStatus.productType === 'one_time'
+          ) {
+            Alert.alert(
+              t('common.payment.success', '支付成功'),
+              paymentStatus.productType === 'one_time'
+                ? t('points.alert.report.arrived', '深度命运报告权益已到账，已开通 30 天 VIP。')
+                : t('points.alert.vip.arrived', '会员权益已到账，八字高级解读已解锁。'),
+            );
             router.push({
               pathname: '/(tabs)/bazi',
               params: { highlight: 'master', fromPayment: '1' },
@@ -265,11 +276,15 @@ export default function PointsMallScreen() {
   useEffect(() => {
     const tab = params.tab as TabType | undefined;
     const focusVip = params.focus === 'vip';
+    const focusReport = params.focus === 'report';
     if (focusVip) {
       trackNamedEvent('paywall_show', { source: 'points_focus_vip' });
     }
+    if (focusReport) {
+      trackNamedEvent('paywall_show', { source: 'points_focus_report' });
+    }
     if (tab === 'mall') setActiveTab('mall');
-    else if (tab === 'subscription' || focusVip) setActiveTab('subscription');
+    else if (tab === 'subscription' || focusVip || focusReport) setActiveTab('subscription');
   }, [params.tab, params.focus]);
 
   useEffect(() => {
@@ -280,9 +295,21 @@ export default function PointsMallScreen() {
   }, [params.focus]);
 
   useEffect(() => {
+    if (params.focus !== 'report') return;
+    setHighlightReport(true);
+    const timer = setTimeout(() => setHighlightReport(false), 8000);
+    return () => clearTimeout(timer);
+  }, [params.focus]);
+
+  useEffect(() => {
     if (!highlightVip || !vipSectionY) return;
     scrollRef.current?.scrollTo({ y: Math.max(vipSectionY - 20, 0), animated: true });
   }, [highlightVip, vipSectionY]);
+
+  useEffect(() => {
+    if (!highlightReport || !reportSectionY) return;
+    scrollRef.current?.scrollTo({ y: Math.max(reportSectionY - 20, 0), animated: true });
+  }, [highlightReport, reportSectionY]);
 
   const loadProducts = async () => {
     try {
@@ -295,6 +322,11 @@ export default function PointsMallScreen() {
         pointsApi.getRules().catch(() => null),
       ]);
       setSubscriptionProducts(productsData.filter((p: PaymentProduct) => p.type === 'subscription'));
+      setReportProducts(
+        productsData.filter(
+          (p: PaymentProduct) => p.type === 'one_time' && p.code === 'deep_destiny_report',
+        ),
+      );
       setPointsProducts(productsData.filter((p: PaymentProduct) => p.type === 'points'));
       const paymentStatus = statusData as { creemConfigured?: boolean; stripeConfigured?: boolean };
       const paymentConfigured = paymentStatus.creemConfigured ?? paymentStatus.stripeConfigured;
@@ -346,7 +378,7 @@ export default function PointsMallScreen() {
       const result: CheckoutResult = await paymentApi.createCheckout(product.id);
       
       if (result.mock) {
-        const isSubscription = product.type === 'subscription';
+        const unlocksVip = product.type === 'subscription' || product.code === 'deep_destiny_report';
         Alert.alert(
           t('points.mock.title', '测试模式'),
           `Creem 未配置，这是一个模拟支付。\n\n产品: ${product.name}\n价格: $${formatUsd(product.price)}`,
@@ -364,8 +396,13 @@ export default function PointsMallScreen() {
                     paymentId: result.paymentId,
                   });
                   await refreshMembershipAndChart();
-                  if (isSubscription) {
-                    Alert.alert(t('common.success', '成功'), t('points.alert.vip.opened', 'VIP会员已开通！'));
+                  if (unlocksVip) {
+                    Alert.alert(
+                      t('common.success', '成功'),
+                      product.code === 'deep_destiny_report'
+                        ? t('points.alert.report.opened', '深度命运报告权益已开通（含 30 天 VIP）！')
+                        : t('points.alert.vip.opened', 'VIP会员已开通！'),
+                    );
                     router.push({
                       pathname: '/(tabs)/bazi',
                       params: { highlight: 'master', fromPayment: '1' },
@@ -669,6 +706,82 @@ export default function PointsMallScreen() {
               })
               )}
             </View>
+
+            {reportProducts.length > 0 ? (
+              <View
+                style={[styles.section, highlightReport ? styles.vipSectionHighlight : undefined]}
+                onLayout={(event) => setReportSectionY(event.nativeEvent.layout.y)}
+              >
+                <Text style={styles.sectionTitle}>{t('points.section.report', '📜 深度命运报告')}</Text>
+                <Text style={styles.sectionSubtitle}>
+                  {t('points.section.reportSub', '一次性高客单：先看透一次，再决定是否长期订阅')}
+                </Text>
+                {highlightReport ? (
+                  <Text style={styles.focusTip}>
+                    {t('points.focus.report', '推荐：适合想先做一次深度八字/命运解读的用户')}
+                  </Text>
+                ) : null}
+                {reportProducts.map((product) => {
+                  const isPurchasing = purchasing === product.id;
+                  const features = parseProductFeatures(product.features);
+                  return (
+                    <TouchableOpacity
+                      key={product.id}
+                      style={[styles.vipProductCard, styles.recommendedCard]}
+                      onPress={() => handlePurchase(product)}
+                      disabled={isPurchasingAny || !user}
+                    >
+                      <View style={styles.vipProductHeader}>
+                        <View style={styles.vipProductNameWrap}>
+                          <Text style={styles.vipProductName}>{product.name}</Text>
+                          <Text style={styles.recommendedTag}>{t('points.report.tag', '一次看透')}</Text>
+                        </View>
+                        <Text style={styles.vipProductPrice}>${formatUsd(product.price)}</Text>
+                      </View>
+                      <Text style={styles.vipProductDesc}>{product.description}</Text>
+                      <Text style={styles.planFitHint}>
+                        {t(
+                          'points.report.fit',
+                          '买断式入口：含 30 天 VIP，可立刻做八字老师傅批注与深度解签。',
+                        )}
+                      </Text>
+                      <View style={styles.featuresList}>
+                        {features.map((feature: string, index: number) => (
+                          <View key={index} style={styles.featureItem}>
+                            <Text style={styles.featureIcon}>✓</Text>
+                            <Text style={styles.featureText}>{feature}</Text>
+                          </View>
+                        ))}
+                      </View>
+                      <TouchableOpacity
+                        style={[
+                          styles.subscribeButton,
+                          (isPurchasingAny || !user) && styles.subscribeButtonDisabled,
+                        ]}
+                        onPress={() => handlePurchase(product)}
+                        disabled={isPurchasingAny || !user}
+                      >
+                        {isPurchasing ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <Text style={styles.subscribeButtonText}>
+                            {!user
+                              ? t('common.loginFirst', '请先登录')
+                              : t('points.report.buy', '购买深度报告')}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                      <Text style={styles.checkoutTrustText}>
+                        {t(
+                          'points.trust.report',
+                          '一次性商品；支付后开通 30 天 VIP。异常可携订单号联系 support@shanhai.app',
+                        )}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
           </>
         ) : (
           <>

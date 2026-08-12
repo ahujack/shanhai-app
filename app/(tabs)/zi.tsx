@@ -21,6 +21,7 @@ import { ziApi, ZiResult, handwritingApi, pointsApi } from '../../src/services/a
 import { trackFeature } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import ResultShareCard from '../../components/ResultShareCard';
+import EmailCaptureCard from '../../components/EmailCaptureCard';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import CompanionPresence from '../../components/CompanionPresence';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
@@ -1761,6 +1762,18 @@ export default function ZiScreen() {
                 summary={buildZiShareSummary(result)}
                 badge={ziTierLabel}
                 referralCode={user?.referralCode || (user?.id ?? null)}
+              />
+            )}
+
+            {!isPreviewStage && !isVip && (
+              <EmailCaptureCard
+                source="zi_result"
+                title={tx('把测字完整版发到邮箱', 'Email me the full reading', '把測字完整版發到郵箱')}
+                subtitle={tx(
+                  'Web 没有推送。留下邮箱，我们会把完整摘要发到你的收件箱（可随时退订）。',
+                  'No push on web. Leave your email for the full summary (unsubscribe anytime).',
+                  'Web 沒有推送。留下郵箱，我們會把完整摘要發到你的收件箱（可隨時退訂）。',
+                )}
               />
             )}
 

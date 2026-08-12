@@ -1342,6 +1342,10 @@ export default function ProfileScreen() {
 
       {/* 法律与合规（Creem 等支付审核需站内可访问链接 + 明码标价 + 客服邮箱） */}
       <View style={styles.legalLinks}>
+        <TouchableOpacity onPress={() => router.push('/about')}>
+          <Text style={styles.legalLinkText}>{t('common.about', '关于')}</Text>
+        </TouchableOpacity>
+        <Text style={styles.legalSeparator}>|</Text>
         <TouchableOpacity onPress={() => router.push('/privacy')}>
           <Text style={styles.legalLinkText}>{t('common.privacy', '隐私政策')}</Text>
         </TouchableOpacity>

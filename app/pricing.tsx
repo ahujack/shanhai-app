@@ -35,6 +35,7 @@ export default function PricingScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [subs, setSubs] = useState<PaymentProduct[]>([]);
+  const [reports, setReports] = useState<PaymentProduct[]>([]);
   const [points, setPoints] = useState<PaymentProduct[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [growthConfig, setGrowthConfig] = useState<GrowthConfig | null>(null);
@@ -46,6 +47,7 @@ export default function PricingScreen() {
     try {
       const list = await paymentApi.getProducts();
       setSubs(list.filter((p) => p.type === 'subscription' && p.isActive));
+      setReports(list.filter((p) => p.type === 'one_time' && p.isActive));
       setPoints(list.filter((p) => p.type === 'points' && p.isActive));
     } catch {
       setError(t('pricing.error.load', '暂时无法加载价格，请稍后重试或联系客服。'));
@@ -62,6 +64,7 @@ export default function PricingScreen() {
         const list = await paymentApi.getProducts();
         if (cancelled) return;
         setSubs(list.filter((p) => p.type === 'subscription' && p.isActive));
+        setReports(list.filter((p) => p.type === 'one_time' && p.isActive));
         setPoints(list.filter((p) => p.type === 'points' && p.isActive));
       } catch {
         if (!cancelled) setError(t('pricing.error.load', '暂时无法加载价格，请稍后重试或联系客服。'));
@@ -89,6 +92,9 @@ export default function PricingScreen() {
   const describeProduct = (p: PaymentProduct) => {
     if (p.type === 'subscription' && p.periodDays) {
       return `订阅周期 ${p.periodDays} 天，含会员权益说明见应用内「灵石」页。`;
+    }
+    if (p.type === 'one_time') {
+      return `一次性商品；${p.periodDays ? `含 ${p.periodDays} 天 VIP 体验，` : ''}可在「灵石」页购买。`;
     }
     if (p.type === 'points' && p.points) {
       return `购买后可获得 ${p.points} 积分，用于测字、占卜等消耗。`;
@@ -166,6 +172,22 @@ export default function PricingScreen() {
                 </View>
               ))
             )}
+
+            {reports.length > 0 ? (
+              <>
+                <Text style={styles.sectionTitle}>{t('pricing.section.report', '深度命运报告')}</Text>
+                {reports.map((p) => (
+                  <View key={p.id} style={styles.card}>
+                    <View style={styles.cardHead}>
+                      <Text style={styles.cardName}>{p.name}</Text>
+                      <Text style={styles.cardPrice}>{formatPrice(p)}</Text>
+                    </View>
+                    {p.description ? <Text style={styles.cardDesc}>{p.description}</Text> : null}
+                    <Text style={styles.cardMeta}>{describeProduct(p)}</Text>
+                  </View>
+                ))}
+              </>
+            ) : null}
 
             <Text style={styles.sectionTitle}>{t('pricing.section.points', '积分充值')}</Text>
             {points.length === 0 ? (

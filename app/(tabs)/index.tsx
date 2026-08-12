@@ -12,6 +12,9 @@ import { agentApi, fortuneApi, FortuneSlip } from '../../src/services/api';
 import { trackFeature, trackNamedEvent } from '../../src/services/analytics';
 import PersonaPicker from '../../components/PersonaPicker';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
+import ProofDemoSection from '../../components/ProofDemoSection';
+import EmailCaptureCard from '../../components/EmailCaptureCard';
+import ResultShareCard from '../../components/ResultShareCard';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 import CompanionPresence from '../../components/CompanionPresence';
 import { useI18nStore } from '../../src/store/i18n';
@@ -1050,6 +1053,7 @@ export default function HomeScreen() {
                   ))}
                 </View>
               </View>
+              <ProofDemoSection />
             </>
           )}
 
@@ -1353,6 +1357,25 @@ export default function HomeScreen() {
                   )}
                   {!user?.id && (
                     <Text style={styles.guestHint}>登录后可保存抽签记录、查看历史</Text>
+                  )}
+                  <ResultShareCard
+                    kind="fortune"
+                    headline={drawFortune.poem.title}
+                    summary={
+                      typeof drawFortune.interpretation === 'string'
+                        ? drawFortune.interpretation
+                        : drawFortune.interpretation?.overall || drawFortune.socialLine || ''
+                    }
+                    badge={getFortuneGrade(drawFortune).label}
+                    referralCode={user?.referralCode || (user?.id ?? null)}
+                    requireLogin={false}
+                  />
+                  {!isVip && (
+                    <EmailCaptureCard
+                      source="fortune_draw"
+                      title="把今日签完整版发到邮箱"
+                      subtitle="Web 没有推送。留下邮箱，收到今日签摘要与明日提醒（可随时退订）。"
+                    />
                   )}
                   <AccuracyFeedback
                     category="fortune_draw"

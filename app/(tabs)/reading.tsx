@@ -7,6 +7,7 @@ import { readingApi, CreateReadingDto, DivinationResult, pointsApi } from '../..
 import { trackFeature, trackNamedEvent } from '../../src/services/analytics';
 import AccuracyFeedback from '../../components/AccuracyFeedback';
 import ResultShareCard from '../../components/ResultShareCard';
+import EmailCaptureCard from '../../components/EmailCaptureCard';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
@@ -640,6 +641,17 @@ export default function ReadingScreen() {
           badge={readingTierLabel}
           referralCode={user?.referralCode || (user?.id ?? null)}
         />
+
+        {!isVip && (
+          <EmailCaptureCard
+            source="reading_result"
+            title={t('emailCapture.reading.title', '把占卜完整版发到邮箱')}
+            subtitle={t(
+              'emailCapture.reading.sub',
+              'Web 没有推送。留下邮箱，收到完整摘要与行动清单（可随时退订）。',
+            )}
+          />
+        )}
 
         <AccuracyFeedback
           category="divination_reading"

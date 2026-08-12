@@ -1146,7 +1146,7 @@ export interface PaymentProduct {
   code: string;
   name: string;
   description: string | null;
-  type: 'points' | 'subscription';
+  type: 'points' | 'subscription' | 'one_time';
   price: number;
   points: number;
   periodDays: number | null;
@@ -1183,7 +1183,7 @@ export interface CheckoutResult {
 export interface PaymentStatusResult {
   paymentId: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
-  productType: 'points' | 'subscription';
+  productType: 'points' | 'subscription' | 'one_time';
   membership: 'free' | 'premium' | 'vip';
   membershipExpiryAt?: string | null;
   completedAt: string | null;
@@ -1246,6 +1246,12 @@ export const analyticsApi = {
     context?: Record<string, unknown>;
   }) =>
     request<{ success: boolean }>('/analytics/feedback', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  subscribeEmailLead: (body: { email: string; source?: string }) =>
+    request<{ success: boolean }>('/analytics/email-lead', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

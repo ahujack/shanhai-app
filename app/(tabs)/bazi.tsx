@@ -10,6 +10,7 @@ import { userApi, chartApi, BaziChart } from '../../src/services/api';
 import { useI18nStore } from '../../src/store/i18n';
 import { normalizeBackendText } from '../../src/utils/backendText';
 import ResultShareCard from '../../components/ResultShareCard';
+import EmailCaptureCard from '../../components/EmailCaptureCard';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 
 const colors = theme.dark;
@@ -1179,6 +1180,18 @@ export default function BaziScreen() {
         badge={tx('八字命盘', 'Eastern Birth Chart', '八字命盤')}
         referralCode={user?.referralCode || (user?.id ?? null)}
       />
+
+      {userAccessTier !== 'vip' && (
+        <EmailCaptureCard
+          source="bazi_result"
+          title={tx('把命盘深度摘要发到邮箱', 'Email me the chart summary', '把命盤深度摘要發到郵箱')}
+          subtitle={tx(
+            'Web 没有推送。留下邮箱，收到命盘重点与下一步建议（可随时退订）。',
+            'No push on web. Leave your email for chart highlights (unsubscribe anytime).',
+            'Web 沒有推送。留下郵箱，收到命盤重點與下一步建議（可隨時退訂）。',
+          )}
+        />
+      )}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>{tx('四柱八字', 'Four Pillars', '四柱八字')}</Text>

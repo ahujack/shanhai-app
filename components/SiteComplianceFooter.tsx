@@ -32,7 +32,7 @@ export function SiteComplianceFooter({ variant = 'compact' }: Props) {
     href,
   }: {
     label: string;
-    href: '/privacy' | '/terms' | '/pricing' | '/faq' | '/tools';
+    href: '/privacy' | '/terms' | '/pricing' | '/faq' | '/tools' | '/about';
   }) => (
     <Pressable
       onPress={() => router.push(href)}
@@ -55,6 +55,8 @@ export function SiteComplianceFooter({ variant = 'compact' }: Props) {
       ]}
     >
       <View style={[styles.row, isDock && styles.rowDock]}>
+        <FooterLink label={t('common.about', '关于')} href="/about" />
+        <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
         <FooterLink label={t('common.privacy', '隐私政策')} href="/privacy" />
         <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
         <FooterLink label={t('common.terms', '服务条款')} href="/terms" />

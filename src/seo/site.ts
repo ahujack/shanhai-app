@@ -54,6 +54,13 @@ export const STATIC_PAGE_SEO = {
     keywords: '山海灵境服务条款, terms of service, 免责声明',
     canonical: `${SEO_SITE.url}/terms`,
   },
+  about: {
+    title: '关于山海灵境 | 东方玄学AI陪伴与信任说明',
+    description:
+      '了解山海灵境：我们如何用八字、测字与易经式指引帮你反思决策；隐私、支付与客服承诺。解读仅供娱乐与自我反思。',
+    keywords: '关于山海灵境, about shanhai realm, 东方玄学AI, 信任与安全',
+    canonical: `${SEO_SITE.url}/about`,
+  },
 } as const satisfies Record<string, SeoMeta>;
 
 /** FAQ schema for /faq — bilingual for richer search snippets. */
