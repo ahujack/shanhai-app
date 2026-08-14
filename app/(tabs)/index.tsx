@@ -1104,14 +1104,17 @@ export default function HomeScreen() {
                     line={localizedPersona.greeting}
                   />
                 </TouchableOpacity>
-                <Text style={styles.welcomeTag}>{t('home.welcome.tag', '中国传统玄学 AI 陪伴')}</Text>
+                <Text style={styles.welcomeTag}>{t('home.welcome.tag', '东方决策陪伴')}</Text>
+                <Text style={styles.welcomeSlogan}>
+                  {t('home.welcome.slogan', '不是判决，是下一步的坐标。')}
+                </Text>
                 <Text style={styles.welcomeText}>
                   {t('home.welcome.hero', '最近卡住你的事是什么？')}
                 </Text>
                 <Text style={styles.welcomeHint}>
                   {t(
                     'home.welcome.hint',
-                    '直接说卡住你的事。云游子会自动选用测字、起卦或八字，并告诉你「这次为什么用这个」。不用先选工具。',
+                    '带一个问题来，带走清晰的下一步。云游子会自动选用测字、起卦或八字，并告诉你「这次为什么用这个」。',
                   )}
                 </Text>
                 <Text style={styles.suggestedTitle}>{t('home.quick.title', '或点一个场景直接开始')}</Text>
@@ -2429,6 +2432,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 8,
     letterSpacing: 1.4,
+  },
+  welcomeSlogan: {
+    alignSelf: 'center',
+    color: 'rgba(214, 179, 106, 0.9)',
+    fontSize: 13,
+    fontStyle: 'italic',
+    letterSpacing: 0.6,
+    marginBottom: 10,
+    textAlign: 'center',
   },
   welcomeText: {
     fontSize: 24,

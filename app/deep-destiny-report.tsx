@@ -19,8 +19,11 @@ import { useUserStore } from '../src/store/user';
 import { useI18nStore } from '../src/store/i18n';
 import { trackNamedEvent } from '../src/services/analytics';
 import { saveTodayTip } from '../src/utils/todayTipStorage';
+import { buildReportShareLabel } from '../src/utils/shareLabel';
 import DeliveryNextStepCard from '../components/DeliveryNextStepCard';
 import EmailCaptureCard from '../components/EmailCaptureCard';
+import ResultShareCard from '../components/ResultShareCard';
+import TrustStrip from '../components/TrustStrip';
 
 const ui = {
   bg: '#0B0D14',
@@ -268,9 +271,10 @@ export default function DeepDestinyReportScreen() {
         <Text style={styles.lead}>
           {t(
             'report.lead',
-            '这是一份可保存、可反复打开的专属解读快照，不是临时会员开关。',
+            '不是判决，是下一步的坐标。这是一份可保存、可反复打开的专属解读快照。',
           )}
         </Text>
+        <TrustStrip compact />
 
         {loading ? (
           <View style={styles.centerBox}>
@@ -508,6 +512,24 @@ export default function DeepDestinyReportScreen() {
                 ) : null}
               </>
             ) : null}
+
+            <ResultShareCard
+              kind="report"
+              headline={
+                payload.conclusion?.overall ||
+                t('report.share.headline', '我的深度命运报告')
+              }
+              summary={weeklyAction}
+              shareLabel={buildReportShareLabel({
+                yearFocus: yearFocus
+                  ? `${yearFocus.year || ''} ${yearFocus.tenGod || yearFocus.hint || ''}`.trim()
+                  : '',
+                weeklyAction,
+                overall: payload.conclusion?.overall,
+              })}
+              badge={t('report.share.badge', '深度命运报告')}
+              referralCode={user?.referralCode || (user?.id ?? null)}
+            />
 
             <EmailCaptureCard
               source="deep_report"

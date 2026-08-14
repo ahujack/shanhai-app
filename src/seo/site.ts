@@ -19,7 +19,7 @@ export type SeoMeta = {
 export const HOME_SEO: SeoMeta = {
   title: '山海灵境 | AI八字排盘·测字·易经占卜·每日运势 Shanhai Realm',
   description:
-    '山海灵境 Shanhai Realm：在线AI八字排盘、测字占卜、易经/六爻解读与每日灵签。用东方符号系统帮你梳理感情、事业与时机选择。仅供娱乐与自我反思。',
+    '山海灵境 Shanhai Realm：不是判决，是下一步的坐标。在线AI八字排盘、测字、易经解读与可保存的深度命运报告。用东方符号系统帮你梳理感情、事业与时机。仅供娱乐与自我反思。',
   keywords:
     '山海灵境, AI八字, 八字排盘, 在线八字, AI测字, 测字占卜, 易经占卜, 六爻, 每日运势, AI算命, bazi calculator, chinese character divination, i ching, shanhai realm',
   canonical: SEO_SITE.url,
@@ -57,7 +57,7 @@ export const STATIC_PAGE_SEO = {
   about: {
     title: '关于山海灵境 | 东方玄学AI陪伴与信任说明',
     description:
-      '了解山海灵境：我们如何用八字、测字与易经式指引帮你反思决策；隐私、支付与客服承诺。解读仅供娱乐与自我反思。',
+      '了解山海灵境：不是判决，是下一步的坐标。深度命运报告为独立快照；隐私、支付与客服承诺。解读仅供娱乐与自我反思。',
     keywords: '关于山海灵境, about shanhai realm, 东方玄学AI, 信任与安全',
     canonical: `${SEO_SITE.url}/about`,
   },
@@ -88,7 +88,7 @@ export const FAQ_SCHEMA_ITEMS = [
   {
     question: '我的数据安全吗？Is my data secure?',
     answer:
-      '我们使用加密与访问控制保护数据，不会出售个人信息。详见隐私政策。We do not sell personal information — see Privacy Policy.',
+      '我们使用加密与访问控制保护数据，不会出售个人信息。付费命运报告以独立快照保存，不随聊天讨好漂移。详见隐私政策。Paid destiny reports are independent snapshots. We do not sell personal information.',
   },
 ] as const;
 

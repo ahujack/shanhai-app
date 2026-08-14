@@ -52,6 +52,16 @@ export function buildReadingShareLabel(input: {
   return truncateShareLabel(input.nextStep || '', 28);
 }
 
+export function buildReportShareLabel(input: {
+  yearFocus?: string | null;
+  weeklyAction?: string | null;
+  overall?: string | null;
+}): string {
+  if (input.yearFocus) return truncateShareLabel(input.yearFocus, 28);
+  if (input.weeklyAction) return truncateShareLabel(`本周一招：${input.weeklyAction}`, 28);
+  return truncateShareLabel(input.overall || '', 28);
+}
+
 export function buildBaziShareLabel(input: {
   overall?: string | null;
   mindset?: string | null;

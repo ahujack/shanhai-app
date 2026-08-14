@@ -38,6 +38,13 @@ export default function PrivacyPolicyScreen() {
               ],
             },
             {
+              title: 'How Readings Work',
+              lines: [
+                'Paid Deep Destiny Reports are saved as independent snapshots. They are not rewritten from chat history to please you.',
+                'Chat may remember preferences for companionship. Birth details are stored to generate your chart. You can request deletion via support@shanhai.app.',
+              ],
+            },
+            {
               title: '3. Information Protection',
               lines: [
                 'We use industry-standard security measures:',
@@ -103,6 +110,13 @@ export default function PrivacyPolicyScreen() {
               ],
             },
             {
+              title: '解讀如何運作',
+              lines: [
+                '付費深度命運報告以獨立快照保存，不會根據聊天記錄改寫來討好你。',
+                '對話可能記住偏好以便陪伴。生辰用於生成命盤。可透過 support@shanhai.app 申請刪除。',
+              ],
+            },
+            {
               title: '3. 資訊保護',
               lines: [
                 '我們採用業界標準安全措施保護您的個人資訊：',
@@ -158,6 +172,13 @@ export default function PrivacyPolicyScreen() {
               lines: [
                 '我们将使用收集的信息用于：',
                 '• 提供和优化我们的命理分析服务\n• 个性化用户体验\n• 账户安全和身份验证\n• 发送服务通知和更新\n• 改进我们的产品和服务',
+              ],
+            },
+            {
+              title: '解读如何运作',
+              lines: [
+                '付费深度命运报告以独立快照保存，不会根据聊天记录改写来讨好你。',
+                '对话可能记住偏好以便陪伴。生辰用于生成命盘。可通过 support@shanhai.app 申请删除。',
               ],
             },
             {

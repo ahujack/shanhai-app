@@ -4,7 +4,7 @@ import type { AppLanguage } from '../i18n/translations';
 
 export const REFERRAL_INVITE_BASE = 'https://www.shanhai.app/invite';
 
-export type ResultShareKind = 'zi' | 'reading' | 'bazi' | 'fortune';
+export type ResultShareKind = 'zi' | 'reading' | 'bazi' | 'fortune' | 'report';
 
 type ShareCopy = {
   title: string;
@@ -54,10 +54,10 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
 function pickCopy(language: AppLanguage, kind: ResultShareKind): { label: string; inviteLine: string } {
   const kindLabel =
     language === 'en-US'
-      ? ({ zi: 'Symbol Reading', reading: 'Oracle Reading', bazi: 'Eastern Birth Chart', fortune: 'Daily Oracle' } as const)[kind]
+      ? ({ zi: 'Symbol Reading', reading: 'Oracle Reading', bazi: 'Eastern Birth Chart', fortune: 'Daily Oracle', report: 'Deep Destiny Report' } as const)[kind]
       : language === 'zh-TW'
-        ? ({ zi: '測字解讀', reading: '占卜解讀', bazi: '八字命盤', fortune: '今日靈簽' } as const)[kind]
-        : ({ zi: '测字解读', reading: '占卜解读', bazi: '八字命盘', fortune: '今日灵签' } as const)[kind];
+        ? ({ zi: '測字解讀', reading: '占卜解讀', bazi: '八字命盤', fortune: '今日靈簽', report: '深度命運報告' } as const)[kind]
+        : ({ zi: '测字解读', reading: '占卜解读', bazi: '八字命盘', fortune: '今日灵签', report: '深度命运报告' } as const)[kind];
 
   const inviteLine =
     language === 'en-US'

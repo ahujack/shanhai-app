@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { SeoHead } from '../components/SeoHead';
 import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
+import TrustStrip from '../components/TrustStrip';
 import { useI18nStore } from '../src/store/i18n';
 import { STATIC_PAGE_SEO } from '../src/seo/site';
 
@@ -28,6 +29,7 @@ export default function AboutScreen() {
     language === 'en-US'
       ? {
           title: 'About Shanhai Realm',
+          slogan: 'Not a verdict. A compass for your next step.',
           lead: 'An Eastern oracle-style AI companion for reflection — not absolute prophecy.',
           whoTitle: 'Who we are',
           whoBody:
@@ -52,6 +54,7 @@ export default function AboutScreen() {
       : language === 'zh-TW'
         ? {
             title: '關於山海靈境',
+            slogan: '不是判決，是下一步的座標。',
             lead: '東方玄學風格的 AI 陪伴：幫你反思，而不是給絕對預言。',
             whoTitle: '我們是誰',
             whoBody:
@@ -75,6 +78,7 @@ export default function AboutScreen() {
           }
         : {
             title: '关于山海灵境',
+            slogan: '不是判决，是下一步的坐标。',
             lead: '东方玄学风格的 AI 陪伴：帮你反思，而不是给绝对预言。',
             whoTitle: '我们是谁',
             whoBody:
@@ -111,7 +115,10 @@ export default function AboutScreen() {
 
       <Text style={styles.brand}>山海灵境</Text>
       <Text style={styles.title}>{copy.title}</Text>
+      <Text style={styles.slogan}>{copy.slogan}</Text>
       <Text style={styles.lead}>{copy.lead}</Text>
+
+      <TrustStrip />
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>{copy.whoTitle}</Text>
@@ -199,6 +206,13 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '800',
     marginBottom: 8,
+  },
+  slogan: {
+    color: colors.accent,
+    fontSize: 16,
+    fontStyle: 'italic',
+    lineHeight: 24,
+    marginBottom: 10,
   },
   lead: {
     color: colors.textSecondary,

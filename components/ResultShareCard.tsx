@@ -40,11 +40,12 @@ type Props = {
   disabled?: boolean;
 };
 
-const KIND_META: Record<ResultShareKind, { emoji: string; accent: [string, string] }> = {
-  zi: { emoji: '字', accent: ['#3D2A5C', '#1A1230'] },
-  reading: { emoji: '卦', accent: ['#2A3D5C', '#121A30'] },
-  bazi: { emoji: '命', accent: ['#3D3A2A', '#1A1810'] },
-  fortune: { emoji: '签', accent: ['#2A4D3A', '#101A14'] },
+const KIND_META: Record<ResultShareKind, { glyph: string; paper: [string, string] }> = {
+  zi: { glyph: '字', paper: ['#16110C', '#0C0A08'] },
+  reading: { glyph: '卦', paper: ['#12151C', '#0A0C11'] },
+  bazi: { glyph: '命', paper: ['#16140C', '#0C0B08'] },
+  fortune: { glyph: '签', paper: ['#101612', '#080C0A'] },
+  report: { glyph: '镜', paper: ['#15120C', '#0B0A07'] },
 };
 
 export default function ResultShareCard({
@@ -142,61 +143,78 @@ export default function ResultShareCard({
   return (
     <View style={styles.wrap}>
       <ViewShot ref={shotRef} options={{ format: 'png', quality: 0.95, result: 'tmpfile' }}>
-        <LinearGradient colors={meta.accent} style={styles.card}>
-          <View style={styles.cardTop}>
-            <View style={styles.brandRow}>
-              <Text style={styles.brand}>{tx('山海灵境', 'Shanhai Realm', '山海靈境')}</Text>
-              <Text style={styles.companionLine}>{tx('云游子交付', 'Delivered by Yunyouzi', '雲遊子交付')}</Text>
-              {badge ? <Text style={styles.badge}>{badge}</Text> : null}
-            </View>
-            <View style={styles.companionMark}>
-              <Image source={cloudWandererImage} style={styles.companionImage as ImageStyle} resizeMode="cover" />
-              <View style={styles.glyphBadge}>
-                <Text style={styles.glyphText}>{meta.emoji}</Text>
+        <LinearGradient colors={meta.paper} style={styles.card}>
+          <View style={styles.frame}>
+            <View style={[styles.corner, styles.cornerTL]} />
+            <View style={[styles.corner, styles.cornerTR]} />
+            <View style={[styles.corner, styles.cornerBL]} />
+            <View style={[styles.corner, styles.cornerBR]} />
+
+            <Text style={styles.slogan}>
+              {tx('不是判决，是下一步的坐标', 'Not a verdict. A compass.', '不是判決，是下一步的座標')}
+            </Text>
+
+            <View style={styles.cardTop}>
+              <View style={styles.brandRow}>
+                <Text style={styles.brand}>{tx('山海灵境', 'Shanhai Realm', '山海靈境')}</Text>
+                <Text style={styles.companionLine}>
+                  {tx('云游子交付', 'Delivered by Yunyouzi', '雲遊子交付')}
+                </Text>
+                {badge ? <Text style={styles.badge}>{badge}</Text> : null}
+              </View>
+              <View style={styles.companionMark}>
+                <Image
+                  source={cloudWandererImage}
+                  style={styles.companionImage as ImageStyle}
+                  resizeMode="cover"
+                />
+                <View style={styles.glyphBadge}>
+                  <Text style={styles.glyphText}>{meta.glyph}</Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {!!displayLabel && (
-            <View style={styles.labelChip}>
-              <Text style={styles.labelChipText} numberOfLines={1}>
-                {displayLabel}
-              </Text>
-            </View>
-          )}
-
-          <Text style={styles.headline} numberOfLines={2}>
-            {displayHeadline}
-          </Text>
-          {!!displaySummary && (
-            <Text style={styles.summary} numberOfLines={4}>
-              {displaySummary}
-            </Text>
-          )}
-
-          <View style={styles.footer}>
-            {referralCode ? (
-              <>
-                <Text style={styles.inviteLabel}>{tx('邀请码', 'Invite code', '邀請碼')}</Text>
-                <Text style={styles.inviteCode}>{referralCode}</Text>
-                <Text style={styles.inviteHint} numberOfLines={1}>
-                  {tx('好友注册，你们各得 50 积分', 'Both get +50 pts', '好友註冊，你們各得 50 積分')}
+            {!!displayLabel && (
+              <View style={styles.labelChip}>
+                <Text style={styles.labelChipText} numberOfLines={1}>
+                  {displayLabel}
                 </Text>
-              </>
-            ) : (
-              <Text style={styles.inviteHint}>
-                {tx('打开链接即可体验', 'Open the link to try', '打開連結即可體驗')}
+              </View>
+            )}
+
+            <Text style={styles.headline} numberOfLines={2}>
+              {displayHeadline}
+            </Text>
+            {!!displaySummary && (
+              <Text style={styles.summary} numberOfLines={4}>
+                {displaySummary}
               </Text>
             )}
-            <Text style={styles.brandUrl} numberOfLines={1}>
-              {inviteUrl.replace(/^https?:\/\//, '')}
-            </Text>
-            <Text style={styles.watermark}>
-              {tx('山海灵境 · shanhai.app', 'Shanhai Realm · shanhai.app', '山海靈境 · shanhai.app')}
-            </Text>
-            <Text style={styles.disclaimer}>
-              {tx('仅供娱乐参考', 'For entertainment only', '僅供娛樂參考')}
-            </Text>
+
+            <View style={styles.footer}>
+              {referralCode ? (
+                <>
+                  <Text style={styles.inviteLabel}>{tx('邀请码', 'Invite code', '邀請碼')}</Text>
+                  <Text style={styles.inviteCode}>{referralCode}</Text>
+                  <Text style={styles.inviteHint} numberOfLines={1}>
+                    {tx('好友注册，你们各得 50 积分', 'Both get +50 pts', '好友註冊，你們各得 50 積分')}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.inviteHint}>
+                  {tx('打开链接即可体验', 'Open the link to try', '打開連結即可體驗')}
+                </Text>
+              )}
+              <Text style={styles.brandUrl} numberOfLines={1}>
+                {inviteUrl.replace(/^https?:\/\//, '')}
+              </Text>
+              <Text style={styles.watermark}>
+                {tx('山海灵境 · shanhai.app', 'Shanhai Realm · shanhai.app', '山海靈境 · shanhai.app')}
+              </Text>
+              <Text style={styles.disclaimer}>
+                {tx('仅供娱乐与自我反思', 'For reflection, not prophecy', '僅供娛樂與自我反思')}
+              </Text>
+            </View>
           </View>
         </LinearGradient>
       </ViewShot>
@@ -232,17 +250,40 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   card: {
-    borderRadius: 8,
-    padding: 18,
+    borderRadius: 4,
+    padding: 10,
     borderWidth: 1,
-    borderColor: 'rgba(214, 179, 106, 0.35)',
-    minHeight: 220,
+    borderColor: 'rgba(214, 179, 106, 0.55)',
+    minHeight: 248,
+  },
+  frame: {
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.22)',
+    padding: 16,
+    position: 'relative',
+  },
+  corner: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderColor: 'rgba(214, 179, 106, 0.7)',
+  },
+  cornerTL: { top: -1, left: -1, borderTopWidth: 2, borderLeftWidth: 2 },
+  cornerTR: { top: -1, right: -1, borderTopWidth: 2, borderRightWidth: 2 },
+  cornerBL: { bottom: -1, left: -1, borderBottomWidth: 2, borderLeftWidth: 2 },
+  cornerBR: { bottom: -1, right: -1, borderBottomWidth: 2, borderRightWidth: 2 },
+  slogan: {
+    color: 'rgba(214, 179, 106, 0.78)',
+    fontSize: 11,
+    letterSpacing: 1.2,
+    fontStyle: 'italic',
+    marginBottom: 14,
   },
   cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   brandRow: {
     flex: 1,
@@ -250,90 +291,95 @@ const styles = StyleSheet.create({
   },
   brand: {
     color: colors.tabIconSelected,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 3,
   },
   badge: {
-    marginTop: 6,
+    marginTop: 8,
     alignSelf: 'flex-start',
-    color: '#E8ECF3',
+    color: '#EDE4D4',
     fontSize: 11,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    letterSpacing: 0.6,
+    backgroundColor: 'rgba(214, 179, 106, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 2,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.28)',
   },
   companionLine: {
-    color: 'rgba(232, 236, 243, 0.66)',
+    color: 'rgba(232, 236, 243, 0.58)',
     fontSize: 11,
-    fontWeight: '700',
-    marginTop: 5,
+    fontWeight: '600',
+    marginTop: 6,
+    letterSpacing: 0.4,
   },
   labelChip: {
     alignSelf: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 12,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: 'rgba(214, 179, 106, 0.18)',
+    paddingVertical: 6,
+    borderRadius: 2,
+    backgroundColor: 'rgba(214, 179, 106, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(214, 179, 106, 0.45)',
+    borderColor: 'rgba(214, 179, 106, 0.42)',
   },
   labelChipText: {
     color: '#F5E6C8',
     fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.2,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
   companionMark: {
-    width: 58,
-    height: 58,
+    width: 56,
+    height: 56,
   },
   companionImage: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 56,
+    height: 56,
+    borderRadius: 2,
     borderWidth: 1,
     borderColor: 'rgba(214, 179, 106, 0.5)',
     backgroundColor: '#17120D',
   },
   glyphBadge: {
     position: 'absolute',
-    right: -2,
-    bottom: -2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    right: -4,
+    bottom: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1A1230',
+    backgroundColor: '#17120A',
     borderWidth: 1,
     borderColor: 'rgba(214, 179, 106, 0.68)',
   },
   glyphText: {
     color: colors.tabIconSelected,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   headline: {
-    color: '#F5F0E8',
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 26,
-    marginBottom: 8,
+    color: '#F7F1E6',
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 28,
+    letterSpacing: 0.3,
+    marginBottom: 10,
   },
   summary: {
-    color: 'rgba(232, 236, 243, 0.82)',
+    color: 'rgba(232, 226, 212, 0.82)',
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 23,
   },
   footer: {
-    marginTop: 16,
+    marginTop: 18,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(214, 179, 106, 0.2)',
+    borderTopColor: 'rgba(214, 179, 106, 0.18)',
   },
   inviteLabel: {
     color: 'rgba(232, 236, 243, 0.55)',
