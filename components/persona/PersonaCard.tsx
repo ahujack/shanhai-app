@@ -14,10 +14,10 @@ export function PersonaCard({ persona, active, onPress }: PersonaCardProps) {
       onPress={onPress}
       activeOpacity={0.8}
       style={{
-        backgroundColor: active ? '#2B1F3C' : '#1B1427',
-        borderRadius: 24,
-        borderWidth: active ? 2 : 1,
-        borderColor: active ? theme.dark.accent : '#2B2342',
+        backgroundColor: active ? 'rgba(214, 179, 106, 0.12)' : theme.dark.surface,
+        borderRadius: 16,
+        borderWidth: active ? 1 : 1,
+        borderColor: active ? theme.dark.accent : theme.dark.palette.plum,
         padding: 16,
         flexDirection: 'row',
         alignItems: 'center',
@@ -43,8 +43,8 @@ export function PersonaCard({ persona, active, onPress }: PersonaCardProps) {
             <View
               key={tag}
               style={{
-                backgroundColor: '#2F2644',
-                borderRadius: 999,
+                backgroundColor: 'rgba(214, 179, 106, 0.12)',
+                borderRadius: 4,
                 paddingVertical: 4,
                 paddingHorizontal: 10,
               }}>

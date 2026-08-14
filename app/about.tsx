@@ -2,19 +2,22 @@ import React from 'react';
 import { ScrollView, Text, View, TouchableOpacity, StyleSheet, Platform, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import theme from '../constants/Colors';
+import { serifTitle } from '../constants/typography';
 import { SeoHead } from '../components/SeoHead';
 import { SiteComplianceFooter } from '../components/SiteComplianceFooter';
 import TrustStrip from '../components/TrustStrip';
 import { useI18nStore } from '../src/store/i18n';
 import { STATIC_PAGE_SEO } from '../src/seo/site';
 
+const ink = theme.dark;
 const colors = {
-  background: '#1A1A2E',
-  card: '#16213E',
-  text: '#F7F6F0',
-  textSecondary: '#8D8DAA',
-  accent: '#F8D05F',
-  border: '#2D2D44',
+  background: ink.background,
+  card: ink.card,
+  text: ink.text,
+  textSecondary: ink.textSecondary,
+  accent: ink.accent,
+  border: ink.palette.plum,
 };
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
@@ -195,24 +198,27 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   brand: {
+    ...serifTitle,
     color: colors.accent,
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 2,
-    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 6,
+    marginBottom: 10,
   },
   title: {
+    ...serifTitle,
     color: colors.text,
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '600',
     marginBottom: 8,
   },
   slogan: {
+    ...serifTitle,
     color: colors.accent,
-    fontSize: 16,
+    fontSize: 17,
     fontStyle: 'italic',
-    lineHeight: 24,
-    marginBottom: 10,
+    lineHeight: 26,
+    marginBottom: 12,
   },
   lead: {
     color: colors.textSecondary,

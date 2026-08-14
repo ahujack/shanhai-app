@@ -7,6 +7,7 @@ import { subscribeAuthExpired } from '../src/lib/auth-expired';
 import { useUserStore } from '../src/store/user';
 import { useI18nStore } from '../src/store/i18n';
 import { captureReferralFromUrl } from '../src/utils/referralAttribution';
+import WebFonts from '../components/WebFonts';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -104,14 +105,15 @@ function RootLayoutNav() {
 
   if (!isReady) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0A0716', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#F8D05F" />
+      <View style={{ flex: 1, backgroundColor: '#0B0D14', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#D6B36A" />
       </View>
     );
   }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <WebFonts />
       <Stack>
         {/* 所有页面都可以访问，登录是可选的 */}
         <Stack.Screen

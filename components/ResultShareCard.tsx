@@ -15,6 +15,7 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useRouter } from 'expo-router';
 import theme from '../constants/Colors';
+import { serifTitle } from '../constants/typography';
 import { useI18nStore } from '../src/store/i18n';
 import { trackNamedEvent } from '../src/services/analytics';
 import {
@@ -273,8 +274,9 @@ const styles = StyleSheet.create({
   cornerBL: { bottom: -1, left: -1, borderBottomWidth: 2, borderLeftWidth: 2 },
   cornerBR: { bottom: -1, right: -1, borderBottomWidth: 2, borderRightWidth: 2 },
   slogan: {
+    ...serifTitle,
     color: 'rgba(214, 179, 106, 0.78)',
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.2,
     fontStyle: 'italic',
     marginBottom: 14,
@@ -290,10 +292,11 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   brand: {
+    ...serifTitle,
     color: colors.tabIconSelected,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 3,
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 4,
   },
   badge: {
     marginTop: 8,
@@ -363,6 +366,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   headline: {
+    ...serifTitle,
     color: '#F7F1E6',
     fontSize: 20,
     fontWeight: '600',

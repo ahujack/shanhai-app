@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { ScrollView, Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import theme from '../constants/Colors';
+import { serifTitle } from '../constants/typography';
 import { SeoHead } from '../components/SeoHead';
 import { useI18nStore } from '../src/store/i18n';
 import { STATIC_PAGE_SEO, buildFaqPageJsonLd } from '../src/seo/site';
 
+const ink = theme.dark;
 const colors = {
-  background: '#1A1A2E',
-  card: '#16213E',
-  text: '#F7F6F0',
-  textSecondary: '#8D8DAA',
-  accent: '#F8D05F',
-  border: '#2D2D44',
+  background: ink.background,
+  card: ink.card,
+  text: ink.text,
+  textSecondary: ink.textSecondary,
+  accent: ink.accent,
+  border: ink.palette.plum,
 };
 
 interface FAQItem {
@@ -128,8 +131,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   title: {
+    ...serifTitle,
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
   },

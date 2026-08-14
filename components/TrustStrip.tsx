@@ -2,6 +2,7 @@ import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useI18nStore } from '../src/store/i18n';
+import { serifTitle } from '../constants/typography';
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
 
@@ -107,11 +108,12 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   kicker: {
+    ...serifTitle,
     color: '#D6B36A',
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     letterSpacing: 0.4,
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 10,
     fontStyle: 'italic',
   },

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
+import { serifTitle } from '../../constants/typography';
 import { usePersonaStore } from '../../src/store/persona';
 import { useUserStore } from '../../src/store/user';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
@@ -17,7 +18,6 @@ import EmailCaptureCard from '../../components/EmailCaptureCard';
 import ResultShareCard from '../../components/ResultShareCard';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
-import CompanionPresence from '../../components/CompanionPresence';
 import { buildFortuneShareLabel } from '../../src/utils/shareLabel';
 import {
   buildFollowUpPrompt,
@@ -1091,19 +1091,8 @@ export default function HomeScreen() {
             <>
               <View style={styles.welcomeCard}>
                 <Text style={styles.welcomeWatermark}>山海</Text>
+                <Text style={styles.welcomeBrand}>{t('home.appTitle', '山海灵境')}</Text>
                 <View style={styles.heroRule} />
-                <TouchableOpacity
-                  style={styles.welcomePersonaPanel}
-                  onPress={() => setShowPersonaPicker(true)}
-                  activeOpacity={0.82}
-                >
-                  <CompanionPresence
-                    image={personaAvatarSource}
-                    name={localizedPersona.name}
-                    title={localizedPersona.title}
-                    line={localizedPersona.greeting}
-                  />
-                </TouchableOpacity>
                 <Text style={styles.welcomeTag}>{t('home.welcome.tag', '东方决策陪伴')}</Text>
                 <Text style={styles.welcomeSlogan}>
                   {t('home.welcome.slogan', '不是判决，是下一步的坐标。')}
@@ -1114,7 +1103,7 @@ export default function HomeScreen() {
                 <Text style={styles.welcomeHint}>
                   {t(
                     'home.welcome.hint',
-                    '带一个问题来，带走清晰的下一步。云游子会自动选用测字、起卦或八字，并告诉你「这次为什么用这个」。',
+                    '带一个问题来，带走清晰的下一步。直接说卡住你的事即可。',
                   )}
                 </Text>
                 <Text style={styles.suggestedTitle}>{t('home.quick.title', '或点一个场景直接开始')}</Text>
@@ -2259,10 +2248,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '800',
+    ...serifTitle,
+    fontSize: 20,
+    fontWeight: '600',
     color: '#D6B36A',
-    letterSpacing: 1.2,
+    letterSpacing: 3,
   },
   headerRight: {
     flex: 1,
@@ -2374,19 +2364,28 @@ const styles = StyleSheet.create({
   welcomeCard: {
     position: 'relative',
     overflow: 'hidden',
-    paddingHorizontal: 0,
-    paddingTop: 8,
-    paddingBottom: 2,
-    marginBottom: 4,
+    paddingHorizontal: 8,
+    paddingTop: 28,
+    paddingBottom: 18,
+    marginBottom: 12,
   },
   welcomeWatermark: {
     position: 'absolute',
-    top: 12,
-    right: -8,
-    color: 'rgba(214, 179, 106, 0.045)',
-    fontSize: 58,
-    fontWeight: '900',
-    letterSpacing: 4,
+    top: 8,
+    right: -6,
+    color: 'rgba(214, 179, 106, 0.06)',
+    fontSize: 72,
+    fontWeight: '600',
+    letterSpacing: 8,
+    ...serifTitle,
+  },
+  welcomeBrand: {
+    ...serifTitle,
+    alignSelf: 'center',
+    color: '#D6B36A',
+    fontSize: 15,
+    letterSpacing: 6,
+    marginBottom: 14,
   },
   welcomePersonaRow: {
     flexDirection: 'row',
@@ -2434,28 +2433,32 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   welcomeSlogan: {
+    ...serifTitle,
     alignSelf: 'center',
-    color: 'rgba(214, 179, 106, 0.9)',
-    fontSize: 13,
+    color: 'rgba(214, 179, 106, 0.92)',
+    fontSize: 15,
     fontStyle: 'italic',
-    letterSpacing: 0.6,
-    marginBottom: 10,
+    letterSpacing: 0.8,
+    marginBottom: 16,
     textAlign: 'center',
+    lineHeight: 24,
   },
   welcomeText: {
-    fontSize: 24,
+    ...serifTitle,
+    fontSize: 26,
     color: '#F4EBDC',
-    lineHeight: 32,
-    marginBottom: 10,
+    lineHeight: 36,
+    marginBottom: 12,
     textAlign: 'center',
-    fontWeight: '800',
+    fontWeight: '600',
   },
   welcomeHint: {
     fontSize: 13,
     color: '#A7B0C1',
     textAlign: 'center',
-    marginBottom: 4,
-    lineHeight: 20,
+    marginBottom: 8,
+    lineHeight: 21,
+    paddingHorizontal: 8,
   },
   methodGrid: {
     flexDirection: 'row',

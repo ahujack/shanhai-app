@@ -6,7 +6,7 @@ export const SEO_SITE = {
   twitterHandle: '@shanhaiapp',
   supportEmail: 'support@shanhai.app',
   locale: 'zh_CN',
-  themeColor: '#7C6CFF',
+  themeColor: '#D6B36A',
 } as const;
 
 export type SeoMeta = {

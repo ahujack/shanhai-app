@@ -24,6 +24,7 @@ import DeliveryNextStepCard from '../components/DeliveryNextStepCard';
 import EmailCaptureCard from '../components/EmailCaptureCard';
 import ResultShareCard from '../components/ResultShareCard';
 import TrustStrip from '../components/TrustStrip';
+import { serifTitle } from '../constants/typography';
 
 const ui = {
   bg: '#0B0D14',
@@ -588,21 +589,25 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: ui.bg },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
   brand: {
+    ...serifTitle,
     color: ui.gold,
     fontSize: 13,
-    letterSpacing: 4,
+    letterSpacing: 6,
     marginBottom: 8,
   },
   title: {
+    ...serifTitle,
     color: ui.text,
-    fontSize: 26,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '600',
     marginBottom: 8,
   },
   lead: {
+    ...serifTitle,
     color: ui.textSub,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 15,
+    fontStyle: 'italic',
+    lineHeight: 24,
     marginBottom: 20,
   },
   centerBox: {

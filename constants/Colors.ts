@@ -8,13 +8,14 @@ const palette = {
   lilac: '#AAB3C5',
   mist: '#94A0B8',
   gold: '#D6B36A',
+  cream: '#F4EBDC',
   smoke: '#D5DBE8',
   success: '#4FAF8E',
   warn: '#C96A6A',
 };
 
 const base = {
-  borderRadius: 20,
+  borderRadius: 16,
   palette,
 };
 
@@ -28,6 +29,7 @@ export interface ThemeColors {
   surface: string;
   accent: string;
   accentSecondary: string;
+  cta: string;
   tabIconDefault: string;
   tabIconSelected: string;
   gradient: string[];
@@ -45,34 +47,37 @@ export interface Theme {
 export const theme = {
   light: {
     ...base,
-    text: '#E8ECF3',
-    mutedText: '#8C97AE',
-    textSecondary: '#8C97AE',
-    background: '#F5F7FB',
+    text: '#1A1610',
+    mutedText: '#6B6258',
+    textSecondary: '#6B6258',
+    background: '#F5F1E8',
     surface: '#FFFFFF',
-    accent: palette.ember,
-    accentSecondary: '#4B57C6',
+    accent: palette.gold,
+    accentSecondary: '#C4A15A',
+    cta: palette.ember,
     tabIconDefault: '#8B94A7',
     tabIconSelected: palette.gold,
     gradient: [palette.ember, palette.emberDeep],
-    tint: '#4B57C6',
+    tint: palette.gold,
     card: '#FFFFFF',
   },
   dark: {
     ...base,
-    text: '#E8ECF3',
+    text: palette.cream,
     mutedText: palette.lilac,
     textSecondary: palette.mist,
     background: palette.ink,
     surface: palette.night,
-    accent: palette.ember,
+    accent: palette.gold,
     accentSecondary: palette.elevated,
+    cta: palette.ember,
     tabIconDefault: '#707A90',
     tabIconSelected: palette.gold,
     gradient: [palette.ember, palette.emberDeep],
-    tint: palette.elevated,
+    tint: palette.gold,
     card: palette.elevated,
   },
 };
 
 export default theme;
+
