@@ -24,7 +24,6 @@ export default function Root({ children }: { children: React.ReactNode }) {
             Do NOT point every language tag at the homepage from all routes. */}
         <link rel="alternate" hrefLang="x-default" href={HOME_SEO.canonical} />
         <link rel="alternate" hrefLang="zh-CN" href={HOME_SEO.canonical} />
-        <link rel="alternate" hrefLang="en" href={HOME_SEO.canonical} />
 
         <meta property="og:site_name" content={SEO_SITE.name} />
         <meta property="og:type" content="website" />

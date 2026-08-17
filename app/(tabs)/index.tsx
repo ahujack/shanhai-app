@@ -19,6 +19,7 @@ import ResultShareCard from '../../components/ResultShareCard';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import RitualWait from '../../components/RitualWait';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
+import { SeoHubLinks } from '../../components/SeoHubLinks';
 import { buildFortuneShareLabel } from '../../src/utils/shareLabel';
 import {
   buildFollowUpPrompt,
@@ -1251,6 +1252,7 @@ export default function HomeScreen() {
             />
           ) : null}
 
+          {messages.length === 0 ? <SeoHubLinks /> : null}
           {messages.length === 0 ? <ProofDemoSection /> : null}
 
           {/* 聊天消息 */}

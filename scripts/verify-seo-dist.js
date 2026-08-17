@@ -44,6 +44,19 @@ for (const page of PAGES) {
       fail(`${page.file} title looks wrong (expected to include "${fragment}")`);
     }
   }
+  if (page.file === 'index.html') {
+    if (!html.includes('id="seo-static-content"') || !html.includes('href="/bazi-calculator"')) {
+      fail('index.html missing crawlable hub links to /bazi-calculator');
+    }
+  }
+  if (page.file === 'bazi-calculator.html') {
+    if (!html.includes('FAQPage') || !html.includes('id="seo-static-content"')) {
+      fail('bazi-calculator.html missing prerendered FAQ/body');
+    }
+  }
+  if (html.includes('hreflang="en"') || html.includes('hrefLang="en"')) {
+    fail(`${page.file} still has English hreflang on a Chinese URL`);
+  }
   // Soft-404 guard: non-home pages must not canonicalize to homepage.
   if (page.file !== 'index.html' && html.includes('rel="canonical" href="https://www.shanhai.app/"')) {
     fail(`${page.file} incorrectly canonicalizes to homepage`);

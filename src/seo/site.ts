@@ -112,7 +112,7 @@ export function buildWebSiteJsonLd() {
     name: SEO_SITE.name,
     url: SEO_SITE.url,
     description: HOME_SEO.description,
-    inLanguage: ['en', 'zh-CN', 'zh-TW'],
+    inLanguage: ['zh-CN', 'zh-TW'],
     potentialAction: {
       '@type': 'SearchAction',
       target: `${SEO_SITE.url}/tools?q={search_term_string}`,
@@ -131,7 +131,7 @@ export function buildSoftwareApplicationJsonLd() {
     operatingSystem: 'Web, iOS, Android',
     url: SEO_SITE.url,
     image: SEO_SITE.ogImage,
-    inLanguage: ['en', 'zh-CN', 'zh-TW'],
+    inLanguage: ['zh-CN', 'zh-TW'],
     description: HOME_SEO.description,
     offers: {
       '@type': 'Offer',

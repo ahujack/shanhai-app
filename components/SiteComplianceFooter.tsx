@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Pressable, StyleSheet, Platform, Linking } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Linking } from 'react-native';
 import { useI18nStore } from '../src/store/i18n';
+import { WebTextLink } from './WebTextLink';
 
 /** 与 Creem / 应用内文案一致，请与商户后台、域名邮箱保持一致 */
 export const SUPPORT_EMAIL = 'support@shanhai.app';
@@ -18,7 +18,6 @@ type Props = {
 };
 
 export function SiteComplianceFooter({ variant = 'compact' }: Props) {
-  const router = useRouter();
   const t = useI18nStore((state) => state.t);
 
   const openMail = () => {
@@ -32,17 +31,11 @@ export function SiteComplianceFooter({ variant = 'compact' }: Props) {
     href,
   }: {
     label: string;
-    href: '/privacy' | '/terms' | '/pricing' | '/faq' | '/tools' | '/about';
+    href: '/privacy' | '/terms' | '/pricing' | '/faq' | '/tools' | '/about' | '/bazi-calculator' | '/character-divination' | '/guides';
   }) => (
-    <Pressable
-      onPress={() => router.push(href)}
-      accessibilityRole="link"
-      style={({ hovered }) => [webPointer, hovered && styles.linkHover]}
-    >
-      {({ hovered }) => (
-        <Text style={[styles.link, isDock && styles.linkDock, hovered && styles.linkHoveredText]}>{label}</Text>
-      )}
-    </Pressable>
+    <WebTextLink href={href}>
+      <Text style={[styles.link, isDock && styles.linkDock]}>{label}</Text>
+    </WebTextLink>
   );
 
   return (
@@ -55,6 +48,12 @@ export function SiteComplianceFooter({ variant = 'compact' }: Props) {
       ]}
     >
       <View style={[styles.row, isDock && styles.rowDock]}>
+        <FooterLink label="八字排盘" href="/bazi-calculator" />
+        <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
+        <FooterLink label="测字" href="/character-divination" />
+        <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
+        <FooterLink label="指南" href="/guides" />
+        <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
         <FooterLink label={t('common.about', '关于')} href="/about" />
         <Text style={[styles.sep, isDock && styles.sepDock]}>·</Text>
         <FooterLink label={t('common.privacy', '隐私政策')} href="/privacy" />

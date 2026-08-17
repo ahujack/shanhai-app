@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { useRouter } from 'expo-router';
 import theme from '../constants/Colors';
 import { trackNamedEvent } from '../src/services/analytics';
+import { WebTextLink } from './WebTextLink';
 
 const colors = theme.dark;
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
@@ -13,6 +14,7 @@ type DemoCase = {
   observation: string;
   verdict: string;
   route: '/(tabs)/zi' | '/(tabs)/reading' | '/(tabs)/bazi';
+  href: '/character-divination' | '/i-ching-reading' | '/bazi-calculator';
   cta: string;
 };
 
@@ -23,6 +25,7 @@ const CASES: DemoCase[] = [
     observation: '字里有“合”，却又像在用力往外送——想给，又怕给完了自己空着。',
     verdict: '先定边界再给：不是不爱，是节奏乱了。',
     route: '/(tabs)/zi',
+    href: '/character-divination',
     cta: '我也测一字',
   },
   {
@@ -31,6 +34,7 @@ const CASES: DemoCase[] = [
     observation: '问“这份 offer 接不接”，卦象不是直接否，而是提醒窗口短、代价高。',
     verdict: '可以谈，但先把试用期目标与退出条件写清楚。',
     route: '/(tabs)/reading',
+    href: '/i-ching-reading',
     cta: '去问一卦',
   },
   {
@@ -39,6 +43,7 @@ const CASES: DemoCase[] = [
     observation: '日主偏弱时，不是“命不好”，而是更容易被环境影响、边界发软。',
     verdict: '本周只练一件事：重要决定先睡一晚再回。',
     route: '/(tabs)/bazi',
+    href: '/bazi-calculator',
     cta: '排我的八字',
   },
 ];
@@ -49,8 +54,9 @@ export default function ProofDemoSection() {
   const current = CASES[active] || CASES[0];
 
   const goTry = () => {
-    trackNamedEvent('home_proof_cta', { caseId: current.id, route: current.route });
-    router.push(current.route);
+    const dest = Platform.OS === 'web' ? current.href : current.route;
+    trackNamedEvent('home_proof_cta', { caseId: current.id, route: dest });
+    router.push(dest as never);
   };
 
   return (
@@ -79,9 +85,20 @@ export default function ProofDemoSection() {
         <View style={styles.divider} />
         <Text style={styles.label}>扎心结论</Text>
         <Text style={styles.verdict}>{current.verdict}</Text>
-        <TouchableOpacity style={[styles.cta, webPointer]} onPress={goTry}>
-          <Text style={styles.ctaText}>{current.cta}</Text>
-        </TouchableOpacity>
+        {Platform.OS === 'web' ? (
+          <WebTextLink
+            href={current.href}
+            onPress={() => trackNamedEvent('home_proof_cta', { caseId: current.id, route: current.href })}
+          >
+            <View style={styles.cta}>
+              <Text style={styles.ctaText}>{current.cta}</Text>
+            </View>
+          </WebTextLink>
+        ) : (
+          <TouchableOpacity style={[styles.cta, webPointer]} onPress={goTry}>
+            <Text style={styles.ctaText}>{current.cta}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
