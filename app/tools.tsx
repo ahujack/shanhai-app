@@ -26,14 +26,14 @@ export default function ToolsHubScreen() {
         canonical={TOOLS_HUB.canonical}
         jsonLd={buildBreadcrumbJsonLd([
           { name: SEO_SITE.name, url: SEO_SITE.url },
-          { name: 'Tools', url: TOOLS_HUB.canonical },
+          { name: '工具', url: TOOLS_HUB.canonical },
         ])}
       />
 
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, webPointer]}>
-            <Text style={styles.backText}>‹ Back</Text>
+            <Text style={styles.backText}>‹ 返回</Text>
           </TouchableOpacity>
         </View>
 
@@ -127,8 +127,7 @@ const styles = StyleSheet.create({
     color: colors.tabIconSelected,
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    letterSpacing: 0.4,
     marginBottom: 8,
   },
   cardTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 6 },

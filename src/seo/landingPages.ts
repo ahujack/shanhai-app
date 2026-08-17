@@ -22,6 +22,7 @@ export type LandingPageConfig = {
   steps: Array<{ title: string; body: string }>;
   faq: LandingFaq[];
   cta: { primary: string; secondary: string };
+  sections?: { why: string; how: string };
 };
 
 const SITE = SEO_SITE.url;
@@ -86,6 +87,7 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
       },
     ],
     cta: { primary: '立即免费排盘', secondary: '免费注册' },
+    sections: { why: '为什么在这里做免费八字排盘', how: '怎么在线排盘' },
   },
   {
     slug: 'character-divination',
@@ -142,6 +144,7 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
       },
     ],
     cta: { primary: '免费测一字', secondary: '注册领积分' },
+    sections: { why: '在线测字能看清什么', how: '怎么测一字' },
   },
   {
     slug: 'i-ching-reading',
@@ -198,6 +201,7 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
       },
     ],
     cta: { primary: '去问一个问题', secondary: '免费注册' },
+    sections: { why: '易经占卜适合问什么', how: '怎么在线起卦' },
   },
   {
     slug: 'daily-fortune',
@@ -254,6 +258,8 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
       },
     ],
     cta: { primary: '领取今日一招', secondary: '注册保存进度' },
+    sections: { why: '今日运势和普通抽签有何不同', how: '怎么领取今日一招' },
+  },
   {
     slug: 'overseas-chinese-metaphysics-ai',
     path: '/overseas-chinese-metaphysics-ai',
@@ -268,7 +274,7 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
         '华人玄学AI, AI算命, 海外华人占卜, eastern oracle ai, spiritual ai companion, 山海灵境, shanhai realm',
     },
     hero: {
-      badge: '华人玄学AI · AI Companion',
+      badge: '华人玄学AI',
       title: '东方符号，服务现代人的不确定时刻',
       subtitle:
         '山海灵境把测字、易经与八字做成可随时使用的AI伴侣，帮你在感情、事业与时机选择前先理清思路。',
@@ -276,43 +282,41 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     features: [
       {
         icon: '文',
-        title: 'Plain language first',
-        body: 'Talk through relationships, career stress, family pressure, and identity questions in English, Simplified Chinese, or Traditional Chinese.',
+        title: '先说人话',
+        body: '感情、工作压力、家庭期待，用简体、繁体或英文都能聊，先接住你，再给下一步。',
       },
       {
         icon: '卦',
-        title: 'Ancient symbols, modern flow',
-        body: 'Use symbol readings, I Ching-inspired oracle guidance, and birth-chart patterns as structured reflection tools, not vague predictions.',
+        title: '用符号，不当判决',
+        body: '测字、易经式指引和八字是反思框架，用来看清节奏，不是替你做决定。',
       },
       {
         icon: '问',
-        title: 'Decision-first delivery',
-        body: 'Start with a clear verdict, then review signals, risks, and practical next steps for the situation you are facing.',
+        title: '先结论，再行动',
+        body: '开头给判断，再看信号、风险和今天能做的一小步。',
       },
     ],
     steps: [
-      { title: 'Name the one thing', body: 'Bring a real question: stay or leave, wait or act, prepare or change direction.' },
-      { title: 'Choose a path', body: 'Chat with a companion, read one symbol, ask the oracle, or generate an Eastern birth chart.' },
-      { title: 'Keep the thread', body: 'Register to save context so future questions can continue from what you already shared.' },
+      { title: '先说出卡住的那件事', body: '留下还是走、等还是动、换方向还是先稳住。' },
+      { title: '选一条路', body: '对话、测字、问卦或排八字，按问题选工具。' },
+      { title: '留下线索下次接着问', body: '注册后可保存上下文，不用每次从零解释。' },
     ],
     faq: [
       {
-        question: 'Who is Shanhai Realm built for?',
+        question: '山海灵境是给谁用的？',
         answer:
-          'It started with overseas Chinese users, but the English experience is built for global users who are curious about Eastern symbolic guidance and want practical reflection around love, work, timing, and uncertainty.',
+          '先服务海外华人，也给想用东方符号做自我反思的人。适合感情、事业、时机里说不清的决定。',
       },
       {
-        question: 'Is this a replacement for professional advice?',
-        answer:
-          'No. Shanhai Realm is for entertainment, self-reflection, and emotional companionship. It is not medical, legal, financial, or immigration advice.',
+        question: '能替代专业建议吗？',
+        answer: '不能。仅供娱乐与自我反思，不构成医疗、法律、财务或移民建议。',
       },
       {
-        question: 'Why combine AI with Chinese metaphysics?',
-        answer:
-          'AI makes the experience available on demand, while traditional frameworks such as Chinese character symbolism, I Ching-inspired patterns, and BaZi birth charts provide a symbolic structure for reflection.',
+        question: '为什么把 AI 和命理放一起？',
+        answer: 'AI 让你随时能问；八字、测字、易经提供结构，避免空聊。结论仍要你自己拿。',
       },
     ],
-    cta: { primary: 'Ask one real question', secondary: 'Create free account' },
+    cta: { primary: '先问一件真事', secondary: '免费注册' },
   },
   {
     slug: 'ai-cezi-vs-fortune-teller',
@@ -328,7 +332,7 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
         'AI测字对比, 测字AI, AI算命 vs 算命师, cezi vs fortune teller, chinese character reading, 山海灵境',
     },
     hero: {
-      badge: '测字指南 · AI vs 传统算命',
+      badge: '测字指南',
       title: 'AI测字更适合做聚焦式自我反思',
       subtitle:
         '传统算命依赖人的经验与仪式语境；AI测字更快、更私密、可反复尝试，适合先拿一层清晰感再做现实决策。',
@@ -336,43 +340,40 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     features: [
       {
         icon: '字',
-        title: 'One symbol, one situation',
-        body: 'A character reading works best when the chosen symbol reflects a live question rather than a general curiosity about fate.',
+        title: '一字一事',
+        body: '选和当下问题有关的字，不要用一个字去问整个人生。',
       },
       {
         icon: '象',
-        title: 'Symbolic, not absolute',
-        body: 'The reading interprets structure, imagery, and associations. It should be used for reflection, not treated as a guaranteed prediction.',
+        title: '看意象，不当预言',
+        body: '拆字形、读联想，用来整理心情和选项，不是保证未来会发生什么。',
       },
       {
         icon: '行',
-        title: 'Turn meaning into action',
-        body: 'Shanhai Realm formats results into a verdict, signals, risks, and next steps so the insight is easier to use.',
+        title: '落到下一步',
+        body: '结果会收成结论、信号、风险和今天能做的一招。',
       },
     ],
     steps: [
-      { title: 'Pick a character honestly', body: 'Choose the first character that feels connected to your current question.' },
-      { title: 'Add a life focus', body: 'Career, love, wealth, health, or study focus makes the interpretation less generic.' },
-      { title: 'Review the result critically', body: 'Use the reading to organize thoughts, then make decisions with real-world information.' },
+      { title: '诚实选字', body: '选第一个跳出来、和问题有关的字，不要挑最吉的字。' },
+      { title: '标明场景', body: '感情或事业，让解读对准这件事。' },
+      { title: '对照现实再决定', body: '用解读整理思路，决定仍要看现实信息。' },
     ],
     faq: [
       {
-        question: 'Is AI symbol reading the same as a human fortune teller?',
-        answer:
-          'No. Human practitioners bring lived experience, context, and ritual presence. AI symbol reading offers an accessible and private first-pass interpretation.',
+        question: 'AI测字等于找算命师吗？',
+        answer: '不等于。算命师有现场经验和仪式；AI测字适合私下、快速拿第一层清晰。',
       },
       {
-        question: 'Can AI symbol reading predict my future?',
-        answer:
-          'No reading should be treated as a guaranteed prediction. Use it for symbolic reflection, emotional clarity, and decision framing.',
+        question: '能预测未来吗？',
+        answer: '不能当预言。用来反思情绪和选项即可。',
       },
       {
-        question: 'Do I need to handwrite the character?',
-        answer:
-          'Typing works, but handwriting can make the experience more personal because stroke rhythm and structure add another interpretive layer.',
+        question: '一定要手写吗？',
+        answer: '打字可以；手写会多一层专注，字一落下问题也更清楚。',
       },
     ],
-    cta: { primary: 'Try symbol reading now', secondary: 'Register free' },
+    cta: { primary: '免费测一字', secondary: '免费注册' },
   },
 ];
 

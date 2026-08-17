@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ScrollView,
   Text,
@@ -20,6 +20,7 @@ import {
 } from '../src/seo/landingPages';
 import { SEO_ARTICLES } from '../src/seo/articles';
 import { SEO_SITE, buildBreadcrumbJsonLd } from '../src/seo/site';
+import { serifTitle } from '../constants/typography';
 
 const LANDING_GUIDE_MAP: Record<string, string[]> = {
   'bazi-calculator': ['bazi-chart-tutorial', 'bazi-day-master'],
@@ -52,14 +53,32 @@ function buildFaqJsonLd(page: LandingPageConfig) {
   };
 }
 
+function buildHowToJsonLd(page: LandingPageConfig) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: page.hero.title,
+    description: page.seo.description,
+    inLanguage: 'zh-CN',
+    step: page.steps.map((step, index) => ({
+      '@type': 'HowToStep',
+      position: index + 1,
+      name: step.title,
+      text: step.body,
+    })),
+  };
+}
+
 function buildWebAppJsonLd(page: LandingPageConfig) {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'Shanhai Realm',
+    name: '山海灵境',
+    alternateName: 'Shanhai Realm',
     url: page.canonical,
     applicationCategory: 'LifestyleApplication',
     operatingSystem: 'Web, iOS, Android',
+    inLanguage: 'zh-CN',
     offers: {
       '@type': 'Offer',
       price: '0',
@@ -72,7 +91,6 @@ function buildWebAppJsonLd(page: LandingPageConfig) {
 export default function SeoLandingPage({ page }: Props) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const related = page.relatedSlugs
     .map((slug) => LANDING_PAGES[slug])
@@ -82,8 +100,8 @@ export default function SeoLandingPage({ page }: Props) {
     .filter(Boolean);
 
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
-    { name: SEO_SITE.name, url: SEO_SITE.url },
-    { name: 'Tools', url: `${SEO_SITE.url}/tools` },
+    { name: SEO_SITE.nameZh, url: SEO_SITE.url },
+    { name: '工具', url: `${SEO_SITE.url}/tools` },
     { name: page.hero.badge, url: page.canonical },
   ]);
 
@@ -109,15 +127,15 @@ export default function SeoLandingPage({ page }: Props) {
         description={page.seo.description}
         keywords={page.seo.keywords}
         canonical={page.canonical}
-        jsonLd={[buildFaqJsonLd(page), buildWebAppJsonLd(page), breadcrumbJsonLd]}
+        jsonLd={[buildFaqJsonLd(page), buildHowToJsonLd(page), buildWebAppJsonLd(page), breadcrumbJsonLd]}
       />
 
       <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, webPointer]} hitSlop={12}>
-            <Text style={styles.backText}>‹ Back</Text>
+            <Text style={styles.backText}>‹ 返回</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/tools')} style={[styles.toolsLink, webPointer]}>
-            <Text style={styles.toolsLinkText}>All tools</Text>
+            <Text style={styles.toolsLinkText}>全部工具</Text>
           </TouchableOpacity>
         </View>
 
@@ -135,7 +153,9 @@ export default function SeoLandingPage({ page }: Props) {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.sectionTitle}>Why use this in Shanhai Realm</Text>
+          <Text style={styles.sectionTitle}>
+            {page.sections?.why || '为什么用山海灵境'}
+          </Text>
           <View style={styles.featureGrid}>
             {page.features.map((f) => (
               <View key={f.title} style={styles.featureCard}>
@@ -146,7 +166,7 @@ export default function SeoLandingPage({ page }: Props) {
             ))}
           </View>
 
-          <Text style={styles.sectionTitle}>How it works</Text>
+          <Text style={styles.sectionTitle}>{page.sections?.how || '怎么用'}</Text>
           {page.steps.map((step, idx) => (
             <View key={step.title} style={styles.stepRow}>
               <View style={styles.stepIndex}>
@@ -159,20 +179,12 @@ export default function SeoLandingPage({ page }: Props) {
             </View>
           ))}
 
-          <Text style={styles.sectionTitle}>FAQ</Text>
-          {page.faq.map((item, idx) => (
-            <TouchableOpacity
-              key={item.question}
-              style={styles.faqItem}
-              onPress={() => setOpenFaq(openFaq === idx ? null : idx)}
-              activeOpacity={0.85}
-            >
-              <View style={styles.faqHeader}>
-                <Text style={styles.faqQuestion}>{item.question}</Text>
-                <Text style={styles.faqToggle}>{openFaq === idx ? '−' : '+'}</Text>
-              </View>
-              {openFaq === idx ? <Text style={styles.faqAnswer}>{item.answer}</Text> : null}
-            </TouchableOpacity>
+          <Text style={styles.sectionTitle}>常见问题</Text>
+          {page.faq.map((item) => (
+            <View key={item.question} style={styles.faqItem}>
+              <Text style={styles.faqQuestion}>{item.question}</Text>
+              <Text style={styles.faqAnswer}>{item.answer}</Text>
+            </View>
           ))}
 
           {relatedGuides.length > 0 && (
@@ -203,7 +215,7 @@ export default function SeoLandingPage({ page }: Props) {
 
           {related.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Explore more tools</Text>
+              <Text style={styles.sectionTitle}>相关工具</Text>
               <View style={styles.relatedRow}>
                 {related.map((rel) => (
                   <TouchableOpacity
@@ -219,22 +231,21 @@ export default function SeoLandingPage({ page }: Props) {
           )}
 
           <View style={styles.disclaimerBox}>
-            <Text style={styles.disclaimerTitle}>Entertainment disclaimer</Text>
+            <Text style={styles.disclaimerTitle}>免责声明</Text>
             <Text style={styles.disclaimerText}>
-              Shanhai Realm offers AI-assisted metaphysics-inspired content for inspiration and entertainment only.
-              It is not medical, legal, or financial advice.{' '}
+              山海灵境提供的八字、测字与占卜解读仅供自我反思与娱乐参考，不构成医疗、法律或财务建议。{' '}
               <Text
                 style={styles.disclaimerLink}
                 onPress={() => Linking.openURL('https://www.shanhai.app/terms').catch(() => null)}
               >
-                Terms
+                服务条款
               </Text>
               {' · '}
               <Text
                 style={styles.disclaimerLink}
                 onPress={() => Linking.openURL('https://www.shanhai.app/privacy').catch(() => null)}
               >
-                Privacy
+                隐私政策
               </Text>
             </Text>
           </View>
@@ -292,8 +303,7 @@ const styles = StyleSheet.create({
     color: colors.tabIconSelected,
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    letterSpacing: 0.6,
     backgroundColor: 'rgba(214, 179, 106, 0.12)',
     borderWidth: 1,
     borderColor: 'rgba(214, 179, 106, 0.35)',
@@ -304,10 +314,11 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   h1: {
+    ...serifTitle,
     color: colors.text,
     fontSize: 30,
-    fontWeight: '800',
-    lineHeight: 38,
+    fontWeight: '600',
+    lineHeight: 40,
     marginBottom: 12,
   },
   lead: {
@@ -418,24 +429,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.palette.plum,
   },
-  faqHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
   faqQuestion: {
-    flex: 1,
     color: colors.text,
     fontSize: 15,
     fontWeight: '700',
   },
-  faqToggle: {
-    color: colors.tabIconSelected,
-    fontSize: 18,
-    fontWeight: '800',
-  },
   faqAnswer: {
-    marginTop: 10,
+    marginTop: 8,
     color: colors.textSecondary,
     fontSize: 14,
     lineHeight: 22,
