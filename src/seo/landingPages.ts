@@ -34,58 +34,58 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/bazi',
     relatedSlugs: ['character-divination', 'i-ching-reading', 'daily-fortune'],
     seo: {
-      title: '在线八字排盘 | AI四柱解读·免费BaZi计算器 | 山海灵境',
+      title: '免费八字排盘在线 | 四柱命盘白话解读 | 山海灵境',
       description:
-        '免费在线八字排盘（四柱命盘）：输入生日时辰，生成年柱月柱日柱时辰，并获得AI通俗解读。适合快速了解性格、关系与运势节奏。仅供娱乐。',
+        '免费在线八字排盘：输入生日时辰，30 秒生成年柱月柱日柱时柱，再用白话看性格、关系与今年重点。不是判决，是下一步的坐标。仅供娱乐。',
       keywords:
-        '八字排盘, 在线八字, AI八字, 四柱排盘, 生辰八字, bazi calculator, four pillars, chinese astrology, 山海灵境',
+        '免费八字排盘, 八字排盘在线, 在线八字排盘, 四柱八字, 生辰八字, 日主, 免费排盘, 山海灵境',
     },
     hero: {
-      badge: '八字排盘 · BaZi Four Pillars',
-      title: '在线八字排盘，读懂你的四柱命盘',
+      badge: '免费八字排盘',
+      title: '免费在线八字排盘，先看懂四柱再决定下一步',
       subtitle:
-        '输入生日时辰，生成年柱、月柱、日柱、时柱，再用白话看性格倾向、关系模式、事业节奏与时机窗口。仅供娱乐与自我反思。',
+        '输入生日时辰，生成年柱、月柱、日柱、时柱。先读白话总论，再针对感情、事业与时机追问。仅供娱乐与自我反思。',
     },
     features: [
       {
         icon: '📅',
-        title: 'Birth details into patterns',
-        body: 'Use solar or lunar birth details to generate the year, month, day, and hour pillars behind the reading.',
+        title: '生日换成四柱',
+        body: '支持阳历/农历生日，生成年柱、月柱、日柱、时柱，先看盘面结构再看解读。',
       },
       {
         icon: '🧭',
-        title: 'Plain-English pattern reading',
-        body: 'Understand how the chart may reflect decision style, stress triggers, relationship dynamics, and energy balance.',
+        title: '白话，不堆术语',
+        body: '先给结论：性格节奏、关系模式、压力触发点。需要时再展开日主与五行。',
       },
       {
         icon: '📈',
-        title: 'Timing and direction hints',
-        body: 'Start with a concise overview; upgrade for deeper timing commentary and long-range guidance.',
+        title: '从命盘走到本周一招',
+        body: '免费先看清方向；深度命运报告把今年重点收成可保存、可追问的下一步。',
       },
     ],
     steps: [
-      { title: 'Enter birth details', body: 'Date, time, calendar type, and optional location for better hour accuracy.' },
-      { title: 'Generate your chart', body: 'View Four Pillars, core self marker, and elemental balance at a glance.' },
-      { title: 'Read AI guidance', body: 'Get a simple summary first, then continue with deeper follow-up questions.' },
+      { title: '填写出生信息', body: '日期、时辰、历法；时辰越准，时柱越稳。不知道时辰也可以先排。' },
+      { title: '生成命盘', body: '立刻看到四柱、日主与盘面概览。' },
+      { title: '追问下一步', body: '先读白话总结，再把今年重点带回对话或深度报告。' },
     ],
     faq: [
       {
-        question: 'Is this a professional fortune-telling service?',
+        question: '这个八字排盘是免费的吗？',
         answer:
-          'No. Shanhai Realm provides AI-assisted interpretations for inspiration and entertainment. Do not use readings as the sole basis for medical, legal, or financial decisions.',
+          '基础排盘与白话概览可免费使用。深度命运报告是可保存的付费快照，不是把免费盘藏起来。',
       },
       {
-        question: 'Do I need exact birth time?',
+        question: '不知道出生时辰还能排吗？',
         answer:
-          'Hour pillar accuracy improves with precise birth time. If unknown, you can still explore approximate patterns and refine later.',
+          '可以。时柱会弱一些，年日柱仍可看。之后补上时辰再重排即可。',
       },
       {
-        question: 'What is free vs VIP for BaZi?',
+        question: '免费版和深度报告差在哪？',
         answer:
-          'Free tier includes chart generation and overview. VIP unlocks deeper annual commentary and extended multi-year guidance.',
+          '免费看盘面与白话概览。深度命运报告是可重开的快照：总论、今年重点、本周一招，并可继续追问。',
       },
     ],
-    cta: { primary: 'Generate my BaZi chart', secondary: 'Create free account' },
+    cta: { primary: '立即免费排盘', secondary: '免费注册' },
   },
   {
     slug: 'character-divination',
@@ -94,56 +94,54 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/zi',
     relatedSlugs: ['bazi-calculator', 'i-ching-reading', 'daily-fortune'],
     seo: {
-      title: 'AI测字占卜在线 | 写一字看意象与指引 | 山海灵境',
+      title: '免费在线测字 | 写一字看下一步 | 山海灵境',
       description:
-        '在线AI测字：手写或输入一个汉字，解读字形、意象与情绪信号，并给出感情/事业等方向的实用指引。无需懂古文也能上手。',
-      keywords:
-        'AI测字, 测字占卜, 在线测字, 汉字测字, chinese character divination, cezi, symbol reading, 山海灵境',
+        '免费在线测字：手写或输入一个汉字，看字形意象、当下状态与可执行下一步。适合感情、事业里说不清的那件事。仅供娱乐。',
+      keywords: '在线测字, 免费测字, 测字占卜, AI测字, 汉字测字, 测字算命, 山海灵境',
     },
     hero: {
-      badge: 'AI测字 · Character Ritual',
-      title: '写一个字，看意象与当下指引',
+      badge: '免费在线测字',
+      title: '写一个字，带走今天能做的一步',
       subtitle:
-        '手写或输入一个汉字即可开始。山海灵境会解读字形、意象与情绪信号，并给出感情、事业等方向的白话建议。',
+        '手写或输入一个汉字即可开始。先看结论，再看字形意象与情绪信号，最后落到感情或事业的下一步。',
     },
     features: [
       {
         icon: '✍️',
-        title: 'Type or handwrite',
-        body: 'Use keyboard input or handwriting. Writing by hand adds a small ritual moment before the reading.',
+        title: '可打字，也可手写',
+        body: '键盘输入更快；手写多一层仪式，字一落下，问题也更聚焦。',
       },
       {
         icon: '🪨',
-        title: 'Symbol context',
-        body: 'Where available, see classical imagery and component meaning translated into modern, understandable language.',
+        title: '拆字，但不掉进古文',
+        body: '字形、部首与意象会翻译成白话：现在卡在哪，下一步宜守还是宜动。',
       },
       {
         icon: '🎯',
-        title: 'Focus by life area',
-        body: 'Love, career, money, health, study, or general life direction — choose what you actually care about today.',
+        title: '一字一事',
+        body: '感情、事业、钱、身体，选一个方向。一个字同时问三件事，结果会糊。',
       },
     ],
     steps: [
-      { title: 'Choose your symbol', body: 'Pick one Chinese character that feels connected to your current mood or question.' },
-      { title: 'Select a focus', body: 'Optional direction tags sharpen the interpretation.' },
-      { title: 'Receive layered results', body: 'Start with a direct answer, then unlock a deeper symbolic breakdown if it resonates.' },
+      { title: '选定一个字', body: '选和当下问题有关的那个字，不要选字典里最吉的字。' },
+      { title: '标明问的是哪件事', body: '感情 / 事业 / 其他，让解读对准场景。' },
+      { title: '先看结论再追问', body: '带走一招；卡住了就把这一招带回对话拆小。' },
     ],
     faq: [
       {
-        question: 'Do I need to understand Chinese?',
-        answer:
-          'No. You can choose from prompts or type a character you already know. Shanhai explains the symbol in English and connects it to your situation.',
+        question: '不会繁体/古文也能测字吗？',
+        answer: '可以。输入一个你会写的字即可，解读用白话，不需要先懂拆字理论。',
       },
       {
-        question: 'Can I re-read the same character?',
-        answer: 'Yes. Change focus tags or ask a sharper question to get a different angle on the same character.',
+        question: '同一个字可以再测吗？',
+        answer: '可以。换一个更具体的问题或方向，同一字会给出不同切入，而不是换一套鸡汤。',
       },
       {
-        question: 'How many points does a reading cost?',
-        answer: 'Character readings consume in-app points unless you hold an active membership with relevant benefits.',
+        question: '测字要扣积分吗？',
+        answer: '按规则消耗积分；月卡有效期内按会员规则免扣。先测一字，再决定要不要追问。',
       },
     ],
-    cta: { primary: 'Start symbol reading', secondary: 'Sign up & get bonus points' },
+    cta: { primary: '免费测一字', secondary: '注册领积分' },
   },
   {
     slug: 'i-ching-reading',
@@ -152,56 +150,54 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/reading',
     relatedSlugs: ['daily-fortune', 'bazi-calculator', 'character-divination'],
     seo: {
-      title: '易经AI占卜在线 | 六爻卦象·决策指引 | 山海灵境',
+      title: '易经占卜在线 | 问具体问题给下一步 | 山海灵境',
       description:
-        '提出一个具体问题，获得结构化易经/六爻风格解读：直接结论、行动步骤、风险提醒与一周节奏。面向真实决策，而非空泛运势。',
-      keywords:
-        '易经占卜, AI占卜, 六爻在线, 卦象解读, i ching reading, hexagram, chinese divination, 山海灵境',
+        '在线易经/六爻风格占卜：先写一个具体问题，再拿结论、行动步骤与风险提醒。适合该不该、何时做、是否继续。不是泛泛算命。',
+      keywords: '易经占卜, 在线占卜, 六爻占卜, 卦象解读, 问事占卜, 山海灵境',
     },
     hero: {
-      badge: '易经占卜 · I Ching-Inspired',
-      title: '问一个具体问题，拿到清晰卦象指引',
+      badge: '易经占卜',
+      title: '问一个具体问题，拿走清晰的下一步',
       subtitle:
-        '适合“该不该”“何时做”“是否适合”这类决策问题：先给直接结论，再给行动步骤与风险提醒。',
+        '适合「该不该」「何时做」「还要不要继续」：先给结论，再给行动步骤与风险。不是空泛运势。',
     },
     features: [
       {
         icon: '🧿',
-        title: 'Decision-first format',
-        body: 'Direct answer upfront, then symbol context, risks, and a weekly execution rhythm.',
+        title: '先结论，再依据',
+        body: '开头就回答你的问题，然后才是卦象依据、风险与本周一招。',
       },
       {
         icon: '🔁',
-        title: 'Continue in chat',
-        body: 'Jump from reading to persona-guided conversation to process emotions before acting.',
+        title: '解完可以追问',
+        body: '把这一招带回对话，拆成今天能做的更小一步。',
       },
       {
         icon: '🎴',
-        title: 'Daily oracle bridge',
-        body: 'Drew a daily oracle slip? Turn the same theme into a full guidance session in one tap.',
+        title: '可从今日定向接过来',
+        body: '抽过今日一招，也能把同一主题做成完整问事占卜。',
       },
     ],
     steps: [
-      { title: 'Phrase your question', body: 'Include decision signals — should I, when, is it suitable — for sharper results.' },
-      { title: 'Pick a category', body: 'Career, love, wealth, health, or general — tunes the narrative emphasis.' },
-      { title: 'Act on the plan', body: 'Use the three-step action list and risk section as a reflection checklist, not a prophecy.' },
+      { title: '写成一个决策问题', body: '「月底前该不该接这个 offer」比「我未来怎么样」有用。' },
+      { title: '选感情或事业', body: '让解读对准场景，而不是什么都说一点。' },
+      { title: '按清单做，不当预言', body: '三步行动和风险提醒是反思清单，不是判决。' },
     ],
     faq: [
       {
-        question: 'What makes a good divination question?',
-        answer:
-          'Specific and decision-oriented works best: “Should I accept this offer before month-end?” beats “How is my future?”',
+        question: '怎样提问比较准？',
+        answer: '写成一个具体选择。带时间、人物、卡点，比问「我的运势」清楚得多。',
       },
       {
-        question: 'Are hexagram names shown?',
-        answer: 'Yes. Readings include original and changed hexagram names with plain-language explanations.',
+        question: '会显示卦名吗？',
+        answer: '会。本卦、变卦用白话解释，不要求你先会读易经。',
       },
       {
-        question: 'Can I try before paying?',
-        answer: 'New accounts receive starter points; membership may waive point costs for frequent users.',
+        question: '可以先试再付费吗？',
+        answer: '新账号有起步积分；月卡适合需要反复追问的人。',
       },
     ],
-    cta: { primary: 'Ask my question now', secondary: 'Register free' },
+    cta: { primary: '去问一个问题', secondary: '免费注册' },
   },
   {
     slug: 'daily-fortune',
@@ -210,57 +206,54 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/index',
     relatedSlugs: ['i-ching-reading', 'character-divination', 'bazi-calculator'],
     seo: {
-      title: '每日运势灵签 | 今日幸运色·数字·小任务 | 山海灵境',
+      title: '今日运势免费抽签 | 每日一招·幸运色 | 山海灵境',
       description:
-        '每日抽一支灵签：诗句、幸运色、幸运数字与今日小任务。可一键把主题延伸到完整占卜解读，养成轻量晨间仪式。',
-      keywords:
-        '每日运势, 每日灵签, 今日运势, 幸运色, daily chinese fortune, oracle slip, 山海灵境',
+        '免费抽今日运势：一招可执行的下一步，加上幸运色与数字。不是判决，是晨间定向。可把同一主题延伸成完整占卜。',
+      keywords: '今日运势, 每日运势, 免费抽签, 今日一招, 幸运色, 每日灵签, 山海灵境',
     },
     hero: {
-      badge: '每日运势 · Oracle Slip',
-      title: '每日灵签：幸运色、数字与今日小任务',
+      badge: '今日运势',
+      title: '每天回来看一招：今日定向',
       subtitle:
-        '一分钟晨间仪式——抽今日灵签，记下幸运锚点，也可把同一主题延伸成完整占卜。',
+        '一分钟抽一张轻量定向。带走今天能做的一步，需要时再把同一主题做成完整问事。',
     },
     features: [
       {
         icon: '🎋',
-        title: 'Poem + mission',
-        body: 'Each slip combines classical tone with a concrete micro-mission for the day.',
+        title: '诗句 + 一招',
+        body: '不是空泛吉凶，而是今天能做的一小步。',
       },
       {
         icon: '🍀',
-        title: 'Lucky anchors',
-        body: 'Color, number, and direction hints to frame your day with playful intention.',
+        title: '幸运锚点',
+        body: '颜色、数字作轻提醒，帮助把一天定个调，不当成迷信指令。',
       },
       {
         icon: '🔗',
-        title: 'Deep reading bridge',
-        body: 'Turn “today’s theme” into a full I Ching session without re-explaining context.',
+        title: '能接到完整占卜',
+        body: '这招对上了真实决定，就延伸成解签，不用重新解释背景。',
       },
     ],
     steps: [
-      { title: 'Open the home tab', body: 'Start from chat home and invoke the daily draw ritual.' },
-      { title: 'Reveal your slip', body: 'Wait through the animation — the pause is part of the experience.' },
-      { title: 'Optional deep dive', body: 'Tap through to divination if the theme hits a live decision.' },
+      { title: '打开首页', body: '点「领取今日一招」，完成一次轻仪式。' },
+      { title: '看清这一招', body: '先记住下一步，而不是收藏一堆签文。' },
+      { title: '需要再追问', body: '卡住了，把这一招带回对话或解签。' },
     ],
     faq: [
       {
-        question: 'Is daily fortune personalized?',
-        answer:
-          'Slips blend daily content with your usage context when logged in. Guests still receive the daily draw experience.',
+        question: '今日运势会针对我吗？',
+        answer: '登录后会结合使用上下文；未登录也能抽当日定向。',
       },
       {
-        question: 'Can I share my slip?',
-        answer: 'Yes. Share text or image cards with friends; invite links grant bonus points after registration.',
+        question: '可以分享吗？',
+        answer: '可以。分享卡给朋友；邀请注册双方都有积分。',
       },
       {
-        question: 'Does check-in stack with fortune?',
-        answer: 'Daily check-in awards points separately — combine both for a simple retention habit loop.',
+        question: '和签到是一回事吗？',
+        answer: '不是。签到拿积分，今日一招拿方向。两者可以同一天做。',
       },
     ],
-    cta: { primary: 'Draw today’s fortune', secondary: 'Join & save progress' },
-  },
+    cta: { primary: '领取今日一招', secondary: '注册保存进度' },
   {
     slug: 'overseas-chinese-metaphysics-ai',
     path: '/overseas-chinese-metaphysics-ai',
@@ -394,7 +387,7 @@ export const TOOLS_HUB = {
     title: '东方玄学AI工具箱 | 八字·测字·易经·每日运势 | 山海灵境',
     description:
       '一站体验山海灵境工具：在线八字排盘、AI测字、易经占卜与每日灵签。AI辅助解读，仅供娱乐与灵感。',
-    keywords: '玄学AI工具, 八字工具, 测字工具, 易经工具, bazi, cezi, i ching, daily fortune, 山海灵境',
+    keywords: '玄学AI工具, 免费八字排盘, 在线测字, 易经占卜, 今日运势, 山海灵境',
   },
   hero: {
     title: '东方玄学 AI 工具箱',

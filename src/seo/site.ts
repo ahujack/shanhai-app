@@ -17,11 +17,11 @@ export type SeoMeta = {
 };
 
 export const HOME_SEO: SeoMeta = {
-  title: '山海灵境 | AI八字排盘·测字·易经占卜·每日运势 Shanhai Realm',
+  title: '免费在线八字排盘·AI测字 | 山海灵境',
   description:
-    '山海灵境 Shanhai Realm：不是判决，是下一步的坐标。在线AI八字排盘、测字、易经解读与可保存的深度命运报告。用东方符号系统帮你梳理感情、事业与时机。仅供娱乐与自我反思。',
+    '山海灵境：免费在线八字排盘、测字与每日定向。不是判决，是下一步的坐标。输入生日即可看四柱白话，写一个字看当下指引。深度命运报告可保存重开。仅供娱乐与自我反思。',
   keywords:
-    '山海灵境, AI八字, 八字排盘, 在线八字, AI测字, 测字占卜, 易经占卜, 六爻, 每日运势, AI算命, bazi calculator, chinese character divination, i ching, shanhai realm',
+    '山海灵境, 免费八字排盘, 在线八字排盘, AI测字, 在线测字, 测字占卜, 今日运势, 四柱命盘, 生辰八字',
   canonical: SEO_SITE.url,
 };
 

@@ -31,8 +31,17 @@ function normalizeLanguage(raw: string | null | undefined): AppLanguage {
   return 'zh-CN';
 }
 
+function isSearchCrawler(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Googlebot|bingbot|BingPreview|Baiduspider|YandexBot|DuckDuckBot|Slurp|Applebot/i.test(
+    navigator.userAgent || '',
+  );
+}
+
 function detectPreferredLanguage(): AppLanguage {
   if (typeof window === 'undefined') return 'zh-CN';
+  // 与 <html lang="zh-CN"> 一致，避免美区爬虫把整站判成英文 I Ching 站
+  if (isSearchCrawler()) return 'zh-CN';
   const candidates = [
     window.navigator?.language,
     ...(Array.isArray(window.navigator?.languages) ? window.navigator.languages : []),

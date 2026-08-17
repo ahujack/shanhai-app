@@ -8,47 +8,44 @@ const OG_IMAGE = `${SITE}/og-image.png`;
 const PAGES = [
   {
     file: 'index.html',
-    title: '山海灵境 | AI八字排盘·测字·易经占卜·每日运势 Shanhai Realm',
+    title: '免费在线八字排盘·AI测字 | 山海灵境',
     description:
-      '山海灵境 Shanhai Realm：在线AI八字排盘、测字占卜、易经/六爻解读与每日灵签。用东方符号系统帮你梳理感情、事业与时机选择。仅供娱乐与自我反思。',
+      '山海灵境：免费在线八字排盘、测字与每日定向。不是判决，是下一步的坐标。输入生日即可看四柱白话，写一个字看当下指引。深度命运报告可保存重开。仅供娱乐与自我反思。',
     keywords:
-      '山海灵境, AI八字, 八字排盘, 在线八字, AI测字, 测字占卜, 易经占卜, 六爻, 每日运势, AI算命, bazi calculator, chinese character divination, i ching, shanhai realm',
+      '山海灵境, 免费八字排盘, 在线八字排盘, AI测字, 在线测字, 测字占卜, 今日运势, 四柱命盘, 生辰八字',
     canonical: `${SITE}/`,
   },
   {
     file: 'bazi-calculator.html',
-    title: '在线八字排盘 | AI四柱解读·免费BaZi计算器 | 山海灵境',
+    title: '免费八字排盘在线 | 四柱命盘白话解读 | 山海灵境',
     description:
-      '免费在线八字排盘（四柱命盘）：输入生日时辰，生成年柱月柱日柱时辰，并获得AI通俗解读。适合快速了解性格、关系与运势节奏。仅供娱乐。',
+      '免费在线八字排盘：输入生日时辰，30 秒生成年柱月柱日柱时柱，再用白话看性格、关系与今年重点。不是判决，是下一步的坐标。仅供娱乐。',
     keywords:
-      '八字排盘, 在线八字, AI八字, 四柱排盘, 生辰八字, bazi calculator, four pillars, chinese astrology, 山海灵境',
+      '免费八字排盘, 八字排盘在线, 在线八字排盘, 四柱八字, 生辰八字, 日主, 免费排盘, 山海灵境',
     canonical: `${SITE}/bazi-calculator`,
   },
   {
     file: 'character-divination.html',
-    title: 'AI测字占卜在线 | 写一字看意象与指引 | 山海灵境',
+    title: '免费在线测字 | 写一字看下一步 | 山海灵境',
     description:
-      '在线AI测字：手写或输入一个汉字，解读字形、意象与情绪信号，并给出感情/事业等方向的实用指引。无需懂古文也能上手。',
-    keywords:
-      'AI测字, 测字占卜, 在线测字, 汉字测字, chinese character divination, cezi, symbol reading, 山海灵境',
+      '免费在线测字：手写或输入一个汉字，看字形意象、当下状态与可执行下一步。适合感情、事业里说不清的那件事。仅供娱乐。',
+    keywords: '在线测字, 免费测字, 测字占卜, AI测字, 汉字测字, 测字算命, 山海灵境',
     canonical: `${SITE}/character-divination`,
   },
   {
     file: 'i-ching-reading.html',
-    title: '易经AI占卜在线 | 六爻卦象·决策指引 | 山海灵境',
+    title: '易经占卜在线 | 问具体问题给下一步 | 山海灵境',
     description:
-      '提出一个具体问题，获得结构化易经/六爻风格解读：直接结论、行动步骤、风险提醒与一周节奏。面向真实决策，而非空泛运势。',
-    keywords:
-      '易经占卜, AI占卜, 六爻在线, 卦象解读, i ching reading, hexagram, chinese divination, 山海灵境',
+      '在线易经/六爻风格占卜：先写一个具体问题，再拿结论、行动步骤与风险提醒。适合该不该、何时做、是否继续。不是泛泛算命。',
+    keywords: '易经占卜, 在线占卜, 六爻占卜, 卦象解读, 问事占卜, 山海灵境',
     canonical: `${SITE}/i-ching-reading`,
   },
   {
     file: 'daily-fortune.html',
-    title: '每日运势灵签 | 今日幸运色·数字·小任务 | 山海灵境',
+    title: '今日运势免费抽签 | 每日一招·幸运色 | 山海灵境',
     description:
-      '每日抽一支灵签：诗句、幸运色、幸运数字与今日小任务。可一键把主题延伸到完整占卜解读，养成轻量晨间仪式。',
-    keywords:
-      '每日运势, 每日灵签, 今日运势, 幸运色, daily chinese fortune, oracle slip, 山海灵境',
+      '免费抽今日运势：一招可执行的下一步，加上幸运色与数字。不是判决，是晨间定向。可把同一主题延伸成完整占卜。',
+    keywords: '今日运势, 每日运势, 免费抽签, 今日一招, 幸运色, 每日灵签, 山海灵境',
     canonical: `${SITE}/daily-fortune`,
   },
   {
@@ -75,7 +72,7 @@ const PAGES = [
     description:
       '一站体验山海灵境工具：在线八字排盘、AI测字、易经占卜与每日灵签。AI辅助解读，仅供娱乐与灵感。',
     keywords:
-      '玄学AI工具, 八字工具, 测字工具, 易经工具, bazi, cezi, i ching, daily fortune, 山海灵境',
+      '玄学AI工具, 免费八字排盘, 在线测字, 易经占卜, 今日运势, 山海灵境',
     canonical: `${SITE}/tools`,
   },
   {
