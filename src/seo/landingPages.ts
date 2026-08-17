@@ -21,8 +21,10 @@ export type LandingPageConfig = {
   features: Array<{ icon: string; title: string; body: string }>;
   steps: Array<{ title: string; body: string }>;
   faq: LandingFaq[];
-  cta: { primary: string; secondary: string };
+  cta: { primary: string; secondary: string; secondaryPath?: string };
   sections?: { why: string; how: string };
+  /** 给搜索引擎和用户补一层俗称解释，例如测字=拆字/相字 */
+  bridge?: { title: string; body: string };
 };
 
 const SITE = SEO_SITE.url;
@@ -85,6 +87,11 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
         answer:
           '免费看盘面与白话概览。深度命运报告是可重开的快照：总论、今年重点、本周一招，并可继续追问。',
       },
+      {
+        question: '没有生日或时辰，还能看吗？',
+        answer:
+          '八字需要出生信息。若只是当下卡住，可以先去测字：写一个字看这一步，不用排盘。',
+      },
     ],
     cta: { primary: '立即免费排盘', secondary: '免费注册' },
     sections: { why: '为什么在这里做免费八字排盘', how: '怎么在线排盘' },
@@ -96,16 +103,21 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
     ctaRoute: '/(tabs)/zi',
     relatedSlugs: ['bazi-calculator', 'i-ching-reading', 'daily-fortune'],
     seo: {
-      title: '免费在线测字 | 写一字看下一步 | 山海灵境',
+      title: '测字算命在线 | 写一个字看下一步 | 山海灵境',
       description:
-        '免费在线测字：手写或输入一个汉字，看字形意象、当下状态与可执行下一步。适合感情、事业里说不清的那件事。仅供娱乐。',
-      keywords: '在线测字, 免费测字, 测字占卜, AI测字, 汉字测字, 测字算命, 山海灵境',
+        '免费测字算命（也称拆字、相字）：心里想着那件事，写一个汉字，看字形意象和今天能做的一步。不用生日、不会八字也能看。仅供娱乐。',
+      keywords:
+        '测字算命, 在线测字, 免费测字, 拆字算命, 相字, 写一个字算命, 测字占卜, 山海灵境',
     },
     hero: {
-      badge: '免费在线测字',
+      badge: '测字算命 · 拆字',
       title: '写一个字，带走今天能做的一步',
       subtitle:
-        '手写或输入一个汉字即可开始。先看结论，再看字形意象与情绪信号，最后落到感情或事业的下一步。',
+        '测字又称拆字、相字。心里想着感情或事业里卡住的事，手写或输入一个字，先看结论，再落到下一步。',
+    },
+    bridge: {
+      title: '不知道八字，也能先看当下',
+      body: '八字要生日时辰，看的是长期节奏。测字更轻：不用排盘，写一个字看这一步。适合「现在该不该」「心里过不去」。若要看流年格局，再去免费八字排盘。我们做的是拆字看意象，不是诸葛神算那种三字查签。',
     },
     features: [
       {
@@ -115,36 +127,43 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
       },
       {
         icon: '🪨',
-        title: '拆字，但不掉进古文',
-        body: '字形、部首与意象会翻译成白话：现在卡在哪，下一步宜守还是宜动。',
+        title: '拆字，用人话讲',
+        body: '拆偏旁、看字形联想，翻译成：现在卡在哪，下一步宜守还是宜动。',
       },
       {
         icon: '🎯',
         title: '一字一事',
-        body: '感情、事业、钱、身体，选一个方向。一个字同时问三件事，结果会糊。',
+        body: '一次只问一件。一个字同时问感情、赚钱、搬家，结果会糊。',
       },
     ],
     steps: [
-      { title: '选定一个字', body: '选和当下问题有关的那个字，不要选字典里最吉的字。' },
-      { title: '标明问的是哪件事', body: '感情 / 事业 / 其他，让解读对准场景。' },
+      { title: '心里只想一件事', body: '该不该复合、offer 接不接，先收成一个问题。' },
+      { title: '写下最先想到的字', body: '选和问题有关的字，不要挑字典里最吉的字。' },
       { title: '先看结论再追问', body: '带走一招；卡住了就把这一招带回对话拆小。' },
     ],
     faq: [
       {
-        question: '不会繁体/古文也能测字吗？',
-        answer: '可以。输入一个你会写的字即可，解读用白话，不需要先懂拆字理论。',
+        question: '测字算命是什么？现在还有人用吗？',
+        answer:
+          '测字就是拆字、相字：解析一个汉字的形与意，用来看当下处境。古代很普遍，现代知道的人少，但「写个字算一下」仍是常见的民间问事方式。山海把它做成白话下一步，而不是古文批命。',
       },
       {
-        question: '同一个字可以再测吗？',
-        answer: '可以。换一个更具体的问题或方向，同一字会给出不同切入，而不是换一套鸡汤。',
+        question: '测字和八字有什么区别？',
+        answer:
+          '八字看出生盘面和长期节奏，需要生日。测字看眼前这一步，不需要生辰。不会排盘、时辰不准，或只是今晚要不要行动，更适合先测字。',
       },
       {
-        question: '测字要扣积分吗？',
-        answer: '按规则消耗积分；月卡有效期内按会员规则免扣。先测一字，再决定要不要追问。',
+        question: '和诸葛神算、在线算命是一回事吗？',
+        answer:
+          '不是。诸葛神算通常是报三个字、按笔画对签文。山海测字是一字拆形，给出结论和下一步。若你想看长期格局，请用八字排盘。',
+      },
+      {
+        question: '不会繁体或古文也能测吗？',
+        answer: '可以。输入一个你会写的字即可，解读用白话。',
       },
     ],
-    cta: { primary: '免费测一字', secondary: '注册领积分' },
-    sections: { why: '在线测字能看清什么', how: '怎么测一字' },
+    cta: { primary: '免费测一字', secondary: '免费排八字', secondaryPath: '/bazi-calculator' },
+    sections: { why: '测字算命适合问什么', how: '怎么在线测一字' },
   },
   {
     slug: 'i-ching-reading',

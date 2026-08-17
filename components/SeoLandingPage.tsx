@@ -110,8 +110,12 @@ export default function SeoLandingPage({ page }: Props) {
     router.push(page.ctaRoute as '/bazi-calculator');
   };
 
-  const goRegister = () => {
-    trackNamedEvent('seo_landing_cta', { slug: page.slug, target: 'register' });
+  const goSecondary = () => {
+    trackNamedEvent('seo_landing_cta', { slug: page.slug, target: 'secondary' });
+    if (page.cta.secondaryPath) {
+      router.push(page.cta.secondaryPath as '/bazi-calculator');
+      return;
+    }
     router.push('/register');
   };
 
@@ -148,10 +152,17 @@ export default function SeoLandingPage({ page }: Props) {
             <TouchableOpacity style={[styles.primaryBtn, webPointer]} onPress={goPrimary}>
               <Text style={styles.primaryBtnText}>{page.cta.primary}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.secondaryBtn, webPointer]} onPress={goRegister}>
+            <TouchableOpacity style={[styles.secondaryBtn, webPointer]} onPress={goSecondary}>
               <Text style={styles.secondaryBtnText}>{page.cta.secondary}</Text>
             </TouchableOpacity>
           </View>
+
+          {page.bridge ? (
+            <View style={styles.bridgeCard}>
+              <Text style={styles.bridgeTitle}>{page.bridge.title}</Text>
+              <Text style={styles.bridgeBody}>{page.bridge.body}</Text>
+            </View>
+          ) : null}
 
           <Text style={styles.sectionTitle}>
             {page.sections?.why || '为什么用山海灵境'}
@@ -354,6 +365,27 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontWeight: '700',
+  },
+  bridgeCard: {
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(214, 179, 106, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(214, 179, 106, 0.28)',
+  },
+  bridgeTitle: {
+    ...serifTitle,
+    color: colors.tabIconSelected,
+    fontSize: 17,
+    fontWeight: '600',
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  bridgeBody: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 22,
   },
   sectionTitle: {
     color: colors.text,
