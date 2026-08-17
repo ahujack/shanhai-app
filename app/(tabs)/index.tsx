@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, Alert, Animated, Easing, Share, Image, Pressable, Dimensions, ImageStyle } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Modal, Alert, Animated, Easing, Share, Image, Pressable, Dimensions, ImageStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,15 +17,18 @@ import ProofDemoSection from '../../components/ProofDemoSection';
 import EmailCaptureCard from '../../components/EmailCaptureCard';
 import ResultShareCard from '../../components/ResultShareCard';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
+import RitualWait from '../../components/RitualWait';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 import { buildFortuneShareLabel } from '../../src/utils/shareLabel';
 import {
   buildFollowUpPrompt,
+  buildTodayAskPrompt,
   dismissTodayTip,
   loadTodayTip,
   markTodayTipFollowedUp,
   saveTodayTip,
   shouldShowFollowUp,
+  shouldShowTodayOrientation,
   type TodayTipRecord,
 } from '../../src/utils/todayTipStorage';
 import { useI18nStore } from '../../src/store/i18n';
@@ -99,25 +102,35 @@ export default function HomeScreen() {
     });
   }, [params.prefill, params.from]);
 
-  // 次日「今日一招」回访
-  useEffect(() => {
-    let alive = true;
+  const refreshTodayCards = React.useCallback(() => {
     loadTodayTip().then((record) => {
-      if (!alive) return;
       if (shouldShowFollowUp(record)) {
         setFollowUpTip(record);
+        setTodayTip(null);
         trackNamedEvent('home_followup_show', {
           source: record?.source,
           tipDate: record?.date,
         });
-      } else {
-        setFollowUpTip(null);
+        return;
       }
+      if (shouldShowTodayOrientation(record)) {
+        setTodayTip(record);
+        setFollowUpTip(null);
+        trackNamedEvent('home_today_tip_show', {
+          source: record?.source,
+          tipDate: record?.date,
+        });
+        return;
+      }
+      setFollowUpTip(null);
+      setTodayTip(null);
     });
-    return () => {
-      alive = false;
-    };
-  }, [messages.length]);
+  }, []);
+
+  // 当日定向 / 次日回访
+  useEffect(() => {
+    refreshTodayCards();
+  }, [messages.length, refreshTodayCards]);
 
   const handleFollowUpContinue = async () => {
     if (!followUpTip) return;
@@ -133,6 +146,19 @@ export default function HomeScreen() {
     trackNamedEvent('home_followup_dismiss', { source: followUpTip.source });
     await dismissTodayTip();
     setFollowUpTip(null);
+  };
+
+  const handleTodayAsk = async () => {
+    if (!todayTip) return;
+    const prompt = buildTodayAskPrompt(todayTip);
+    trackNamedEvent('home_today_tip_continue', { source: todayTip.source });
+    await sendUserMessage(prompt, 'quick_template');
+  };
+
+  const handleTodayHide = () => {
+    if (!todayTip) return;
+    trackNamedEvent('home_today_tip_hide', { source: todayTip.source });
+    setTodayTip(null);
   };
   
   const [inputText, setInputText] = useState('');
@@ -156,6 +182,8 @@ export default function HomeScreen() {
   const [drawFortune, setDrawFortune] = useState<FortuneSlip | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [followUpTip, setFollowUpTip] = useState<TodayTipRecord | null>(null);
+  const [todayTip, setTodayTip] = useState<TodayTipRecord | null>(null);
+  const [hideClaim, setHideClaim] = useState(false);
   const [achievementUnlock, setAchievementUnlock] = useState<{ name: string; description: string; icon: string } | null>(null);
   const [lastCheckInPoints, setLastCheckInPoints] = useState(0);
   const quickStartPrompts = React.useMemo(
@@ -492,11 +520,12 @@ export default function HomeScreen() {
         String(fortune.funTip || '').trim() ||
         String(fortune.advice?.[0] || '').trim();
       if (tip) {
-        void saveTodayTip({
+        await saveTodayTip({
           tip,
           source: 'fortune',
           headline: fortune.poem?.title || fortune.fortuneRank || '今日签',
         });
+        refreshTodayCards();
       }
     } catch (error) {
       showToast(t('home.toast.drawFailed', '抽签失败，请稍后重试'), 'error');
@@ -1123,7 +1152,6 @@ export default function HomeScreen() {
                   ))}
                 </View>
               </View>
-              <ProofDemoSection />
             </>
           )}
 
@@ -1151,6 +1179,80 @@ export default function HomeScreen() {
             />
           )}
 
+          {!!todayTip && (
+            <DeliveryNextStepCard
+              title={
+                todayTip.source === 'report'
+                  ? t('home.today.titleReport', '报告里的今日一招')
+                  : t('home.today.title', '今日一招')
+              }
+              summary={
+                todayTip.headline ? `${todayTip.headline}\n${todayTip.tip}` : todayTip.tip
+              }
+              primary={{
+                label: t('home.today.continue', '继续追问这一招'),
+                onPress: () => void handleTodayAsk(),
+                disabled: isLoading,
+              }}
+              secondary={
+                todayTip.source === 'report'
+                  ? {
+                      label: t('home.today.openReport', '打开报告'),
+                      onPress: () => router.push('/deep-destiny-report' as any),
+                    }
+                  : {
+                      label: t('home.today.hide', '先收起'),
+                      onPress: handleTodayHide,
+                    }
+              }
+              tertiary={
+                todayTip.source === 'report'
+                  ? {
+                      label: t('home.today.hide', '先收起'),
+                      onPress: handleTodayHide,
+                    }
+                  : null
+              }
+            />
+          )}
+
+          {messages.length === 0 && !todayTip && !followUpTip && !hideClaim ? (
+            <DeliveryNextStepCard
+              title={t('home.today.claimTitle', '今日定向')}
+              summary={t(
+                'home.today.claimBody',
+                '抽一张轻量定向，带走今天能做的一步。不是判决，是坐标。',
+              )}
+              primary={{
+                label: t('home.today.claimCta', '领取今日一招'),
+                onPress: openDrawModal,
+              }}
+            />
+          ) : null}
+
+          {messages.length > 0 && !todayTip && !followUpTip && !hideClaim ? (
+            <DeliveryNextStepCard
+              title={t('home.today.claimTitle', '今日定向')}
+              summary={t(
+                'home.today.claimBodyShort',
+                '回来先看一招。抽一张今天的定向，再决定下一步。',
+              )}
+              primary={{
+                label: t('home.today.claimCta', '领取今日一招'),
+                onPress: openDrawModal,
+              }}
+              secondary={{
+                label: t('home.today.hide', '先收起'),
+                onPress: () => {
+                  trackNamedEvent('home_today_claim_hide', {});
+                  setHideClaim(true);
+                },
+              }}
+            />
+          ) : null}
+
+          {messages.length === 0 ? <ProofDemoSection /> : null}
+
           {/* 聊天消息 */}
           {messages.map((msg) => (
             <ChatBubble
@@ -1163,12 +1265,18 @@ export default function HomeScreen() {
           
           {/* 加载中 */}
           {isLoading && (
-            <View style={[styles.typingIndicator, { backgroundColor: colors.surface }]}>
-              <ActivityIndicator size="small" color={colors.accent} />
-              <Text style={styles.typingText}>
-                {loadingStageText || t('home.loading.thinking', '{name} 正在思考...').replace('{name}', localizedPersona.name)}
-              </Text>
-            </View>
+            <RitualWait
+              compact
+              title={
+                loadingStageText ||
+                t('home.loading.thinking', '{name} 正在思考...').replace('{name}', localizedPersona.name)
+              }
+              steps={[
+                t('home.ritual.1', '先接住你的处境'),
+                t('home.ritual.2', '收成一句结论'),
+                t('home.ritual.3', '写下今天能做的一步'),
+              ]}
+            />
           )}
 
           {showZiNudge && !showZiModal && (
@@ -1201,7 +1309,7 @@ export default function HomeScreen() {
           {/* 输入区域 */}
           <View style={styles.inputContainer}>
             {isLoading ? (
-              <Text style={styles.processHint}>{t('home.processHint', '正在生成第一版结论，通常 3-8 秒即可看到结果。')}</Text>
+              <Text style={styles.processHint}>{t('home.processHint', '正在写下坐标，通常 3–8 秒就能看到第一句。')}</Text>
             ) : null}
             {(isVoiceListening || voiceDraftText.trim().length > 0) && (
               <View style={styles.voicePreviewBar}>

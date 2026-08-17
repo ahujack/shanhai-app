@@ -11,9 +11,9 @@ import EmailCaptureCard from '../../components/EmailCaptureCard';
 import { buildReadingShareLabel } from '../../src/utils/shareLabel';
 import { saveTodayTip } from '../../src/utils/todayTipStorage';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
+import RitualWait, { ensureMinDuration } from '../../components/RitualWait';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
-import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { useI18nStore } from '../../src/store/i18n';
 import { isMembershipActive } from '../../src/utils/membership';
 import { localizeAuthMessage } from '../../src/utils/authMessage';
@@ -24,7 +24,7 @@ function useLoadingHint(isActive: boolean, hints: string[]) {
   const [idx, setIdx] = useState(0);
   useEffect(() => {
     if (!isActive) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % hints.length), 2800);
+    const t = setInterval(() => setIdx((i) => (i + 1) % hints.length), 1400);
     return () => clearInterval(t);
   }, [hints.length, isActive]);
   return hints[idx];
@@ -43,11 +43,10 @@ export default function ReadingScreen() {
   const language = useI18nStore((state) => state.language);
   const t = useI18nStore((state) => state.t);
   const loadingHints = [
-    t('reading.loading.1', '正在起卦...'),
-    t('reading.loading.2', '感应六爻中...'),
-    t('reading.loading.3', '解读卦象中...'),
-    t('reading.loading.4', '生成建议中...'),
-    t('reading.loading.5', '即将完成...'),
+    t('reading.loading.1', '安放你的问题'),
+    t('reading.loading.2', '展开卦象'),
+    t('reading.loading.3', '收成一句结论'),
+    t('reading.loading.4', '写下今天能做的一步'),
   ];
   const { lastFortune, lastReading } = useDivinationStore();
   const [question, setQuestion] = useState('');
@@ -222,6 +221,7 @@ export default function ReadingScreen() {
     }
     setIsLoading(true);
     setError(null);
+    const startedAt = Date.now();
     try {
       const deepReading = await readingApi.create({
         question: buildDeepReadingQuestionFromFortune(),
@@ -260,6 +260,7 @@ export default function ReadingScreen() {
       }
       setError(msg);
     } finally {
+      await ensureMinDuration(startedAt, 3200);
       setIsLoading(false);
     }
   };
@@ -290,6 +291,7 @@ export default function ReadingScreen() {
     setIsLoading(true);
     setResult(null);
     setError(null);
+    const startedAt = Date.now();
     
     try {
       const dto: CreateReadingDto = {
@@ -330,6 +332,7 @@ export default function ReadingScreen() {
       }
       setError(msg || t('reading.submit.failed', '占卜失败，请稍后重试'));
     } finally {
+      await ensureMinDuration(startedAt, 3200);
       setIsLoading(false);
     }
   };
@@ -342,46 +345,18 @@ export default function ReadingScreen() {
 
   const handleDeepConversation = () => {
     if (!result) return;
-    const movingLines = result.hexagram.lines.filter((line) => line === '6' || line === '9').length;
-    const caution = result.timing.caution || '';
-    const cautionRisky =
-      caution.includes('争') || caution.includes('困') || caution.includes('避') || caution.includes('损');
-
-    const bridgeMode: 'soothe' | 'listen' | 'clarify' =
-      cautionRisky ? 'soothe' : movingLines >= 3 ? 'clarify' : 'listen';
-
-    const bridgeByMode: Record<typeof bridgeMode, string> = {
-      soothe: t(
-        'reading.result.bridge.soothe',
-        '谢谢你把这些感受带来。我们先不着急定结论，先把心慢慢放稳。\n\n如果你愿意，可以先说说：此刻最压着你的情绪是什么？',
-      ),
-      listen: t(
-        'reading.result.bridge.listen',
-        '这次我更想先听你，而不是催你马上行动。\n\n你最近最反复想到、最放不下的是哪一件事？',
-      ),
-      clarify: t(
-        'reading.result.bridge.clarify',
-        '你已经很认真了，也许现在只是信息太多、心有点累。\n\n我们先轻轻理一理：你最担心什么？你最想守住什么？',
-      ),
-    };
-
-    const supportChoiceLine = t(
-      'reading.result.bridge.choices',
-      '\n\n你也可以直接告诉我，你此刻更需要哪种陪伴：\n1）先安慰我\n2）先听我讲\n3）帮我理清楚',
-    );
-
-    const supportiveMessage: ChatMessage = {
-      id: `bridge_${Date.now()}`,
-      role: 'assistant',
-      content: `${bridgeByMode[bridgeMode]}${supportChoiceLine}`,
-      timestamp: new Date(),
-    };
-
-    useChatStore.setState((state) => ({
-      messages: [...state.messages, supportiveMessage],
-    }));
-
-    router.push('/');
+    const next =
+      String(result.conclusion?.nextStep || '').trim() ||
+      String(result.recommendations?.[0] || '').trim() ||
+      t('reading.result.nextFallback', '先稳住节奏，再做决定。');
+    trackNamedEvent('reading_cta_click', { cta: 'ask_home' });
+    router.push({
+      pathname: '/(tabs)',
+      params: {
+        prefill: `刚才解签给的下一步是：${next.slice(0, 100)}。请先用一句接住我现在的状态，立刻给结论，再把这一步拆成今天能做的更小动作。`,
+        from: 'reading',
+      },
+    } as any);
   };
   const openPointsMallWithTrack = () => {
     trackNamedEvent('plan_select', { plan: 'points_pack', source: 'reading_paywall' });
@@ -530,7 +505,7 @@ export default function ReadingScreen() {
           title={t('reading.result.delivery.title', '接下来做什么')}
           summary={result.conclusion?.nextStep || t('reading.result.nextFallback', '先稳住节奏，再做决定。')}
           primary={{
-            label: t('reading.result.delivery.chat', '继续聊这件事'),
+            label: t('reading.result.delivery.chat', '继续追问这一招'),
             onPress: handleDeepConversation,
           }}
           secondary={
@@ -702,6 +677,13 @@ export default function ReadingScreen() {
       <Text style={styles.sectionSubtitle}>
         {t('reading.form.subtitle', '适合一个具体问题，不适合泛泛算命。')}
       </Text>
+
+      {isLoading ? (
+        <RitualWait
+          title={t('reading.ritual.title', '正在写下这卦的坐标')}
+          steps={loadingHints}
+        />
+      ) : null}
 
       {fromFortune && lastFortune && (
         <View style={[styles.card, { backgroundColor: colors.surface }]}>

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Platform,
   ScrollView,
   StyleSheet,
@@ -23,6 +22,7 @@ import { buildReportShareLabel } from '../src/utils/shareLabel';
 import DeliveryNextStepCard from '../components/DeliveryNextStepCard';
 import EmailCaptureCard from '../components/EmailCaptureCard';
 import ResultShareCard from '../components/ResultShareCard';
+import RitualWait from '../components/RitualWait';
 import TrustStrip from '../components/TrustStrip';
 import { serifTitle } from '../constants/typography';
 
@@ -219,7 +219,7 @@ export default function DeepDestinyReportScreen() {
     router.push({
       pathname: '/(tabs)/reading',
       params: {
-        suggestedQuestion: `结合我的深度命运报告，今年重点是：${String(focusText).slice(0, 160)}。请先给一句结论，再给本周可执行的一步。`,
+        suggestedQuestion: `结合我的深度命运报告，今年重点是：${String(focusText).slice(0, 160)}。本周一招是：${weeklyAction.slice(0, 80)}。请先用一句接住我，立刻给结论，再给本周可执行的一步。`,
         suggestedCategory: 'career',
         from: 'deep_report',
       },
@@ -231,7 +231,7 @@ export default function DeepDestinyReportScreen() {
     router.push({
       pathname: '/(tabs)',
       params: {
-        prefill: `我想继续追问深度命运报告里「今年重点」和「本周行动」：${weeklyAction.slice(0, 80)}`,
+        prefill: `我想继续追问深度命运报告里的「本周一招」：${weeklyAction.slice(0, 100)}。请先用一句接住我现在的状态，立刻给结论，再给今天能做的更小一步。`,
         from: 'deep_report',
       },
     } as any);
@@ -279,8 +279,14 @@ export default function DeepDestinyReportScreen() {
 
         {loading ? (
           <View style={styles.centerBox}>
-            <ActivityIndicator color={ui.gold} size="large" />
-            <Text style={styles.hint}>{t('report.loading', '正在打开报告…')}</Text>
+            <RitualWait
+              title={t('report.loading', '正在打开报告…')}
+              steps={[
+                t('report.ritual.open1', '找回这份快照'),
+                t('report.ritual.open2', '展开总论'),
+                t('report.ritual.open3', '点出本周一招'),
+              ]}
+            />
           </View>
         ) : error && !report ? (
           <View style={styles.centerBox}>
@@ -323,10 +329,17 @@ export default function DeepDestinyReportScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        ) : report?.status === 'generating' ? (
+        ) : report?.status === 'generating' || refreshing ? (
           <View style={styles.centerBox}>
-            <ActivityIndicator color={ui.gold} size="large" />
-            <Text style={styles.hint}>{t('report.generating', '正在生成你的深度报告…')}</Text>
+            <RitualWait
+              title={t('report.generating', '正在写下你的坐标…')}
+              steps={[
+                t('report.ritual.1', '安放你的问题'),
+                t('report.ritual.2', '展开命盘'),
+                t('report.ritual.3', '收成总论与本周一招'),
+              ]}
+            />
+            <Text style={styles.hint}>{t('report.generatingHint', '通常几秒就能看到第一段，无需空等。')}</Text>
           </View>
         ) : report?.status === 'failed' ? (
           <View style={styles.section}>
@@ -399,12 +412,12 @@ export default function DeepDestinyReportScreen() {
               title={t('report.weeklyAction', '本周可做的 1 件事')}
               summary={weeklyAction}
               primary={{
-                label: t('report.cta.reading', '针对这点去解签'),
-                onPress: goReadingOnFocus,
+                label: t('report.cta.ask', '继续追问这一招'),
+                onPress: goHomeAsk,
               }}
               secondary={{
-                label: t('report.cta.ask', '继续追问'),
-                onPress: goHomeAsk,
+                label: t('report.cta.reading', '针对这点去解签'),
+                onPress: goReadingOnFocus,
               }}
               tertiary={{
                 label: t('report.cta.bazi', '完善命盘'),
@@ -548,11 +561,16 @@ export default function DeepDestinyReportScreen() {
               <Text style={styles.upgradeBody}>
                 {t(
                   'report.upgrade.body',
-                  '月卡 $5.9：深度解签/测字按会员规则免扣积分，适合把报告变成每周对话。',
+                  '可以先把本周一招带回对话。月卡 $5.9 适合把报告变成每周追问，深度解签/测字按会员规则免扣积分。',
                 )}
               </Text>
-              <TouchableOpacity style={[styles.primaryBtn, webPointer]} onPress={goUpgradeVip}>
+              <TouchableOpacity style={[styles.primaryBtn, webPointer]} onPress={goHomeAsk}>
                 <Text style={styles.primaryBtnText}>
+                  {t('report.upgrade.askFirst', '先追问这一招')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.secondaryBtn, webPointer]} onPress={goUpgradeVip}>
+                <Text style={styles.secondaryBtnText}>
                   {t('report.upgrade.cta', '查看月卡权益')}
                 </Text>
               </TouchableOpacity>
@@ -615,7 +633,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     gap: 14,
   },
-  hint: { color: ui.textSub, fontSize: 14 },
+  hint: { color: ui.textSub, fontSize: 14, textAlign: 'center', lineHeight: 22 },
   section: {
     backgroundColor: ui.card,
     borderColor: ui.border,
