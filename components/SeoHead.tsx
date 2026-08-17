@@ -1,6 +1,7 @@
 import React from 'react';
 import Head from 'expo-router/head';
 import { SEO_SITE, type SeoMeta } from '../src/seo/site';
+import { LANDING_PAGES } from '../src/seo/landingPages';
 
 type Props = SeoMeta & {
   jsonLd?: object | object[];
@@ -54,5 +55,19 @@ export function SeoHead({
         </script>
       ))}
     </Head>
+  );
+}
+
+/** App tool routes (/bazi, /zi, /reading) should point at the SEO landing. */
+export function LandingSeoHead({ slug }: { slug: string }) {
+  const page = LANDING_PAGES[slug];
+  if (!page) return null;
+  return (
+    <SeoHead
+      title={page.seo.title}
+      description={page.seo.description}
+      keywords={page.seo.keywords}
+      canonical={page.canonical}
+    />
   );
 }

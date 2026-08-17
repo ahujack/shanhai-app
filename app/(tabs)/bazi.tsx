@@ -14,6 +14,7 @@ import EmailCaptureCard from '../../components/EmailCaptureCard';
 import { buildBaziShareLabel } from '../../src/utils/shareLabel';
 import { saveTodayTip } from '../../src/utils/todayTipStorage';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
+import { LandingSeoHead } from '../../components/SeoHead';
 
 const colors = theme.dark;
 
@@ -673,6 +674,7 @@ export default function BaziScreen() {
     if (!user) {
       return (
         <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+          <LandingSeoHead slug="bazi-calculator" />
           <Text style={styles.title}>{tx('📜 五行先看一眼', '📜 Five Elements Preview', '📜 五行先看一眼')}</Text>
           <Text style={styles.sub}>{tx('不用登录，先看五行强弱和适合补什么。结果出来后再登录保存。', 'No login needed. Preview element balance first, then log in to save.', '不用登入，先看五行強弱和適合補什麼。結果出來後再登入保存。')}</Text>
           <Text style={styles.fieldLabel}>{tx('出生日期', 'Birth Date', '出生日期')}</Text>
@@ -795,6 +797,7 @@ export default function BaziScreen() {
 
     return (
       <View style={[styles.center, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <LandingSeoHead slug="bazi-calculator" />
         <Text style={styles.title}>{tx('📜 八字看盘', '📜 Bazi Chart', '📜 八字看盤')}</Text>
         <Text style={styles.sub}>{tx('先生成命盘，再看格局、近期节奏和可追问方向。', 'Generate your chart first, then view pattern, rhythm, and follow-up directions.', '先生成命盤，再看格局、近期節奏和可追問方向。')}</Text>
         {genError && <Text style={styles.errorText}>{genError}</Text>}
@@ -1014,6 +1017,7 @@ export default function BaziScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
     >
+      <LandingSeoHead slug="bazi-calculator" />
       <Text style={styles.title}>{tx('📜 八字看盘', '📜 Bazi Chart', '📜 八字看盤')}</Text>
       {!user && guestChart ? (
         <View style={styles.guestBanner}>

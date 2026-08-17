@@ -8,5 +8,8 @@ Disallow: /payment/
 Disallow: /invite
 Disallow: /partner
 Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
 
 Sitemap: https://www.shanhai.app/sitemap.xml

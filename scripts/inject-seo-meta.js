@@ -32,6 +32,7 @@ function injectPage(config) {
   const canonical = escapeHtml(config.canonical);
   const ogImage = escapeHtml(OG_IMAGE);
   const isHome = config.file === 'index.html';
+  const robots = config.noindex ? 'noindex, nofollow' : 'index, follow';
 
   html = html
     .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
@@ -58,7 +59,7 @@ function injectPage(config) {
     `<title>${title}</title>`,
     `<meta name="description" content="${description}"/>`,
     `<meta name="keywords" content="${keywords}"/>`,
-    `<meta name="robots" content="index, follow"/>`,
+    `<meta name="robots" content="${robots}"/>`,
     `<meta property="og:title" content="${title}"/>`,
     `<meta property="og:description" content="${description}"/>`,
     `<meta property="og:url" content="${canonical}"/>`,

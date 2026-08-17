@@ -33,6 +33,7 @@ import { localizeAuthMessage } from '../../src/utils/authMessage';
 import { normalizeBackendText } from '../../src/utils/backendText';
 import HandwritingCanvas from '../../components/HandwritingCanvas';
 import { useI18nStore } from '../../src/store/i18n';
+import { LandingSeoHead } from '../../components/SeoHead';
 
 const cloudWandererImage = require('../../assets/personas/elder.png');
 
@@ -961,6 +962,7 @@ export default function ZiScreen() {
   
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: wuxingTheme.bg }]}>
+      <LandingSeoHead slug="character-divination" />
       <View pointerEvents="none" style={[styles.wuxingAura, { backgroundColor: wuxingTheme.glow }]} />
       <View style={styles.header}>
         <Text style={styles.title}>{tx('🔮 测字问心', '🔮 Symbol Reading', '🔮 測字問心')}</Text>

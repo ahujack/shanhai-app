@@ -25,6 +25,10 @@ for (const page of PAGES) {
 
   const filePath = path.join(DIST, page.file);
   if (!fs.existsSync(filePath)) {
+    if (page.noindex) {
+      console.warn(`[seo-verify] skip missing noindex ${page.file}`);
+      continue;
+    }
     fail(`missing ${page.file}`);
     continue;
   }

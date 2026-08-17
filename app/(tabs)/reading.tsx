@@ -12,6 +12,7 @@ import { buildReadingShareLabel } from '../../src/utils/shareLabel';
 import { saveTodayTip } from '../../src/utils/todayTipStorage';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import RitualWait, { ensureMinDuration } from '../../components/RitualWait';
+import { LandingSeoHead } from '../../components/SeoHead';
 import { useUserStore } from '../../src/store/user';
 import { useDivinationStore } from '../../src/store/divination';
 import { useI18nStore } from '../../src/store/i18n';
@@ -431,6 +432,7 @@ export default function ReadingScreen() {
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       >
+        <LandingSeoHead slug="i-ching-reading" />
         <Text style={styles.sectionTitle}>
           {fromFortune ? t('reading.result.fortuneTitle', '🔮 深度解签结果') : t('reading.result.title', '🔮 占卜结果')}
         </Text>
@@ -673,6 +675,7 @@ export default function ReadingScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
     >
+      <LandingSeoHead slug="i-ching-reading" />
       <Text style={styles.sectionTitle}>{t('reading.form.title', '🔮 问事占卜')}</Text>
       <Text style={styles.sectionSubtitle}>
         {t('reading.form.subtitle', '适合一个具体问题，不适合泛泛算命。')}

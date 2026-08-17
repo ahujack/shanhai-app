@@ -177,6 +177,58 @@ const PAGES = [
       '测字选字, 测字避坑, 怎么选字, AI测字技巧, 测字不准原因, 汉字测字方法',
     canonical: `${SITE}/guides/cezi-character-pitfalls`,
   },
+  // App tool shells share +html.tsx homepage meta unless rewritten.
+  // Canonicalize to the SEO landing so Google does not treat them as home duplicates.
+  {
+    file: 'bazi.html',
+    title: '免费八字排盘在线 | 四柱命盘白话解读 | 山海灵境',
+    description:
+      '免费在线八字排盘：输入生日时辰，30 秒生成年柱月柱日柱时柱，再用白话看性格、关系与今年重点。不是判决，是下一步的坐标。仅供娱乐。',
+    keywords:
+      '免费八字排盘, 八字排盘在线, 在线八字排盘, 四柱八字, 生辰八字, 日主, 免费排盘, 山海灵境',
+    canonical: `${SITE}/bazi-calculator`,
+  },
+  {
+    file: 'zi.html',
+    title: '测字算命在线 | 写一个字看下一步 | 山海灵境',
+    description:
+      '免费测字算命（也称拆字、相字）：心里想着那件事，写一个汉字，看字形意象和今天能做的一步。不用生日、不会八字也能看。仅供娱乐。',
+    keywords:
+      '测字算命, 在线测字, 免费测字, 拆字算命, 相字, 写一个字算命, 测字占卜, 山海灵境',
+    canonical: `${SITE}/character-divination`,
+  },
+  {
+    file: 'reading.html',
+    title: '易经占卜在线 | 问具体问题给下一步 | 山海灵境',
+    description:
+      '在线易经/六爻风格占卜：先写一个具体问题，再拿结论、行动步骤与风险提醒。适合该不该、何时做、是否继续。不是泛泛算命。',
+    keywords: '易经占卜, 在线占卜, 六爻占卜, 卦象解读, 问事占卜, 山海灵境',
+    canonical: `${SITE}/i-ching-reading`,
+  },
+  {
+    file: 'points.html',
+    title: '积分与会员 | 山海灵境',
+    description: '山海灵境积分、签到与会员权益。登录后使用。',
+    keywords: '山海灵境积分',
+    canonical: `${SITE}/points`,
+    noindex: true,
+  },
+  {
+    file: 'profile.html',
+    title: '个人资料 | 山海灵境',
+    description: '山海灵境账号、命盘与签到设置。登录后使用。',
+    keywords: '山海灵境账号',
+    canonical: `${SITE}/profile`,
+    noindex: true,
+  },
+  {
+    file: 'meditation.html',
+    title: '冥想 | 山海灵境',
+    description: '山海灵境冥想与白噪音。应用内功能页。',
+    keywords: '山海灵境冥想',
+    canonical: `${SITE}/meditation`,
+    noindex: true,
+  },
 ];
 
 module.exports = {
