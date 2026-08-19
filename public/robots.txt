@@ -12,4 +12,75 @@ Disallow: /points
 Disallow: /profile
 Disallow: /meditation
 
+# AI answer engines (GEO)：显式欢迎，保留与全站一致的抓取边界
+User-agent: GPTBot
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
 Sitemap: https://www.shanhai.app/sitemap.xml

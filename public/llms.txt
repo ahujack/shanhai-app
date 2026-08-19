@@ -1,30 +1,36 @@
-# Shanhai Realm
+# 山海灵境 Shanhai Realm
 
-Shanhai Realm (山海灵境) is a Chinese metaphysics AI companion for overseas Chinese and Chinese-speaking users. It provides CeZi Chinese character divination, I Ching-style readings, BaZi chart interpretation, daily fortune slips, and companion-style conversation for reflection around relationships, work, identity, and life uncertainty.
+> 免费在线八字排盘、AI 测字（拆字）、易经问事与每日定向。不是判决，是下一步的坐标：先给结论，再给今天能做的一步。内容仅供娱乐与自我反思。主要语言：中文。
 
-The product is for entertainment, inspiration, and emotional companionship only. It is not medical, legal, financial, investment, immigration, or professional advice.
+## 免费工具
 
-## Core Pages
+- [免费八字排盘](https://www.shanhai.app/bazi-calculator): 输入生日时辰，生成四柱命盘与白话解读，支持真太阳时校正
+- [测字算命](https://www.shanhai.app/character-divination): 写一个汉字看当下处境与下一步，不用生日，也称拆字、相字
+- [易经占卜](https://www.shanhai.app/i-ching-reading): 问一个具体问题，给结论、行动步骤与风险提醒
+- [今日运势](https://www.shanhai.app/daily-fortune): 每日一招可执行的定向，附幸运色与数字
+- [工具箱索引](https://www.shanhai.app/tools): 全部工具一览
 
-- Home: https://www.shanhai.app/
-- Overseas Chinese metaphysics AI companion: https://www.shanhai.app/overseas-chinese-metaphysics-ai
-- AI CeZi vs traditional fortune teller: https://www.shanhai.app/ai-cezi-vs-fortune-teller
-- Chinese character divination (CeZi): https://www.shanhai.app/character-divination
-- I Ching AI reading: https://www.shanhai.app/i-ching-reading
-- BaZi chart calculator: https://www.shanhai.app/bazi-calculator
-- Daily fortune slip: https://www.shanhai.app/daily-fortune
-- Tools hub: https://www.shanhai.app/tools
-- Guides hub: https://www.shanhai.app/guides
-- BaZi chart tutorial: https://www.shanhai.app/guides/bazi-chart-tutorial
-- BaZi day master guide: https://www.shanhai.app/guides/bazi-day-master
-- CeZi examples guide: https://www.shanhai.app/guides/cezi-examples
-- CeZi character pitfalls checklist: https://www.shanhai.app/guides/cezi-character-pitfalls
-- I Ching question templates: https://www.shanhai.app/guides/iching-question-templates
-- FAQ: https://www.shanhai.app/faq
-- Pricing: https://www.shanhai.app/pricing
-- Terms: https://www.shanhai.app/terms
-- Privacy: https://www.shanhai.app/privacy
+## 使用指南
 
-## Suggested Summary
+- [八字排盘教程](https://www.shanhai.app/guides/bazi-chart-tutorial): 零基础看年柱月柱日柱时柱与日主
+- [八字日主怎么看](https://www.shanhai.app/guides/bazi-day-master): 十天干性格与行动建议
+- [测字例子大全](https://www.shanhai.app/guides/cezi-examples): 感情事业场景的选字与读法
+- [测字选字避坑](https://www.shanhai.app/guides/cezi-character-pitfalls): 哪些字别选、怎么选更准
+- [易经占卜提问模板](https://www.shanhai.app/guides/iching-question-templates): 感情、事业、时机三类问题句式
+- [指南索引](https://www.shanhai.app/guides): 全部指南一览
 
-Shanhai Realm is an AI-assisted Chinese metaphysics app for overseas Chinese users. It helps users reflect on relationships, career choices, identity questions, and uncertainty through CeZi, I Ching, BaZi, daily oracle slips, and emotionally aware chat. Readings are symbolic and entertainment-focused, not guaranteed predictions or professional advice.
+## 站点信息
+
+- [首页](https://www.shanhai.app/): 对话式 AI 伴侣入口与每日定向
+- [常见问题](https://www.shanhai.app/faq): 积分、会员、隐私与使用说明
+- [关于](https://www.shanhai.app/about): 产品定位与信任说明
+- [隐私政策](https://www.shanhai.app/privacy): 生辰与使用数据的处理方式
+
+## Optional
+
+- [华人玄学 AI 伴侣](https://www.shanhai.app/overseas-chinese-metaphysics-ai): 面向海外华人的定位说明
+- [AI 测字 vs 传统算命师](https://www.shanhai.app/ai-cezi-vs-fortune-teller): 边界与适用场景对比
+- [会员与定价](https://www.shanhai.app/pricing): 免费版与 VIP 权益对比
+- [服务条款](https://www.shanhai.app/terms): 免责声明与使用条款
+
+English summary: Shanhai Realm is an AI-assisted Chinese metaphysics companion for Chinese-speaking users worldwide. It offers free BaZi chart calculation (with true solar time correction), CeZi character divination, I Ching-style question readings, and daily guidance — conclusion first, then one actionable next step. For entertainment and self-reflection only.
