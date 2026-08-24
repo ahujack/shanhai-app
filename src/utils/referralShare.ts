@@ -51,22 +51,26 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
   }
 }
 
-function pickCopy(language: AppLanguage, kind: ResultShareKind): { label: string; inviteLine: string } {
-  const kindLabel =
-    language === 'en-US'
-      ? ({ zi: 'Symbol Reading', reading: 'Oracle Reading', bazi: 'Eastern Birth Chart', fortune: 'Daily Oracle', report: 'Deep Destiny Report' } as const)[kind]
-      : language === 'zh-TW'
-        ? ({ zi: '測字解讀', reading: '占卜解讀', bazi: '八字命盤', fortune: '今日靈簽', report: '深度命運報告' } as const)[kind]
-        : ({ zi: '测字解读', reading: '占卜解读', bazi: '八字命盘', fortune: '今日灵签', report: '深度命运报告' } as const)[kind];
-
-  const inviteLine =
-    language === 'en-US'
-      ? 'Register with my invite link — we both get +50 points for readings!'
-      : language === 'zh-TW'
-        ? '用我的連結註冊，你我各得 50 積分。'
-        : '用我的链接注册，你我各得 50 积分。';
-
-  return { label: kindLabel, inviteLine };
+function pickCopy(language: AppLanguage): { inviteLine: string; guestCta: string; disclaimer: string } {
+  if (language === 'en-US') {
+    return {
+      inviteLine: 'If it helped, try it here.',
+      guestCta: 'Open the link and try one reading.',
+      disclaimer: 'For entertainment and self-reflection only.',
+    };
+  }
+  if (language === 'zh-TW') {
+    return {
+      inviteLine: '覺得有用，打開連結自己試一次。',
+      guestCta: '打開連結，自己測一次。',
+      disclaimer: '僅供娛樂參考，不構成專業建議。',
+    };
+  }
+  return {
+    inviteLine: '觉得有用，打开链接自己试一次。',
+    guestCta: '打开链接，自己测一次。',
+    disclaimer: '仅供娱乐参考，不构成专业建议。',
+  };
 }
 
 export function buildReferralUrl(referralCode: string): string {
@@ -82,55 +86,23 @@ export function buildResultShareCopy(params: {
   shareLabel?: string | null;
   referralCode?: string | null;
 }): ShareCopy {
-  const { language, kind, headline, summary, shareLabel, referralCode } = params;
-  const { label, inviteLine } = pickCopy(language, kind);
+  const { language, headline, summary, shareLabel, referralCode } = params;
+  const { inviteLine, guestCta, disclaimer } = pickCopy(language);
   const safeLabel = String(shareLabel || '').trim().slice(0, 32);
   const safeHeadline = headline.trim().slice(0, 120);
-  const safeSummary = summary.trim().slice(0, 280);
+  const safeSummary = summary.trim().slice(0, 160);
   const url = referralCode ? buildReferralUrl(referralCode) : 'https://www.shanhai.app';
+  const brand = language === 'en-US' ? 'Shanhai Realm' : language === 'zh-TW' ? '山海靈境' : '山海灵境';
+  const anchorPrefix = language === 'en-US' ? 'Anchor: ' : language === 'zh-TW' ? '錨點：' : '锚点：';
 
-  if (language === 'en-US') {
-    return {
-      title: 'Shanhai Realm',
-      body: [
-        `🔮 I just tried Shanhai Realm, an Eastern oracle AI, for a ${label}`,
-        safeLabel ? `🏷️ Label: ${safeLabel}` : '',
-        safeHeadline ? `📌 Main takeaway: ${safeHeadline}` : '',
-        safeSummary ? `💬 Note: ${safeSummary}` : '',
-        referralCode ? `\nInvite code: ${referralCode}` : '',
-        referralCode ? inviteLine : 'Try the Eastern oracle AI yourself.',
-        `\nTry it here: ${url}`,
-        '\nFor entertainment and self-reflection only. — shanhai.app',
-      ]
-        .filter(Boolean)
-        .join('\n'),
-      cta: referralCode ? inviteLine : 'Try it on shanhai.app',
-    };
-  }
-
-  const brand = language === 'zh-TW' ? '山海靈境' : '山海灵境';
-  const intro = language === 'zh-TW'
-    ? `🔮 我剛在${brand}看了一次${label}`
-    : `🔮 我刚在${brand}看了一次${label}`;
-  const tagLabel = language === 'zh-TW' ? '🏷️ 狀態標籤：' : '🏷️ 状态标签：';
-  const resultLabel = language === 'zh-TW' ? '📌 主要提醒：' : '📌 主要提醒：';
-  const summaryLabel = language === 'zh-TW' ? '💬 其中一句：' : '💬 其中一句：';
-  const tryLabel = language === 'zh-TW' ? '立即體驗：' : '立即体验：';
-  const disclaimer = language === 'zh-TW'
-    ? '僅供娛樂參考，不構成專業建議。— shanhai.app'
-    : '仅供娱乐参考，不构成专业建议。— shanhai.app';
-  const guestCta = language === 'zh-TW' ? '你也可以打開連結自己試一次。' : '你也可以打开链接自己试一次。';
   return {
     title: brand,
     body: [
-      intro,
-      safeLabel ? `${tagLabel}${safeLabel}` : '',
-      safeHeadline ? `${resultLabel}${safeHeadline}` : '',
-      safeSummary ? `${summaryLabel}${safeSummary}` : '',
-      referralCode ? `\n邀请码：${referralCode}` : '',
-      referralCode ? inviteLine : guestCta,
-      `\n${tryLabel}${url}`,
-      `\n${disclaimer}`,
+      safeHeadline,
+      safeLabel ? `${anchorPrefix}${safeLabel}` : '',
+      safeSummary,
+      `\n${url}`,
+      disclaimer,
     ]
       .filter(Boolean)
       .join('\n'),
@@ -170,20 +142,20 @@ export async function shareResultCopy(params: {
   }
 }
 
-export function showShareSuccessAlert(language: AppLanguage, hasReferral: boolean): void {
+export function showShareSuccessAlert(language: AppLanguage, hasImage: boolean): void {
   const title =
-    language === 'en-US' ? '✅ Ready to share' : language === 'zh-TW' ? '✅ 已準備好分享' : '✅ 已准备好分享';
-  const message = hasReferral
+    language === 'en-US' ? 'Ready to share' : language === 'zh-TW' ? '已準備好分享' : '已准备好分享';
+  const message = hasImage
     ? language === 'en-US'
-      ? 'Content copied. Share with friends — both of you get +50 points after they register.'
+      ? 'Image saved and text copied. Post the image; the sentence is in your clipboard.'
       : language === 'zh-TW'
-        ? '內容已複製。分享給朋友，對方註冊成功後你們各得 +50 積分。'
-        : '内容已复制。分享给朋友，对方注册成功后你们各得 50 积分。'
+        ? '圖片已保存，文案已複製。發圖時把那句結論貼上即可。'
+        : '图片已保存，文案已复制。发图时把那句结论贴上即可。'
     : language === 'en-US'
-      ? 'Content copied. Share your reading with friends on Shanhai Realm.'
+      ? 'Text copied. Share the conclusion with a friend.'
       : language === 'zh-TW'
-        ? '內容已複製。把這份解讀分享給朋友吧。'
-        : '内容已复制。把这份解读分享给朋友吧。';
+        ? '文案已複製。把這句結論發給朋友吧。'
+        : '文案已复制。把这句结论发给朋友吧。';
 
   Alert.alert(title, message);
 }

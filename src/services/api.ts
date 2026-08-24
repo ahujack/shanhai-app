@@ -1351,8 +1351,15 @@ export const analyticsApi = {
       body: JSON.stringify(body),
     }),
 
-  subscribeEmailLead: (body: { email: string; source?: string }) =>
-    request<{ success: boolean }>('/analytics/email-lead', {
+  subscribeEmailLead: (body: {
+    email: string;
+    source?: string;
+    headline?: string;
+    summary?: string;
+    tip?: string;
+    ctaPath?: string;
+  }) =>
+    request<{ success: boolean; emailed?: boolean }>('/analytics/email-lead', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

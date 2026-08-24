@@ -83,4 +83,78 @@ Disallow: /points
 Disallow: /profile
 Disallow: /meditation
 
+# ChatGPT 搜索索引爬虫（决定 chatgpt.com 联网回答是否引用本站）
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
+# 豆包（字节跳动爬虫）
+User-agent: Bytespider
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
+# 百度（DeepSeek/豆包联网检索的中文网页来源之一）
+User-agent: Baiduspider
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
+# 搜狗/360（中文检索补充来源）
+User-agent: Sogou web spider
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
+User-agent: 360Spider
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /oauth/
+Disallow: /payment/
+Disallow: /invite
+Disallow: /partner
+Disallow: /admin
+Disallow: /points
+Disallow: /profile
+Disallow: /meditation
+
 Sitemap: https://www.shanhai.app/sitemap.xml

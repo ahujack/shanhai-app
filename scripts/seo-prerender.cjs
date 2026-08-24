@@ -228,6 +228,7 @@ const FILE_BUILDERS = {
   'guides.html': buildGuidesHub,
   'guides/index.html': buildGuidesHub,
   'guides/bazi-chart-tutorial.html': () => buildArticle(SEO_ARTICLES['bazi-chart-tutorial']),
+  'guides/bazi-month-pillar-solar-terms.html': () => buildArticle(SEO_ARTICLES['bazi-month-pillar-solar-terms']),
   'guides/cezi-examples.html': () => buildArticle(SEO_ARTICLES['cezi-examples']),
   'guides/iching-question-templates.html': () => buildArticle(SEO_ARTICLES['iching-question-templates']),
   'guides/bazi-day-master.html': () => buildArticle(SEO_ARTICLES['bazi-day-master']),

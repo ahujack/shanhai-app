@@ -105,7 +105,7 @@ export default function InviteLandingPage() {
             {referralCode ? (
               <View style={styles.rewardBox}>
                 <Text style={styles.rewardLabel}>{tx('你的邀请奖励', 'Invite reward', '你的邀請獎勵')}</Text>
-                <Text style={styles.rewardText}>{tx(`用邀请码 ${referralCode} 注册，你和邀请人各得 50 积分。`, `Register with code ${referralCode}. You and your inviter each get 50 points for more readings.`, `用邀請碼 ${referralCode} 註冊，你和邀請人各得 50 積分。`)}</Text>
+                <Text style={styles.rewardText}>{tx(`先免费测一次。用邀请码 ${referralCode} 注册后，你和邀请人各得 50 积分。`, `Try once free. Register with ${referralCode} — you and your inviter each get 50 points.`, `先免費測一次。用邀請碼 ${referralCode} 註冊後，你和邀請人各得 50 積分。`)}</Text>
               </View>
             ) : (
               <View style={styles.rewardBox}>
@@ -115,11 +115,15 @@ export default function InviteLandingPage() {
             )}
 
             <View style={styles.ctaRow}>
-              <TouchableOpacity style={[styles.primaryBtn, webPointer]} onPress={goRegister}>
-                <Text style={styles.primaryText}>{tx('领取积分并体验', 'Claim points and start', '領取積分並體驗')}</Text>
+              <TouchableOpacity style={[styles.primaryBtn, webPointer]} onPress={goTryZi}>
+                <Text style={styles.primaryText}>{tx('先测一个字（这次不扣积分）', 'Try one character first (free this time)', '先測一個字（這次不扣積分）')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.secondaryBtn, webPointer]} onPress={goTryZi}>
-                <Text style={styles.secondaryText}>{tx('先测一个字', 'Try one symbol', '先測一個字')}</Text>
+              <TouchableOpacity style={[styles.secondaryBtn, webPointer]} onPress={goRegister}>
+                <Text style={styles.secondaryText}>
+                  {referralCode
+                    ? tx('测完再注册，你和朋友各得 50 积分', 'Register after — you both get 50 points', '測完再註冊，你和朋友各得 50 積分')
+                    : tx('注册后保存这次解读', 'Register to save this reading', '註冊後保存這次解讀')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

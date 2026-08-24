@@ -19,16 +19,24 @@ type Props = {
   source: string;
   title?: string;
   subtitle?: string;
+  headline?: string;
+  summary?: string;
+  tip?: string;
+  ctaPath?: string;
 };
 
 export default function EmailCaptureCard({
   source,
-  title = '把完整版发到邮箱',
-  subtitle = 'Web 没有推送提醒。留下邮箱，我们会把每日运势/完整解读摘要发到你的收件箱（可随时退订）。',
+  title = '把这次结论发到邮箱',
+  subtitle = '立刻寄出这一次的摘要和今日一招。不是每日运势群发，可随时忽略。',
+  headline,
+  summary,
+  tip,
+  ctaPath,
 }: Props) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<'sent' | 'saved' | false>(false);
   const [error, setError] = useState('');
 
   const submit = async () => {
@@ -40,9 +48,16 @@ export default function EmailCaptureCard({
     setLoading(true);
     setError('');
     try {
-      await analyticsApi.subscribeEmailLead({ email: normalized, source });
-      trackNamedEvent('email_lead_submit', { source });
-      setDone(true);
+      const res = await analyticsApi.subscribeEmailLead({
+        email: normalized,
+        source,
+        headline,
+        summary,
+        tip,
+        ctaPath,
+      });
+      trackNamedEvent('email_lead_submit', { source, emailed: !!res?.emailed });
+      setDone(res?.emailed ? 'sent' : 'saved');
     } catch (e: any) {
       setError(String(e?.message || '提交失败，请稍后重试'));
     } finally {
@@ -53,8 +68,12 @@ export default function EmailCaptureCard({
   if (done) {
     return (
       <View style={styles.wrap}>
-        <Text style={styles.doneTitle}>已收下 ✓</Text>
-        <Text style={styles.doneBody}>完整版摘要会发到你的邮箱。记得也看一下垃圾邮件箱。</Text>
+        <Text style={styles.doneTitle}>{done === 'sent' ? '已发出' : '已记下'}</Text>
+        <Text style={styles.doneBody}>
+          {done === 'sent'
+            ? '这一次的结论已发到邮箱。也看一下垃圾邮件箱。'
+            : '邮箱已记下，但这次信没有发出。我们不会假装已经寄到。'}
+        </Text>
       </View>
     );
   }
@@ -82,7 +101,7 @@ export default function EmailCaptureCard({
           {loading ? (
             <ActivityIndicator color="#1A1230" size="small" />
           ) : (
-            <Text style={styles.btnText}>发送</Text>
+            <Text style={styles.btnText}>发送这次</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -134,7 +153,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    minWidth: 72,
+    minWidth: 88,
     alignItems: 'center',
   },
   btnDisabled: { opacity: 0.6 },

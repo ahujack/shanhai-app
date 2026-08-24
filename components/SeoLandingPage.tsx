@@ -23,7 +23,7 @@ import { SEO_SITE, buildBreadcrumbJsonLd } from '../src/seo/site';
 import { serifTitle } from '../constants/typography';
 
 const LANDING_GUIDE_MAP: Record<string, string[]> = {
-  'bazi-calculator': ['bazi-chart-tutorial', 'bazi-day-master'],
+  'bazi-calculator': ['bazi-chart-tutorial', 'bazi-month-pillar-solar-terms', 'bazi-day-master'],
   'character-divination': ['cezi-examples', 'cezi-character-pitfalls'],
   'i-ching-reading': ['iching-question-templates'],
   'daily-fortune': ['iching-question-templates'],

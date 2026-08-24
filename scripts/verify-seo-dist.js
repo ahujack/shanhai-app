@@ -19,6 +19,10 @@ if (!fs.existsSync(DIST)) {
   process.exit(1);
 }
 
+if (!fs.existsSync(path.join(__dirname, '..', 'public', 'og-image.png'))) {
+  fail('public/og-image.png missing');
+}
+
 for (const page of PAGES) {
   // Expo emits guides.html for /guides; guides/index.html is optional.
   if (page.file === 'guides/index.html') continue;

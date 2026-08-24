@@ -547,11 +547,15 @@ export default function DeepDestinyReportScreen() {
 
             <EmailCaptureCard
               source="deep_report"
-              title={t('report.email.title', '把报告摘要发到邮箱')}
+              title={t('report.email.title', '把这次报告一招发到邮箱')}
               subtitle={t(
                 'report.email.sub',
-                '留下邮箱，便于日后找回这份可重开报告，并接收每周提醒（可随时退订）。',
+                '立刻寄出这份报告的结论和本周一招。不是每周群发。',
               )}
+              headline={payload.conclusion?.overall || t('report.share.headline', '我的深度命运报告')}
+              summary={weeklyAction}
+              tip={weeklyAction}
+              ctaPath="/deep-destiny-report"
             />
 
             <View style={styles.upgradeCard}>

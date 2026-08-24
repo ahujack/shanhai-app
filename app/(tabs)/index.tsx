@@ -20,6 +20,7 @@ import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
 import RitualWait from '../../components/RitualWait';
 import { SiteComplianceFooter } from '../../components/SiteComplianceFooter';
 import { SeoHubLinks } from '../../components/SeoHubLinks';
+import OnboardingModal from '../../components/OnboardingModal';
 import { buildFortuneShareLabel } from '../../src/utils/shareLabel';
 import {
   buildFollowUpPrompt,
@@ -190,6 +191,11 @@ export default function HomeScreen() {
   const quickStartPrompts = React.useMemo(
     () => [
       {
+        label: t('home.quick.zi.label', '一个字看状态'),
+        sub: t('home.quick.zi.sub', '适合说不清时'),
+        prompt: t('home.quick.zi.prompt', '我现在说不清哪里不对劲，想用一个字测最近状态。请先引导我选字，再给我一句结论。'),
+      },
+      {
         label: t('home.quick.relationship.label', '这段关系该继续吗？'),
         sub: t('home.quick.relationship.sub', '先看取舍，再看下一步'),
         prompt: t('home.quick.relationship.prompt', '我现在这段关系让我很消耗，但又放不下。请先给一句结论，再用卦象/心理状态帮我判断下一步。'),
@@ -204,15 +210,10 @@ export default function HomeScreen() {
         sub: t('home.quick.state.sub', '适合焦虑、内耗、睡眠差'),
         prompt: t('home.quick.state.prompt', '我最近很累，也说不清到底哪里卡住了。请先帮我判断这是一种什么状态，再给我一个今天能做的小动作。'),
       },
-      {
-        label: t('home.quick.zi.label', '一个字看状态'),
-        sub: t('home.quick.zi.sub', '适合说不清时'),
-        prompt: t('home.quick.zi.prompt', '我现在说不清哪里不对劲，想用一个字测最近状态。请先引导我选字，再给我一句结论。'),
-      },
     ],
     [t, language],
   );
-  const visibleQuickStartPrompts = quickStartPrompts.slice(0, 3);
+  const visibleQuickStartPrompts = quickStartPrompts;
   const hasMembershipTier = user?.membership === 'vip' || user?.membership === 'premium';
   const isVip = isMembershipActive(user);
   const languageLabelShort: Record<AppLanguage, string> = {
@@ -1023,6 +1024,7 @@ export default function HomeScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        {messages.length === 0 ? <OnboardingModal /> : null}
         <View style={[styles.viewport, Platform.OS === 'web' && styles.viewportWeb]}>
         {/* 顶部标题 */}
         <View style={styles.header}>
@@ -1583,8 +1585,12 @@ export default function HomeScreen() {
                   {!isVip && (
                     <EmailCaptureCard
                       source="fortune_draw"
-                      title="把今日签完整版发到邮箱"
-                      subtitle="Web 没有推送。留下邮箱，收到今日签摘要与明日提醒（可随时退订）。"
+                      title="把这次签文发到邮箱"
+                      subtitle="立刻寄出这一次的签文和今日一招。不是每日群发。"
+                      headline={drawFortune.poem?.title}
+                      summary={drawFortune.poem?.line1}
+                      tip={drawFortune.mission}
+                      ctaPath="/daily-fortune"
                     />
                   )}
                   <AccuracyFeedback

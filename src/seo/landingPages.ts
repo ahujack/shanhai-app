@@ -78,6 +78,11 @@ export const LANDING_PAGE_LIST: LandingPageConfig[] = [
           '基础排盘与白话概览可免费使用。深度命运报告是可保存的付费快照，不是把免费盘藏起来。',
       },
       {
+        question: '为什么同一天出生，月柱会不一样？',
+        answer:
+          '月柱按节气精确时刻换，不是按日历日。例如 2024 年立春是 2 月 4 日 16:27：16:26 仍是癸卯乙丑，16:28 已是甲辰丙寅。对照页：https://www.shanhai.app/guides/bazi-month-pillar-solar-terms',
+      },
+      {
         question: '不知道出生时辰还能排吗？',
         answer:
           '可以。时柱会弱一些，年日柱仍可看。之后补上时辰再重排即可。',

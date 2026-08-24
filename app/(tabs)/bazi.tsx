@@ -1207,12 +1207,16 @@ export default function BaziScreen() {
       {userAccessTier !== 'vip' && (
         <EmailCaptureCard
           source="bazi_result"
-          title={tx('把命盘深度摘要发到邮箱', 'Email me the chart summary', '把命盤深度摘要發到郵箱')}
+          title={tx('把这次命盘结论发到邮箱', 'Email this chart takeaway', '把這次命盤結論發到郵箱')}
           subtitle={tx(
-            'Web 没有推送。留下邮箱，收到命盘重点与下一步建议（可随时退订）。',
-            'No push on web. Leave your email for chart highlights (unsubscribe anytime).',
-            'Web 沒有推送。留下郵箱，收到命盤重點與下一步建議（可隨時退訂）。',
+            '立刻寄出四柱和这一次的白话结论。不是每日运势群发。',
+            'We send this chart takeaway now. Not a daily blast.',
+            '立刻寄出四柱和這一次的白話結論。不是每日運勢群發。',
           )}
+          headline={`${c.yearGanZhi} ${c.monthGanZhi} ${c.dayGanZhi} ${c.hourGanZhi}`}
+          summary={normalizeChartText(c.conclusion?.overall) || normalizeChartText(c.conclusion?.mindset) || ''}
+          tip={normalizeChartText(c.conclusion?.mindset) || ''}
+          ctaPath="/bazi-calculator"
         />
       )}
 

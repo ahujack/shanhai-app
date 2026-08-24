@@ -24,6 +24,7 @@ import {
   showShareSuccessAlert,
   type ResultShareKind,
 } from '../src/utils/referralShare';
+import { downloadWebSharePng } from '../src/utils/shareCardImage';
 
 const colors = theme.dark;
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as const) : {};
@@ -102,7 +103,16 @@ export default function ResultShareCard({
     }
 
     try {
-      if (canShareImage && shotRef.current?.capture) {
+      let savedImage = false;
+      if (Platform.OS === 'web') {
+        savedImage = await downloadWebSharePng({
+          kind,
+          headline: displayHeadline,
+          summary: displaySummary,
+          shareLabel: displayLabel,
+          url: inviteUrl,
+        });
+      } else if (canShareImage && shotRef.current?.capture) {
         const uri = await shotRef.current.capture();
         const available = await Sharing.isAvailableAsync();
         if (uri && available) {
@@ -111,6 +121,7 @@ export default function ResultShareCard({
             dialogTitle: tx('分享解读', 'Share reading', '分享解讀'),
             UTI: 'public.png',
           });
+          savedImage = true;
         }
       }
 
@@ -127,8 +138,8 @@ export default function ResultShareCard({
         setCopied(true);
         setTimeout(() => setCopied(false), 2600);
       }
-      if (Platform.OS === 'web' && ok) {
-        showShareSuccessAlert(language, !!referralCode);
+      if (Platform.OS === 'web' && (ok || savedImage)) {
+        showShareSuccessAlert(language, savedImage);
       }
     } catch (e) {
       console.error('[ResultShareCard] share failed', e);
@@ -232,7 +243,9 @@ export default function ResultShareCard({
           <Text style={styles.shareBtnText}>
             {copied
               ? tx('已复制，可以发给好友', 'Copied. Share with friends', '已複製，可以發給好友')
-              : tx('复制分享文案', 'Copy share text', '複製分享文案')}
+              : Platform.OS === 'web'
+                ? tx('保存分享图', 'Save share image', '保存分享圖')
+                : tx('分享这张图', 'Share this card', '分享這張圖')}
           </Text>
         )}
       </TouchableOpacity>

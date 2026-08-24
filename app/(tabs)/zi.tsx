@@ -1789,12 +1789,20 @@ export default function ZiScreen() {
             {!isPreviewStage && !isVip && (
               <EmailCaptureCard
                 source="zi_result"
-                title={tx('把测字完整版发到邮箱', 'Email me the full reading', '把測字完整版發到郵箱')}
+                title={tx('把这次测字结论发到邮箱', 'Email this reading', '把這次測字結論發到郵箱')}
                 subtitle={tx(
-                  'Web 没有推送。留下邮箱，我们会把完整摘要发到你的收件箱（可随时退订）。',
-                  'No push on web. Leave your email for the full summary (unsubscribe anytime).',
-                  'Web 沒有推送。留下郵箱，我們會把完整摘要發到你的收件箱（可隨時退訂）。',
+                  '立刻寄出这一次的结论和今日一招。不是每日群发。',
+                  'We send this reading now. Not a daily blast.',
+                  '立刻寄出這一次的結論和今日一招。不是每日群發。',
                 )}
+                headline={result.zi?.zi ? `测字「${result.zi.zi}」` : '测字'}
+                summary={
+                  normalizeZiText(result.interpretation?.focusReading?.summary) ||
+                  normalizeZiText(result.coldReadings?.[0]) ||
+                  ''
+                }
+                tip={normalizeZiText(result.interpretation?.advice?.[0]) || ''}
+                ctaPath="/character-divination"
               />
             )}
 

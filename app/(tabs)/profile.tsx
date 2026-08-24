@@ -1128,7 +1128,7 @@ export default function ProfileScreen() {
           >
             <Text style={styles.loginButtonText}>{tx('立即登录 / 注册', 'Log In / Sign Up', '立即登入 / 註冊')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.guestLink} onPress={() => {}}>
+          <TouchableOpacity style={styles.guestLink} onPress={() => router.replace('/(tabs)')}>
             <Text style={styles.guestLinkText}>{tx('暂不登录，先逛逛', 'Continue as guest', '暫不登入，先逛逛')}</Text>
           </TouchableOpacity>
         </View>

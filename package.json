@@ -11,6 +11,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "export:web": "expo export --platform web && node scripts/inject-seo-meta.js && node scripts/verify-seo-dist.js",
+    "geo:ping": "node scripts/ping-indexnow.js",
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll"
   },

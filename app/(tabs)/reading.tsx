@@ -649,11 +649,15 @@ export default function ReadingScreen() {
         {!isVip && (
           <EmailCaptureCard
             source="reading_result"
-            title={t('emailCapture.reading.title', '把占卜完整版发到邮箱')}
+            title={t('emailCapture.reading.title', '把这次占卜结论发到邮箱')}
             subtitle={t(
               'emailCapture.reading.sub',
-              'Web 没有推送。留下邮箱，收到完整摘要与行动清单（可随时退订）。',
+              '立刻寄出这一次的结论和下一步。不是每日群发。',
             )}
+            headline={result.conclusion?.verdict || result.interpretation.overall}
+            summary={result.conclusion?.nextStep || result.interpretation.guidance || ''}
+            tip={result.recommendations?.[0] || result.conclusion?.nextStep || ''}
+            ctaPath="/i-ching-reading"
           />
         )}
 

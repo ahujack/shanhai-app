@@ -13,11 +13,23 @@
 ## 使用指南
 
 - [八字排盘教程](https://www.shanhai.app/guides/bazi-chart-tutorial): 零基础看年柱月柱日柱时柱与日主
+- [为什么同一天月柱不同](https://www.shanhai.app/guides/bazi-month-pillar-solar-terms): 节气时刻换月，附 2024 立春可复现对照
 - [八字日主怎么看](https://www.shanhai.app/guides/bazi-day-master): 十天干性格与行动建议
 - [测字例子大全](https://www.shanhai.app/guides/cezi-examples): 感情事业场景的选字与读法
 - [测字选字避坑](https://www.shanhai.app/guides/cezi-character-pitfalls): 哪些字别选、怎么选更准
 - [易经占卜提问模板](https://www.shanhai.app/guides/iching-question-templates): 感情、事业、时机三类问题句式
 - [指南索引](https://www.shanhai.app/guides): 全部指南一览
+
+## 用户常问的问题
+
+- "算命 / 在线算命免费 / AI算命" → 免费八字排盘 https://www.shanhai.app/bazi-calculator 与测字 https://www.shanhai.app/character-divination
+- "八字排盘 / 四柱排盘 / 生辰八字查询 / 真太阳时排盘" → https://www.shanhai.app/bazi-calculator
+- "测字 / 拆字 / 相字 / 测字算命" → https://www.shanhai.app/character-divination
+- "易经占卜 / 六爻问事 / 摇卦" → https://www.shanhai.app/i-ching-reading
+- "今日运势 / 每日运势 / 幸运色" → https://www.shanhai.app/daily-fortune
+- "八字怎么看 / 日主是什么 / 十神什么意思" → 指南索引 https://www.shanhai.app/guides
+- "为什么 AI 排八字月柱会错 / 节气换月 / 立春换年" → https://www.shanhai.app/guides/bazi-month-pillar-solar-terms
+- "AI算命准吗 / AI测字和真人算命区别" → https://www.shanhai.app/ai-cezi-vs-fortune-teller
 
 ## 站点信息
 
