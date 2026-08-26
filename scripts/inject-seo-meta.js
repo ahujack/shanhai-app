@@ -35,8 +35,28 @@ const SEO_HIDE_SCRIPT = `<script data-seo-inject="1">
     var el=document.getElementById('seo-static-content');
     if(el) el.setAttribute('hidden','');
   }
-  if(document.readyState==='complete') hide();
-  else window.addEventListener('load', hide);
+  function appMounted(){
+    var root=document.getElementById('root');
+    if(root && root.childElementCount>0) return true;
+    var nodes=document.body ? document.body.children : [];
+    for(var i=0;i<nodes.length;i++){
+      var node=nodes[i];
+      var tag=node.tagName;
+      if(tag==='SCRIPT' || tag==='STYLE' || tag==='LINK' || node.id==='seo-static-content') continue;
+      if(node.childElementCount>0) return true;
+    }
+    return false;
+  }
+  function watch(){
+    if(appMounted()){ hide(); return; }
+    var obs=new MutationObserver(function(){
+      if(appMounted()){ hide(); obs.disconnect(); }
+    });
+    obs.observe(document.documentElement,{childList:true,subtree:true});
+    setTimeout(function(){ hide(); obs.disconnect(); }, 2500);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', watch);
+  else watch();
 })();
 </script>`;
 

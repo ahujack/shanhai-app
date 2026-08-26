@@ -1,7 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { SplashScreen, Stack } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, useColorScheme, View, ActivityIndicator } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Alert, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { subscribeAuthExpired } from '../src/lib/auth-expired';
 import { useUserStore } from '../src/store/user';
@@ -33,7 +33,6 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const [isReady, setIsReady] = useState(false);
   const loadUser = useUserStore((state) => state.loadUser);
   const loadLanguage = useI18nStore((state) => state.loadLanguage);
   const t = useI18nStore((state) => state.t);
@@ -41,30 +40,9 @@ function RootLayoutNav() {
   const authPromptLockRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-    const INIT_BUDGET_MS = 600;
-
-    const finish = () => {
-      if (!cancelled) setIsReady(true);
-    };
-
-    const init = async () => {
-      try {
-        await Promise.all([loadLanguage(), captureReferralFromUrl(), loadUser()]);
-      } catch {
-        // 初始化失败也不挡首屏
-      } finally {
-        finish();
-      }
-    };
-
-    init();
-    // 超时强制进入，避免慢存储/慢网络把首屏卡死
-    const timer = setTimeout(finish, INIT_BUDGET_MS);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+    void loadLanguage();
+    void captureReferralFromUrl();
+    void loadUser();
   }, [loadLanguage, loadUser]);
 
   useEffect(() => {
@@ -102,14 +80,6 @@ function RootLayoutNav() {
       );
     });
   }, [router, t]);
-
-  if (!isReady) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#0B0D14', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#D6B36A" />
-      </View>
-    );
-  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

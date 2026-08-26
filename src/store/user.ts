@@ -126,19 +126,19 @@ export const useUserStore = create<UserState>((set, get) => ({
         return;
       }
       if (userId) {
-        const [user, chartData, fortune] = await Promise.all([
-          userApi.get(userId),
+        globalAuthToken = token;
+        setGlobalAuthToken(token);
+        set({ token });
+        const user = await userApi.get(userId);
+        apiDebugLog('[loadUser] user loaded:', user);
+        set({ user, token });
+        const [chartData, fortune] = await Promise.all([
           chartApi.get(userId).catch(() => ({ hasChart: false as const })),
           fortuneApi.getDaily().catch(() => null),
         ]);
-        apiDebugLog('[loadUser] user loaded:', user);
-
-        globalAuthToken = token;
         const hasChartOk = !!(chartData.hasChart && chartData.chart);
         const prevFortune = get().dailyFortune;
         set({
-          user,
-          token,
           chart: hasChartOk ? chartData.chart! : null,
           hasChart: hasChartOk,
           dailyFortune: fortune != null ? fortune : prevFortune,
