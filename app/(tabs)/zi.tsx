@@ -110,6 +110,7 @@ export default function ZiScreen() {
   const [result, setResult] = useState<ZiResult | null>(null);
   const [resultStage, setResultStage] = useState<'idle' | 'preview' | 'full'>('idle');
   const [isLoading, setIsLoading] = useState(false);
+  const [deepProgress, setDeepProgress] = useState(0);
   const [handwritingStage, setHandwritingStage] = useState<'idle' | 'recognizing' | 'analyzing'>('idle');
   const [ritualReady, setRitualReady] = useState(false);
   const [ritualCountdown, setRitualCountdown] = useState(0);
@@ -487,37 +488,18 @@ export default function ZiScreen() {
     }
 
     const previousResult = result;
-    const previewResult = buildPreviewResult(zi, focusAspect);
     setActionError('');
     setIsLoading(true);
-    setResult(previewResult);
+    setDeepProgress(8);
     setResultStage('preview');
-    AsyncStorage.setItem(
-      ziStateStorageKey,
-      JSON.stringify({
-        inputZi: zi,
-        result: previewResult,
-        resultStage: 'preview',
-        handwritingPreview,
-        selectedAspect,
-        customAspect,
-        userQuestion: normalizedQuestion,
-        englishSymbolSeed,
-        isHandwritingMode,
-        showColdReading,
-      }),
-    ).catch(() => null);
-    try {
-      const data = await ziApi.analyze(zi, focusAspect, undefined, normalizedQuestion || undefined, isInvitePreview);
-      setResult(data);
-      setResultStage('full');
+    const persistSnapshot = (nextResult: ZiResult | null, stage: 'idle' | 'preview' | 'full') => {
       AsyncStorage.setItem(
         ziStateStorageKey,
         JSON.stringify({
           inputZi: zi,
-          result: data,
-          resultStage: 'full',
-          handwritingPreview: null,
+          result: nextResult,
+          resultStage: stage,
+          handwritingPreview,
           selectedAspect,
           customAspect,
           userQuestion: normalizedQuestion,
@@ -526,24 +508,58 @@ export default function ZiScreen() {
           showColdReading,
         }),
       ).catch(() => null);
-      setShowLanguageRefreshHint(false);
-      setActionError('');
-      trackFeature('zi_analyze_complete', { zi: data?.zi?.zi, aspect: focusAspect || null });
-      const tip =
-        normalizeZiText(data.interpretation?.advice?.[0]).trim() ||
-        normalizeZiText(data.coldReadings?.[0]).trim() ||
-        normalizeZiText(data.interpretation?.focusReading?.summary).trim();
-      if (tip) {
-        void saveTodayTip({
-          tip,
-          source: 'zi',
-          headline: data.zi?.zi ? `测字「${data.zi.zi}」` : '测字',
-        });
+    };
+    try {
+      const previewData = await ziApi.analyze(
+        zi,
+        focusAspect,
+        undefined,
+        normalizedQuestion || undefined,
+        isInvitePreview,
+        true,
+      );
+      setResult(previewData);
+      setResultStage('preview');
+      setDeepProgress((prev) => Math.max(prev, 42));
+      persistSnapshot(previewData, 'preview');
+
+      try {
+        const data = await ziApi.enhance(zi, focusAspect, undefined, normalizedQuestion || undefined);
+        setResult(data);
+        setResultStage('full');
+        setDeepProgress(100);
+        persistSnapshot(data, 'full');
+        setShowLanguageRefreshHint(false);
+        setActionError('');
+        trackFeature('zi_analyze_complete', { zi: data?.zi?.zi, aspect: focusAspect || null });
+        const tip =
+          normalizeZiText(data.interpretation?.advice?.[0]).trim() ||
+          normalizeZiText(data.coldReadings?.[0]).trim() ||
+          normalizeZiText(data.interpretation?.focusReading?.summary).trim();
+        if (tip) {
+          void saveTodayTip({
+            tip,
+            source: 'zi',
+            headline: data.zi?.zi ? `测字「${data.zi.zi}」` : '测字',
+          });
+        }
+        setHandwritingPreview(null);
+        setShowSmartCta(false);
+        await refreshPointsBalance();
+        return true;
+      } catch (enhanceErr: any) {
+        console.error('测字深度补全失败:', enhanceErr);
+        setResultStage('preview');
+        persistSnapshot(previewData, 'preview');
+        const enhanceMsg = tx(
+          '四块方向已经出来。深度解读暂时较慢，可先看上面的结论，稍后再点一次补全。',
+          'The four directions are ready. Deep reading is slow right now — review the result first, then tap again to finish.',
+          '四塊方向已經出來。深度解讀暫時較慢，可先看上面的結論，稍後再點一次補全。',
+        );
+        setActionError(enhanceMsg);
+        notifyUser(tx('已先给出四块方向', 'Four directions are ready', '已先給出四塊方向'), enhanceMsg);
+        return true;
       }
-      setHandwritingPreview(null);
-      setShowSmartCta(false);
-      await refreshPointsBalance();
-      return true;
     } catch (err: any) {
       console.error('测字失败:', err);
       const rawMsg = String(err?.message || '').replace(/\(请求ID:[^)]+\)/g, '').trim();
@@ -607,6 +623,49 @@ export default function ZiScreen() {
           ],
         );
       }
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const enhanceCurrentResult = async (): Promise<boolean> => {
+    const zi = (result?.zi?.zi || inputZi).trim().charAt(0);
+    if (!/[\u4e00-\u9fa5]/.test(zi)) return false;
+    setActionError('');
+    setIsLoading(true);
+    setDeepProgress((prev) => Math.max(prev, 42));
+    try {
+      const data = await ziApi.enhance(zi, getFocusAspect(), undefined, userQuestion.trim() || undefined);
+      setResult(data);
+      setResultStage('full');
+      setDeepProgress(100);
+      AsyncStorage.setItem(
+        ziStateStorageKey,
+        JSON.stringify({
+          inputZi: zi,
+          result: data,
+          resultStage: 'full',
+          handwritingPreview: null,
+          selectedAspect,
+          customAspect,
+          userQuestion,
+          englishSymbolSeed,
+          isHandwritingMode,
+          showColdReading,
+        }),
+      ).catch(() => null);
+      trackFeature('zi_analyze_complete', { zi: data?.zi?.zi, aspect: getFocusAspect() || null });
+      setShowLanguageRefreshHint(false);
+      return true;
+    } catch (err: any) {
+      const enhanceMsg = tx(
+        '深度解读暂时较慢，四块方向还在，稍后再点一次即可补全。',
+        'Deep reading is slow right now. The four directions are still here — tap again later to finish.',
+        '深度解讀暫時較慢，四塊方向還在，稍後再點一次即可補全。',
+      );
+      setActionError(String(err?.message || enhanceMsg));
+      notifyUser(tx('已保留首轮结果', 'First-pass is kept', '已保留首輪結果'), enhanceMsg);
       return false;
     } finally {
       setIsLoading(false);
@@ -698,6 +757,26 @@ export default function ZiScreen() {
   }, [ziStateHydrated, ziStateStorageKey, inputZi, result, resultStage, handwritingPreview, selectedAspect, customAspect, userQuestion, englishSymbolSeed, isHandwritingMode, showColdReading]);
 
   React.useEffect(() => {
+    if (!isLoading) {
+      if (resultStage === 'full') setDeepProgress(100);
+      return;
+    }
+    const started = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - started;
+      const hasPreview = !!result;
+      const floor = hasPreview ? 42 : 8;
+      const cap = hasPreview ? 92 : 36;
+      const expected = hasPreview ? 12000 : 1600;
+      const t = Math.min(1, elapsed / expected);
+      const eased = 1 - (1 - t) * (1 - t);
+      const next = Math.round(floor + eased * (cap - floor));
+      setDeepProgress((prev) => Math.max(prev, Math.min(cap, next)));
+    }, 120);
+    return () => clearInterval(timer);
+  }, [isLoading, result, resultStage]);
+
+  React.useEffect(() => {
     if (!isHandwritingMode) return;
     setRitualReady(false);
     setRitualCountdown(0);
@@ -728,7 +807,7 @@ export default function ZiScreen() {
 
     const focus = getFocusAspect();
     if (isVip && user) {
-      analyzeZiInput(ziChar, focus, userQuestion).catch(() => null);
+      enhanceCurrentResult().catch(() => null);
       return;
     }
     if (user) {
@@ -742,7 +821,12 @@ export default function ZiScreen() {
       Alert.alert(t('common.notice', '提示'), tx('请输入一个汉字', 'Please choose or type one Chinese character first', '請輸入一個漢字'));
       return;
     }
-    await analyzeZiInput(inputZi.trim(), getFocusAspect(), userQuestion);
+    const typedZi = inputZi.trim().charAt(0);
+    if (resultStage === 'preview' && result?.zi?.zi === typedZi && !isLoading) {
+      await enhanceCurrentResult();
+      return;
+    }
+    await analyzeZiInput(typedZi, getFocusAspect(), userQuestion);
   };
 
   const englishSymbolSuggestions = React.useMemo(
@@ -927,6 +1011,7 @@ export default function ZiScreen() {
   };
   const guaDetail = parseGuaDetail(result?.zi?.guaXiang);
   const isPreviewStage = resultStage === 'preview';
+  const isPlaceholderLine = (text?: string) => /生成中|generating/i.test(String(text || ''));
   const handwritingProgress = handwritingStage === 'recognizing' ? 42 : handwritingStage === 'analyzing' ? 86 : 0;
   const handwritingProgressText =
     handwritingStage === 'recognizing'
@@ -1248,13 +1333,24 @@ export default function ZiScreen() {
             </>
           )}
           {isLoading ? (
-            <Text style={styles.loadingHint}>
-              {tx(
-                '首轮结果会马上出来。深度解读大约十几秒，请先看上面的结论。',
-                'First-pass appears immediately. Deep reading usually takes about 10–20s.',
-                '首輪結果會馬上出來。深度解讀大約十幾秒，請先看上面的結論。',
-              )}
-            </Text>
+            <View style={styles.progressWrap}>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${Math.max(8, Math.min(100, deepProgress))}%` }]} />
+              </View>
+              <Text style={styles.loadingHint}>
+                {result
+                  ? tx(
+                      `四块方向已出，正在补全深度解读 ${deepProgress}%`,
+                      `Four directions are ready. Completing deep reading ${deepProgress}%`,
+                      `四塊方向已出，正在補全深度解讀 ${deepProgress}%`,
+                    )
+                  : tx(
+                      `正在拆字并生成四块方向 ${deepProgress}%`,
+                      `Breaking down the character ${deepProgress}%`,
+                      `正在拆字並生成四塊方向 ${deepProgress}%`,
+                    )}
+              </Text>
+            </View>
           ) : null}
         </View>
 
@@ -1263,10 +1359,15 @@ export default function ZiScreen() {
           <>
             {isPreviewStage && (
               <View style={styles.previewBanner}>
+                {isLoading ? (
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: `${Math.max(8, Math.min(100, deepProgress))}%` }]} />
+                  </View>
+                ) : null}
                 <Text style={styles.previewBannerText}>
                   {isLoading
-                    ? tx('已为你先展示首轮结果，深度解读正在补全中…', 'First-pass result is ready. Deep reading is still completing…', '已先為你展示首輪結果，深度解讀正在補全中…')
-                    : tx('首轮结果还在。刷新中断了深度解读，再点一次「开始测字」即可补全。', 'First-pass is saved. Refresh stopped the deep reading — tap Read Symbol again to finish.', '首輪結果還在。刷新中斷了深度解讀，再點一次「開始測字」即可補全。')}
+                    ? tx(`四块方向可以先看。深度解读进行中 ${deepProgress}%`, `Read the four directions first. Deep reading ${deepProgress}%`, `四塊方向可以先看。深度解讀進行中 ${deepProgress}%`)
+                    : tx('四块方向还在。刷新中断了深度解读，再点一次「开始测字」即可补全（不重复扣积分）。', 'Four directions are saved. Tap Read Symbol again to finish deep reading without extra points.', '四塊方向還在。刷新中斷了深度解讀，再點一次「開始測字」即可補全（不重複扣積分）。')}
                 </Text>
               </View>
             )}
@@ -1761,7 +1862,11 @@ export default function ZiScreen() {
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
                 <View style={styles.fortuneItem}>
                   <Text style={styles.fortuneLabel}>{tx('💼 事业', '💼 Career', '💼 事業')}</Text>
-                  <Text style={styles.fortuneText}>{normalizeZiText(result.interpretation.career)}</Text>
+                  <Text style={styles.fortuneText}>
+                    {isPlaceholderLine(result.interpretation.career)
+                      ? tx('事业向正在补全…', 'Career reading is completing…', '事業向正在補全…')
+                      : normalizeZiText(result.interpretation.career)}
+                  </Text>
                 </View>
                 <View style={styles.fortuneItem}>
                   <Text style={styles.fortuneLabel}>{tx('💕 感情', '💕 Love', '💕 感情')}</Text>

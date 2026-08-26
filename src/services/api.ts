@@ -786,23 +786,34 @@ export interface ZiResult {
   metadata: {
     method: string;
     generatedAt: string;
+    stage?: 'preview' | 'full';
   };
 }
 
 /** 手写识字 + 多模态较慢，单独放宽超时（毫秒） */
 const ZI_RECOGNIZE_TIMEOUT_MS = 120_000;
 const ZI_ANALYZE_HANDWRITING_TIMEOUT_MS = 180_000;
-const ZI_TEXT_ANALYZE_TIMEOUT_MS = 45_000;
+const ZI_TEXT_ANALYZE_TIMEOUT_MS = 12_000;
+const ZI_ENHANCE_TIMEOUT_MS = 20_000;
 
 export const ziApi = {
-  analyze: (zi: string, focusAspect?: string, handwriting?: object, userQuestion?: string, invitePreview?: boolean) =>
+  analyze: (zi: string, focusAspect?: string, handwriting?: object, userQuestion?: string, invitePreview?: boolean, previewOnly?: boolean) =>
     request<ZiResult>(
       '/zi/analyze',
       {
         method: 'POST',
-        body: JSON.stringify(withClientContext({ zi, focusAspect, handwriting, userQuestion, invitePreview })),
+        body: JSON.stringify(withClientContext({ zi, focusAspect, handwriting, userQuestion, invitePreview, previewOnly })),
       },
-      { timeoutMs: ZI_TEXT_ANALYZE_TIMEOUT_MS },
+      { timeoutMs: previewOnly ? ZI_TEXT_ANALYZE_TIMEOUT_MS : 45_000 },
+    ),
+  enhance: (zi: string, focusAspect?: string, handwriting?: object, userQuestion?: string) =>
+    request<ZiResult>(
+      '/zi/enhance',
+      {
+        method: 'POST',
+        body: JSON.stringify(withClientContext({ zi, focusAspect, handwriting, userQuestion })),
+      },
+      { timeoutMs: ZI_ENHANCE_TIMEOUT_MS },
     ),
 };
 
