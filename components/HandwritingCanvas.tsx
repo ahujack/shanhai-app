@@ -43,16 +43,37 @@ interface HandwritingCanvasProps {
   onRecognize: (svgString: string) => void;
   isRecognizing?: boolean;
   wuxing?: string;
+  /** 限制画布边长，避免手机上把识别按钮顶出一屏 */
+  maxSize?: number;
+  /** 由父级渲染固定操作栏时隐藏内置按钮 */
+  hideActions?: boolean;
+  /** 识别中/已出结果时禁止落笔，避免滑动误写 */
+  readOnly?: boolean;
+  onDrawingChange?: (isDrawing: boolean) => void;
 }
 
-export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({ 
-  onRecognize, 
+export type HandwritingCanvasHandle = {
+  clear: () => void;
+  recognize: () => void;
+};
+
+export const HandwritingCanvas = React.forwardRef<HandwritingCanvasHandle, HandwritingCanvasProps>(({
+  onRecognize,
   isRecognizing = false,
   wuxing,
-}) => {
+  maxSize,
+  hideActions = false,
+  readOnly = false,
+  onDrawingChange,
+}, ref) => {
   const { width: windowWidth } = useWindowDimensions();
-  // Web/移动端统一响应式，窗口变化时自动收敛到可操作尺寸
-  const canvasSize = useMemo(() => Math.min(Math.max(windowWidth - 32, 240), BASE_CANVAS_SIZE), [windowWidth]);
+  const canvasSize = useMemo(() => {
+    const byWidth = Math.min(Math.max(windowWidth - 32, 200), BASE_CANVAS_SIZE);
+    if (typeof maxSize === 'number' && Number.isFinite(maxSize)) {
+      return Math.min(byWidth, Math.max(180, Math.floor(maxSize)));
+    }
+    return byWidth;
+  }, [windowWidth, maxSize]);
 
   // 使用 ref 来存储笔画数据，确保状态更新的准确性
   const strokesRef = useRef<Stroke[]>([]);
@@ -149,16 +170,23 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     return points;
   };
 
+  const readOnlyRef = useRef(readOnly);
+  const onDrawingChangeRef = useRef(onDrawingChange);
+  readOnlyRef.current = readOnly;
+  onDrawingChangeRef.current = onDrawingChange;
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
+      onStartShouldSetPanResponder: () => !readOnlyRef.current,
+      onMoveShouldSetPanResponder: () => !readOnlyRef.current,
+      onStartShouldSetPanResponderCapture: () => !readOnlyRef.current,
+      onMoveShouldSetPanResponderCapture: () => !readOnlyRef.current,
       onPanResponderGrant: (evt) => {
+        if (readOnlyRef.current) return;
         const { locationX, locationY } = evt.nativeEvent;
         const newPoint = { x: locationX, y: locationY };
         setIsDrawing(true);
+        onDrawingChangeRef.current?.(true);
         setBrushPoint(newPoint);
         brushTrailCounterRef.current += 1;
         setBrushTrail([{ ...newPoint, id: `trail_${brushTrailCounterRef.current}_start` }]);
@@ -166,6 +194,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         setCurrentPoints([newPoint]);
       },
       onPanResponderMove: (evt) => {
+        if (readOnlyRef.current) return;
         const { locationX, locationY } = evt.nativeEvent;
         const newPoint = { x: locationX, y: locationY };
         
@@ -194,6 +223,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         setCurrentPoints([]);
         drawFramePendingRef.current = false;
         setIsDrawing(false);
+        onDrawingChangeRef.current?.(false);
         setBrushPoint(null);
         setBrushTrail([]);
       },
@@ -206,6 +236,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         setCurrentPoints([]);
         drawFramePendingRef.current = false;
         setIsDrawing(false);
+        onDrawingChangeRef.current?.(false);
         setBrushPoint(null);
         setBrushTrail([]);
       },
@@ -234,14 +265,19 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
     return svgString;
   };
 
-  const handleRecognize = () => {
+  const handleRecognize = useCallback(() => {
     if (strokesRef.current.length === 0 && currentPointsRef.current.length === 0) {
       Alert.alert('提示', '请先写一个字');
       return;
     }
     const svgString = generateSvgString();
     onRecognize(svgString);
-  };
+  }, [onRecognize, canvasSize]);
+
+  React.useImperativeHandle(ref, () => ({
+    clear: clearCanvas,
+    recognize: handleRecognize,
+  }), [clearCanvas, handleRecognize]);
 
   // 渲染单个笔画
   const renderStroke = (points: Point[], isActive: boolean = false) => {
@@ -320,10 +356,14 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
           styles.canvasContainer,
           { borderColor: wuxingTheme.border, shadowColor: wuxingTheme.border, width: canvasSize, height: canvasSize },
           ...(Platform.OS === 'web'
-            ? [{ cursor: (isDrawing ? 'none' : 'crosshair') as any, touchAction: 'none', userSelect: 'none' } as any]
+            ? [{
+                cursor: (readOnly ? 'default' : isDrawing ? 'none' : 'crosshair') as any,
+                touchAction: readOnly ? 'auto' : 'none',
+                userSelect: 'none',
+              } as any]
             : []),
         ]} 
-        {...panResponder.panHandlers}
+        {...(readOnly ? {} : panResponder.panHandlers)}
       >
         {/* 背景 */}
         <View style={[styles.canvasBackground, { backgroundColor: '#fff' }]}>
@@ -400,6 +440,7 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
         )}
       </View>
       
+      {hideActions ? null : (
       <View style={styles.buttonRow}>
         <TouchableOpacity 
           style={styles.clearButton} 
@@ -422,9 +463,12 @@ export const HandwritingCanvas: React.FC<HandwritingCanvasProps> = ({
           </Text>
         </TouchableOpacity>
       </View>
+      )}
     </Animated.View>
   );
-};
+});
+
+HandwritingCanvas.displayName = 'HandwritingCanvas';
 
 const styles = StyleSheet.create({
   container: {

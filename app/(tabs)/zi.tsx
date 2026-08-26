@@ -12,6 +12,7 @@ import {
   Animated,
   Easing,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -25,17 +26,14 @@ import EmailCaptureCard from '../../components/EmailCaptureCard';
 import { buildZiShareLabel } from '../../src/utils/shareLabel';
 import { saveTodayTip } from '../../src/utils/todayTipStorage';
 import DeliveryNextStepCard from '../../components/DeliveryNextStepCard';
-import CompanionPresence from '../../components/CompanionPresence';
 import { useChatStore, ChatMessage } from '../../src/store/chat';
 import { useUserStore } from '../../src/store/user';
 import { isMembershipActive } from '../../src/utils/membership';
 import { localizeAuthMessage } from '../../src/utils/authMessage';
 import { normalizeBackendText } from '../../src/utils/backendText';
-import HandwritingCanvas from '../../components/HandwritingCanvas';
+import HandwritingCanvas, { HandwritingCanvasHandle } from '../../components/HandwritingCanvas';
 import { useI18nStore } from '../../src/store/i18n';
 import { LandingSeoHead } from '../../components/SeoHead';
-
-const cloudWandererImage = require('../../assets/personas/elder.png');
 
 type SymbolSuggestion = { zi: string; label: string; meaning: string };
 
@@ -99,6 +97,7 @@ function OracleGlyphImage({ uri, ziChar, style }: { uri: string; ziChar: string;
 
 export default function ZiScreen() {
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const router = useRouter();
   const params = useLocalSearchParams<{ prefillZi?: string; fromChat?: string; userQuestion?: string; invitePreview?: string; ref?: string }>();
   const fromChat = (Array.isArray(params.fromChat) ? params.fromChat[0] : params.fromChat) === '1';
@@ -114,7 +113,12 @@ export default function ZiScreen() {
   const [handwritingStage, setHandwritingStage] = useState<'idle' | 'recognizing' | 'analyzing'>('idle');
   const [ritualReady, setRitualReady] = useState(false);
   const [ritualCountdown, setRitualCountdown] = useState(0);
-  const [showColdReading, setShowColdReading] = useState(true);
+  const [showColdReading, setShowColdReading] = useState(false);
+  const [showAllFortunes, setShowAllFortunes] = useState(false);
+  const [showTechnique, setShowTechnique] = useState(false);
+  const [showOracleNotes, setShowOracleNotes] = useState(false);
+  const [showGlyphDetail, setShowGlyphDetail] = useState(false);
+  const [showHandwritingProfile, setShowHandwritingProfile] = useState(false);
   const [ziPointsCost, setZiPointsCost] = useState(10);
   const [availablePoints, setAvailablePoints] = useState<number | null>(null);
   const [showSmartCta, setShowSmartCta] = useState(false);
@@ -124,6 +128,8 @@ export default function ZiScreen() {
   const prevLanguageRevisionRef = useRef(0);
   // 新增：手写模式
   const [isHandwritingMode, setIsHandwritingMode] = useState(false);
+  const [isHandwritingDrawing, setIsHandwritingDrawing] = useState(false);
+  const handwritingCanvasRef = useRef<HandwritingCanvasHandle>(null);
   /** 手写识别成功后的预览（手写 Tab 无输入框，需单独展示；积分不足时仍有字可看） */
   const [handwritingPreview, setHandwritingPreview] = useState<{ zi: string; confidence: number } | null>(null);
   // 用户选择的测字方向（单选）
@@ -202,6 +208,15 @@ export default function ZiScreen() {
     (value: string | number | null | undefined) => normalizeBackendText(value, language),
     [language],
   );
+  const isSimilarText = React.useCallback((left?: string, right?: string) => {
+    const a = normalizeZiText(left).replace(/\s+/g, '');
+    const b = normalizeZiText(right).replace(/\s+/g, '');
+    if (!a || !b) return false;
+    if (a === b) return true;
+    const headA = a.slice(0, Math.min(16, a.length));
+    const headB = b.slice(0, Math.min(16, b.length));
+    return (headA.length >= 8 && b.includes(headA)) || (headB.length >= 8 && a.includes(headB));
+  }, [normalizeZiText]);
   const wuxingTheme = getWuxingTheme(result?.zi?.wuxing);
   const shouldShowOracleUnlock = !!(
     result?.zi.oracleBone?.previewLocked &&
@@ -275,11 +290,6 @@ export default function ZiScreen() {
     : isVip
     ? tx('深度版（会员）', 'Deep (Member)', '深度版（會員）')
     : tx('完整版（积分解锁）', 'Full (Points Unlock)', '完整版（積分解鎖）');
-  const ziTierDesc = result?.interpretation?.premiumHint
-    ? tx('已开放字形、风险和主线判断；最终行动、时机与避坑线升级后解锁。', 'Shape, risks, and core pattern are open. Final action, timing, and risk boundary unlock after upgrade.', '已開放字形、風險和主線判斷；最終行動、時機與避坑線升級後解鎖。')
-    : isVip
-    ? tx('已解锁：部件拆解 + 方向深挖 + 老师傅批注 + 避坑提醒。', 'Unlocked: component analysis + deep focus guidance + expert notes.', '已解鎖：部件拆解 + 方向深挖 + 老師傅批注 + 避坑提醒。')
-    : tx('当前已是完整版，升级会员可继续解锁更深层的年度批注与持续追问。', 'Current version is full. Upgrade membership for deeper annual notes and follow-up guidance.', '目前已是完整版，升級會員可解鎖更深層批注與持續追問。');
 
   useEffect(() => {
     let alive = true;
@@ -935,17 +945,21 @@ export default function ZiScreen() {
       .filter(Boolean);
     const core = parts[0] || normalized;
     const reminder =
-      parts.find((item) => /当前|宜|忌|建议|窗口|风险|收敛|推进/.test(item)) ||
+      parts.find((item) => item !== core && /当前|宜|忌|建议|窗口|风险|收敛|推进/.test(item)) ||
       parts[1] ||
-      tx('先稳住节奏，再看外部反馈。', 'Stabilize pace first, then observe external feedback.', '先穩住節奏，再看外部反饋。');
+      '';
     const action =
-      parts.find((item) => /先|再|可以|适合|行动|执行|步骤|复盘/.test(item)) ||
-      parts[2] ||
-      tx('先做一件最小可执行动作，并在48小时内复盘。', 'Do one smallest executable action and review within 48h.', '先做一件最小可執行動作，並在48小時內復盤。');
+      parts.find(
+        (item) =>
+          item !== core &&
+          item !== reminder &&
+          !isSimilarText(item, reminder) &&
+          /先做|可以|适合|行动|执行|步骤|复盘|下一步/.test(item),
+      ) || '';
     return {
       core: `${tx('卦义主线：', 'Core pattern: ', '卦義主線：')}${core}`,
-      reminder: `${tx('当下提醒：', 'Reminder: ', '當下提醒：')}${reminder}`,
-      action: `${tx('可执行动作：', 'Action: ', '可執行動作：')}${action}`,
+      reminder: reminder ? `${tx('当下提醒：', 'Reminder: ', '當下提醒：')}${reminder}` : '',
+      action: action ? `${tx('可执行动作：', 'Action: ', '可執行動作：')}${action}` : '',
     };
   };
 
@@ -961,6 +975,22 @@ export default function ZiScreen() {
       return;
     }
     await analyzeZiInput(zi, focus, userQuestion);
+  };
+
+  const handleRetake = () => {
+    setResult(null);
+    setResultStage('idle');
+    setHandwritingPreview(null);
+    setIsLoading(false);
+    setDeepProgress(0);
+    setHandwritingStage('idle');
+    setIsHandwritingDrawing(false);
+    setShowGlyphDetail(false);
+    setShowHandwritingProfile(false);
+    setShowAllFortunes(false);
+    setShowTechnique(false);
+    setShowOracleNotes(false);
+    handwritingCanvasRef.current?.clear();
   };
 
   const goChatWithZiCooldown = () => {
@@ -988,30 +1018,16 @@ export default function ZiScreen() {
       }));
     }, 450);
   };
-  const goActionPlanChat = () => {
-    if (!result?.interpretation.focusReading) return;
-    const focus = result.interpretation.focusReading.focus;
-    const action = result.interpretation.focusReading.actionPlan[0] || tx('先从一件最小动作开始。', 'Start with one smallest action.', '先從一件最小動作開始。');
-    const aiMessage: ChatMessage = {
-      id: `ai_action_${Date.now()}`,
-      role: 'assistant',
-      content: tx(
-        `我们围绕「${focus}」把行动计划落地。\n第一步建议：${action}\n你做完这一步后告诉我，我继续给你下一步。`,
-        `Let's execute the plan for "${focus}".\nStep 1: ${action}\nTell me after you finish it and I will give the next step.`,
-        `我們圍繞「${focus}」把行動計畫落地。\n第一步建議：${action}\n你做完這一步後告訴我，我繼續給你下一步。`,
-      ),
-      timestamp: new Date(),
-    };
-    goChatWithZiCooldown();
-    setTimeout(() => {
-      useChatStore.setState((state) => ({
-        messages: [...state.messages, aiMessage],
-      }));
-    }, 450);
-  };
   const guaDetail = parseGuaDetail(result?.zi?.guaXiang);
   const isPreviewStage = resultStage === 'preview';
   const isPlaceholderLine = (text?: string) => /生成中|generating/i.test(String(text || ''));
+  const handwritingCanvasMax = Math.min(
+    300,
+    windowWidth - 48,
+    Math.max(188, windowHeight - insets.top - insets.bottom - 268),
+  );
+  const showHandwritingSticky = isHandwritingMode && !result;
+  const showHandwritingRitual = isHandwritingMode && !ritualReady && windowHeight >= 760;
   const handwritingProgress = handwritingStage === 'recognizing' ? 42 : handwritingStage === 'analyzing' ? 86 : 0;
   const handwritingProgressText =
     handwritingStage === 'recognizing'
@@ -1046,16 +1062,50 @@ export default function ZiScreen() {
   };
   const deliveryAnchors = React.useMemo(() => {
     if (!result) return [];
+    const summary = normalizeZiText(result.interpretation.focusReading?.summary || result.interpretation.overall).replace(/\s+/g, '');
     const candidates = [
-      ...(result.interpretation.focusReading?.anchors || []),
-      ...(result.coldReadings || []),
+      ...(result.interpretation.focusReading?.actionPlan || []),
       ...(result.interpretation.advice || []),
     ]
       .map((item) => normalizeZiText(item).trim())
-      .filter(Boolean);
-    return Array.from(new Set(candidates)).slice(0, 3);
-  }, [result, language]);
-  
+      .filter((item) => item && !/最终行动|Final action|最終行動/.test(item));
+    const unique: string[] = [];
+    for (const item of candidates) {
+      const compact = item.replace(/\s+/g, '');
+      if (compact.length < 6) continue;
+      if (summary && compact.length >= 8 && summary.includes(compact.slice(0, 16))) continue;
+      if (unique.some((kept) => isSimilarText(kept, item))) continue;
+      unique.push(item);
+      if (unique.length >= 2) break;
+    }
+    return unique;
+  }, [isSimilarText, language, normalizeZiText, result]);
+  const focusSummaryText = result
+    ? normalizeZiText(result.interpretation.focusReading?.summary || result.interpretation.overall)
+    : '';
+  const visibleFocusAnchors = React.useMemo(() => {
+    if (!result?.interpretation.focusReading?.anchors?.length) return [];
+    return result.interpretation.focusReading.anchors.filter((item) => {
+      const text = normalizeZiText(item).trim();
+      if (!text) return false;
+      if (/^(笔画锚点|五行锚点|阴阳锚点|吉凶锚点)[:：]/.test(text)) return false;
+      if (isSimilarText(text, focusSummaryText)) return false;
+      return true;
+    });
+  }, [focusSummaryText, isSimilarText, normalizeZiText, result]);
+  const uniqueAdvice = React.useMemo(() => {
+    if (!result?.interpretation.advice?.length) return [];
+    const actionPlan = result.interpretation.focusReading?.actionPlan || [];
+    return result.interpretation.advice.filter((item) => {
+      const text = normalizeZiText(item).trim();
+      if (text.replace(/\s+/g, '').length < 8) return false;
+      if (isSimilarText(text, focusSummaryText)) return false;
+      if (deliveryAnchors.some((kept) => isSimilarText(kept, text))) return false;
+      if (actionPlan.some((kept) => isSimilarText(kept, text))) return false;
+      return true;
+    });
+  }, [deliveryAnchors, focusSummaryText, isSimilarText, normalizeZiText, result]);
+
   // 点击继续聊聊，AI自动发送一个问题，等待用户回答
   const handleFollowUpQuestion = async (_question: string) => {
     const zi = result?.zi?.zi || '';
@@ -1092,14 +1142,24 @@ export default function ZiScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: wuxingTheme.bg }]}>
       <LandingSeoHead slug="character-divination" />
       <View pointerEvents="none" style={[styles.wuxingAura, { backgroundColor: wuxingTheme.glow }]} />
-      <View style={styles.header}>
-        <Text style={styles.title}>{tx('🔮 测字问心', '🔮 Symbol Reading', '🔮 測字問心')}</Text>
-        <Text style={styles.subtitle}>{tx('说不清的时候，先用一个字看状态', 'When feelings are hard to name, start with one Chinese symbol', '說不清的時候，先用一個字看狀態')}</Text>
+      <View style={[styles.header, (isHandwritingMode || !!result) && styles.headerCompact]}>
+        <Text style={[styles.title, !!result && styles.titleCompact]}>{tx('🔮 测字问心', '🔮 Symbol Reading', '🔮 測字問心')}</Text>
+        {!result ? (
+          <Text style={styles.subtitle}>{tx('说不清的时候，先用一个字看状态', 'When feelings are hard to name, start with one Chinese symbol', '說不清的時候，先用一個字看狀態')}</Text>
+        ) : null}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={!isHandwritingDrawing}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={showHandwritingSticky ? styles.handwritingScrollContent : undefined}
+      >
+        {!result ? (
+        <>
         {/* 输入模式切换 - 精简置顶 */}
-        <View style={styles.modeSwitchRow}>
+        <View style={[styles.modeSwitchRow, isHandwritingMode && styles.modeSwitchRowCompact]}>
           <TouchableOpacity
             style={[
               styles.modeButton,
@@ -1186,19 +1246,8 @@ export default function ZiScreen() {
           )}
           
           {isHandwritingMode ? (
-            // 手写模式 - 书写框在上，静心提示在下
             <View style={styles.handwritingSection}>
-              <View
-                style={styles.handwritingCanvasWrap}
-              >
-                <HandwritingCanvas 
-                  onRecognize={handleHandwritingRecognize}
-                  isRecognizing={isLoading}
-                  wuxing={result?.zi?.wuxing}
-                />
-              </View>
-              {/* 静心提示 - 放在书写框下方 */}
-              {!ritualReady && (
+              {showHandwritingRitual && (
                 <View style={styles.ritualCountdownCard}>
                   <Text style={styles.ritualCountdownTitle}>{tx('🫧 写字前先定一个问题', '🫧 Hold one question in mind', '🫧 寫字前先定一個問題')}</Text>
                   <Text style={styles.ritualCountdownText}>
@@ -1230,6 +1279,18 @@ export default function ZiScreen() {
                   </View>
                 </View>
               )}
+              <View style={styles.handwritingCanvasWrap}>
+                <HandwritingCanvas
+                  ref={handwritingCanvasRef}
+                  onRecognize={handleHandwritingRecognize}
+                  isRecognizing={isLoading}
+                  wuxing={undefined}
+                  maxSize={handwritingCanvasMax}
+                  hideActions
+                  readOnly={isLoading || handwritingStage !== 'idle' || !!handwritingPreview}
+                  onDrawingChange={setIsHandwritingDrawing}
+                />
+              </View>
               {handwritingStage !== 'idle' && (
                 <View style={styles.progressWrap}>
                   <Text style={styles.progressText}>{handwritingProgressText}</Text>
@@ -1338,21 +1399,21 @@ export default function ZiScreen() {
                 <View style={[styles.progressFill, { width: `${Math.max(8, Math.min(100, deepProgress))}%` }]} />
               </View>
               <Text style={styles.loadingHint}>
-                {result
-                  ? tx(
-                      `四块方向已出，正在补全深度解读 ${deepProgress}%`,
-                      `Four directions are ready. Completing deep reading ${deepProgress}%`,
-                      `四塊方向已出，正在補全深度解讀 ${deepProgress}%`,
-                    )
-                  : tx(
-                      `正在拆字并生成四块方向 ${deepProgress}%`,
-                      `Breaking down the character ${deepProgress}%`,
-                      `正在拆字並生成四塊方向 ${deepProgress}%`,
-                    )}
+                {tx(
+                  `正在拆字并生成四块方向 ${deepProgress}%`,
+                  `Breaking down the character ${deepProgress}%`,
+                  `正在拆字並生成四塊方向 ${deepProgress}%`,
+                )}
               </Text>
             </View>
           ) : null}
         </View>
+        </>
+        ) : (
+          <TouchableOpacity style={styles.retakeBar} onPress={handleRetake} activeOpacity={0.85}>
+            <Text style={styles.retakeBarText}>{tx('再测一字', 'Read another character', '再測一字')}</Text>
+          </TouchableOpacity>
+        )}
 
         {/* 结果展示 */}
         {result && (
@@ -1360,28 +1421,30 @@ export default function ZiScreen() {
             {isPreviewStage && (
               <View style={styles.previewBanner}>
                 {isLoading ? (
-                  <View style={styles.progressTrack}>
-                    <View style={[styles.progressFill, { width: `${Math.max(8, Math.min(100, deepProgress))}%` }]} />
+                  <>
+                    <View style={styles.progressTrack}>
+                      <View style={[styles.progressFill, { width: `${Math.max(8, Math.min(100, deepProgress))}%` }]} />
+                    </View>
+                    <Text style={styles.previewBannerText}>
+                      {tx(`结论可以先看，深度补全 ${deepProgress}%`, `Read the conclusion first. Deep reading ${deepProgress}%`, `結論可以先看，深度補全 ${deepProgress}%`)}
+                    </Text>
+                  </>
+                ) : (
+                  <View style={styles.previewBannerRow}>
+                    <Text style={[styles.previewBannerText, styles.previewBannerTextFlex]}>
+                      {tx('深度解读还没补完，结论可以先看。', 'Deep reading is unfinished. The conclusion is ready.', '深度解讀還沒補完，結論可以先看。')}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.previewBannerBtn}
+                      onPress={() => enhanceCurrentResult().catch(() => null)}
+                      disabled={isLoading}
+                    >
+                      <Text style={styles.previewBannerBtnText}>{tx('补全', 'Finish', '補全')}</Text>
+                    </TouchableOpacity>
                   </View>
-                ) : null}
-                <Text style={styles.previewBannerText}>
-                  {isLoading
-                    ? tx(`四块方向可以先看。深度解读进行中 ${deepProgress}%`, `Read the four directions first. Deep reading ${deepProgress}%`, `四塊方向可以先看。深度解讀進行中 ${deepProgress}%`)
-                    : tx('四块方向还在。刷新中断了深度解读，再点一次「开始测字」即可补全（不重复扣积分）。', 'Four directions are saved. Tap Read Symbol again to finish deep reading without extra points.', '四塊方向還在。刷新中斷了深度解讀，再點一次「開始測字」即可補全（不重複扣積分）。')}
-                </Text>
+                )}
               </View>
             )}
-            <CompanionPresence
-              image={cloudWandererImage}
-              name={tx('云游子', 'Yunyouzi', '雲遊子')}
-              title={tx('断事老师', 'Reading companion', '斷事老師')}
-              line={tx(
-                `「${result.zi.zi}」这个字先不急着判。我先看它的形，再把当下的势和下一步说清楚。`,
-                `I will read "${result.zi.zi}" as a symbol: its shape, emotional signal, current pattern, and next step.`,
-                `「${result.zi.zi}」這個字先不急著判。我先看它的形，再把當下的勢和下一步說清楚。`,
-              )}
-              style={styles.deliveryCompanion}
-            />
             <View style={styles.deliverySummaryCard}>
               <View style={styles.deliverySummaryTop}>
                 <Text style={styles.deliveryZiSeal}>{result.zi.zi}</Text>
@@ -1394,6 +1457,7 @@ export default function ZiScreen() {
               </View>
               {deliveryAnchors.length ? (
                 <View style={styles.deliveryAnchorList}>
+                  <Text style={styles.deliveryAnchorLabel}>{tx('下一步', 'Next', '下一步')}</Text>
                   {deliveryAnchors.map((item, index) => (
                     <View key={`${item}_${index}`} style={styles.deliveryAnchorRow}>
                       <Text style={styles.deliveryAnchorIndex}>{index + 1}</Text>
@@ -1413,25 +1477,27 @@ export default function ZiScreen() {
                 ) : null}
               </View>
             </View>
-            <View style={styles.tierCard}>
-              <Text style={styles.tierTitle}>{tx('当前解读档位：', 'Current tier: ', '當前解讀檔位：')}{ziTierLabel}</Text>
-              <Text style={styles.tierDesc}>{ziTierDesc}</Text>
-              {!user ? (
-                <TouchableOpacity
-                  style={styles.tierUpgradeBtn}
-                  onPress={() => router.push('/login')}
-                >
-                  <Text style={styles.tierUpgradeBtnText}>{tx('登录保存这次解读', 'Log in to save this guidance', '登入保存這次解讀')}</Text>
-                </TouchableOpacity>
-              ) : !isVip && (
-                <TouchableOpacity
-                  style={styles.tierUpgradeBtn}
-                  onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
-                >
-                  <Text style={styles.tierUpgradeBtnText}>{tx('立即解锁当前结果（老师傅深度版）', 'Unlock current result now (Deep Master tier)', '立即解鎖當前結果（老師傅深度版）')}</Text>
-                </TouchableOpacity>
-              )}
+            <View style={styles.ziChipRow}>
+              {result.zi.bihua > 0 ? <Text style={styles.ziChip}>{result.zi.bihua}{tx('画', ' strokes', '畫')}</Text> : null}
+              {result.zi.bushou ? <Text style={styles.ziChip}>{normalizeZiText(result.zi.bushou)}</Text> : null}
+              {result.zi.wuxing ? (
+                <Text style={[styles.ziChip, { color: getWuxingColor(result.zi.wuxing) }]}>{normalizeZiText(result.zi.wuxing)}</Text>
+              ) : null}
+              {result.zi.yinyang ? <Text style={styles.ziChip}>{normalizeZiText(result.zi.yinyang)}</Text> : null}
+              {result.zi.jixiong ? (
+                <Text style={[styles.ziChip, { color: getJixiongColor(result.zi.jixiong) }]}>{normalizeZiText(result.zi.jixiong)}</Text>
+              ) : null}
             </View>
+            {!user || !isVip ? (
+              <View style={styles.tierCardCompact}>
+                <Text style={styles.tierTitle}>{tx('当前档位：', 'Current tier: ', '當前檔位：')}{ziTierLabel}</Text>
+                {user ? (
+                  <TouchableOpacity onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}>
+                    <Text style={styles.tierCompactLink}>{tx('解锁深度版', 'Unlock deep tier', '解鎖深度版')}</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            ) : null}
             {showLanguageRefreshHint ? (
               <View style={styles.languageRefreshBanner}>
                 <Text style={styles.languageRefreshText}>
@@ -1458,72 +1524,6 @@ export default function ZiScreen() {
                 </TouchableOpacity>
               </View>
             ) : null}
-            {/* 冷读话术 - 首先展示 */}
-            <View style={styles.section}>
-              <TouchableOpacity
-                style={[styles.collapseHeader, { backgroundColor: theme.dark.card }]}
-                onPress={() => setShowColdReading(!showColdReading)}
-              >
-                <Text style={styles.collapseTitle}>{tx('💫 AI直觉解读', '💫 AI Intuitive Reading', '💫 AI直覺解讀')}</Text>
-                <Text style={styles.collapseIcon}>{showColdReading ? '▼' : '▶'}</Text>
-              </TouchableOpacity>
-              
-              {showColdReading && (
-                <View style={[styles.collapseContent, { backgroundColor: theme.dark.card }]}>
-                  {result.coldReadings.map((reading, index) => (
-                    <Text key={index} style={styles.coldReadingText}>
-                      {normalizeZiText(reading)}
-                    </Text>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* 汉字解析 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{tx('📦 字形拆解', '📦 Character Structure', '📦 字形拆解')}</Text>
-              <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                <View style={styles.ziDisplay}>
-                  <Text style={styles.ziText}>{result.zi.zi}</Text>
-                </View>
-                
-                <View style={styles.ziInfo}>
-                  <View style={styles.infoGrid}>
-                    <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>{tx('笔画', 'Strokes', '筆畫')}</Text>
-                      <Text style={styles.infoValue}>{isPreviewStage ? tx('解析中', 'Analyzing', '解析中') : `${result.zi.bihua} ${tx('画', 'strokes', '畫')}`}</Text>
-                    </View>
-                    <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>{tx('部首', 'Radical', '部首')}</Text>
-                      <Text style={styles.infoValue}>{normalizeZiText(result.zi.bushou)}</Text>
-                    </View>
-                    <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>{tx('五行', 'Element', '五行')}</Text>
-                      <Text style={[styles.infoValue, { color: getWuxingColor(result.zi.wuxing) }]}>
-                        {isPreviewStage ? tx('待定', 'Pending', '待定') : normalizeZiText(result.zi.wuxing)}
-                      </Text>
-                    </View>
-                    <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>{tx('阴阳', 'Yin-Yang', '陰陽')}</Text>
-                      <Text style={styles.infoValue}>{isPreviewStage ? tx('待定', 'Pending', '待定') : normalizeZiText(result.zi.yinyang)}</Text>
-                    </View>
-                    <View style={styles.infoCard}>
-                      <Text style={styles.infoLabel}>{tx('吉凶', 'Auspice', '吉凶')}</Text>
-                      <Text style={[styles.infoValue, { color: getJixiongColor(result.zi.jixiong) }]}>
-                        {isPreviewStage ? tx('待定', 'Pending', '待定') : normalizeZiText(result.zi.jixiong)}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                <Text style={styles.ziMetaSource}>
-                  {tx(
-                    '数据来源：笔画/部首-汉典；五行-部首五行归属；阴阳-笔画奇偶；吉凶-字义传统分类',
-                    'Data source: Han dictionary strokes/radicals, element mapping, yin-yang parity, and traditional semantics.',
-                    '資料來源：筆畫/部首-漢典；五行-部首五行歸屬；陰陽-筆畫奇偶；吉凶-字義傳統分類',
-                  )}
-                </Text>
-              </View>
-            </View>
 
             {/* 我想测哪方面 - 放在识别结果下面 */}
             <View style={styles.aspectSection}>
@@ -1583,7 +1583,66 @@ export default function ZiScreen() {
               </View>
             </View>
 
-            {/* 部件拆解 */}
+            {result.interpretation.focusReading && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{tx('🧭 方向详解 · ', '🧭 Focus Deep Dive · ', '🧭 方向詳解 · ')}{normalizeZiText(result.interpretation.focusReading.focus)}</Text>
+                <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                  {visibleFocusAnchors.length ? (
+                    <>
+                  <Text style={styles.focusSubhead}>{tx('关键锚点', 'Key Anchors', '關鍵錨點')}</Text>
+                  {visibleFocusAnchors.map((item, idx) => (
+                    <View key={`anchor_${idx}`} style={styles.focusBulletRow}>
+                      <Text style={styles.focusBulletDot}>●</Text>
+                      <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
+                    </View>
+                  ))}
+                    </>
+                  ) : null}
+                  <Text style={styles.focusSubhead}>{tx('风险信号', 'Risk Signals', '風險信號')}</Text>
+                  {result.interpretation.focusReading.riskSignals.map((item, idx) => (
+                    <View key={`risk_${idx}`} style={styles.focusBulletRow}>
+                      <Text style={styles.focusBulletDotWarn}>!</Text>
+                      <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
+                    </View>
+                  ))}
+                  <Text style={styles.focusSubhead}>{tx('行动计划', 'Action Plan', '行動計畫')}</Text>
+                  {result.interpretation.focusReading.actionPlan
+                    .filter((item) => {
+                      if (/最终行动|Final action|最終行動/.test(item)) return true;
+                      return !deliveryAnchors.some((kept) => isSimilarText(kept, item));
+                    })
+                    .map((item, idx) => (
+                    /最终行动|Final action|最終行動/.test(item) ? (
+                      <TouchableOpacity
+                        key={`plan_${idx}`}
+                        style={styles.lockedActionCard}
+                        onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
+                      >
+                        <Text style={styles.lockedActionTitle}>{tx('锁定：最终行动', 'Locked: Final Action', '鎖定：最終行動')}</Text>
+                        <Text style={styles.lockedActionText}>{normalizeZiText(item)}</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View key={`plan_${idx}`} style={styles.focusBulletRow}>
+                        <Text style={styles.focusBulletNum}>{idx + 1}</Text>
+                        <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
+                      </View>
+                    )
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <View style={styles.section}>
+              <TouchableOpacity
+                style={[styles.collapseHeader, { backgroundColor: theme.dark.card }]}
+                onPress={() => setShowGlyphDetail((v) => !v)}
+              >
+                <Text style={styles.collapseTitle}>{tx('🧩 字形、甲骨文与技法', '🧩 Glyph, oracle script & technique', '🧩 字形、甲骨文與技法')}</Text>
+                <Text style={styles.collapseIcon}>{showGlyphDetail ? '▼' : '▶'}</Text>
+              </TouchableOpacity>
+            </View>
+            {showGlyphDetail ? (
+            <>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{tx('🧩 部件拆解', '🧩 Component Breakdown', '🧩 部件拆解')}</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
@@ -1631,6 +1690,13 @@ export default function ZiScreen() {
                     </Text>
                   </View>
                 )}
+                <TouchableOpacity onPress={() => setShowOracleNotes((v) => !v)} activeOpacity={0.8}>
+                  <Text style={styles.oracleMoreToggle}>
+                    {showOracleNotes ? tx('收起字形说明', 'Hide glyph notes', '收起字形說明') : tx('查看字形说明', 'Show glyph notes', '查看字形說明')}
+                  </Text>
+                </TouchableOpacity>
+                {showOracleNotes ? (
+                  <>
                 <Text style={styles.oracleInterpretLead}>
                   {normalizeZiText(result.zi.oracleBone?.interpretation) || tx('暂以部件与意象做辅助解读。', 'Using components and imagery as auxiliary reading for now.', '暫以部件與意象做輔助解讀。')}
                 </Text>
@@ -1658,13 +1724,22 @@ export default function ZiScreen() {
                 <Text style={styles.oracleSource}>
                   {tx('图源：', 'Source: ', '圖源：')}{normalizeZiText(result.zi.oracleBone?.source || 'JiaGuWen 开源字表')}
                 </Text>
+                  </>
+                ) : null}
               </View>
             </View>
 
             {!isPreviewStage && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{tx('🧠 技法细化（离合 / 填字 / 投射）', '🧠 Technique Refinement (Split / Grid / Projection)', '🧠 技法細化（離合 / 填字 / 投射）')}</Text>
-                <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
+                <TouchableOpacity
+                  style={[styles.collapseHeader, { backgroundColor: theme.dark.card }]}
+                  onPress={() => setShowTechnique((v) => !v)}
+                >
+                  <Text style={styles.collapseTitle}>{tx('🧠 技法细化（离合 / 填字 / 投射）', '🧠 Technique Refinement (Split / Grid / Projection)', '🧠 技法細化（離合 / 填字 / 投射）')}</Text>
+                  <Text style={styles.collapseIcon}>{showTechnique ? '▼' : '▶'}</Text>
+                </TouchableOpacity>
+                {showTechnique ? (
+                <View style={[styles.collapseContent, { backgroundColor: theme.dark.card }]}>
                   <View style={styles.skillGroup}>
                     <Text style={styles.skillHead}>{tx('离合法', 'Split-Combine', '離合法')}</Text>
                     <Text style={styles.skillHint}>{tx('把字拆开看意象，再合起来看整体', 'Split the character for imagery, then combine for whole-pattern reading.', '把字拆開看意象，再合起來看整體')}</Text>
@@ -1698,55 +1773,12 @@ export default function ZiScreen() {
                     <Text style={styles.probingChatText}>{tx('💬 去对话里深聊这个反问', '💬 Discuss this reflective prompt in chat', '💬 去對話裡深聊這個反問')}</Text>
                   </TouchableOpacity>
                 </View>
+                ) : null}
               </View>
             )}
+            </>
+            ) : null}
 
-            {result.interpretation.focusReading && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{tx('🧭 方向详解 · ', '🧭 Focus Deep Dive · ', '🧭 方向詳解 · ')}{normalizeZiText(result.interpretation.focusReading.focus)}</Text>
-                <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                  <View style={styles.focusSummaryBox}>
-                    <Text style={styles.focusSummaryLabel}>{tx('核心结论', 'Core Conclusion', '核心結論')}</Text>
-                    <Text style={styles.focusSummary}>{normalizeZiText(result.interpretation.focusReading.summary)}</Text>
-                  </View>
-                  <Text style={styles.focusSubhead}>{tx('关键锚点', 'Key Anchors', '關鍵錨點')}</Text>
-                  {result.interpretation.focusReading.anchors.map((item, idx) => (
-                    <View key={`anchor_${idx}`} style={styles.focusBulletRow}>
-                      <Text style={styles.focusBulletDot}>●</Text>
-                      <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
-                    </View>
-                  ))}
-                  <Text style={styles.focusSubhead}>{tx('风险信号', 'Risk Signals', '風險信號')}</Text>
-                  {result.interpretation.focusReading.riskSignals.map((item, idx) => (
-                    <View key={`risk_${idx}`} style={styles.focusBulletRow}>
-                      <Text style={styles.focusBulletDotWarn}>!</Text>
-                      <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
-                    </View>
-                  ))}
-                  <Text style={styles.focusSubhead}>{tx('行动计划', 'Action Plan', '行動計畫')}</Text>
-                  {result.interpretation.focusReading.actionPlan.map((item, idx) => (
-                    /最终行动|Final action|最終行動/.test(item) ? (
-                      <TouchableOpacity
-                        key={`plan_${idx}`}
-                        style={styles.lockedActionCard}
-                        onPress={() => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } })}
-                      >
-                        <Text style={styles.lockedActionTitle}>{tx('锁定：最终行动', 'Locked: Final Action', '鎖定：最終行動')}</Text>
-                        <Text style={styles.lockedActionText}>{normalizeZiText(item)}</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <View key={`plan_${idx}`} style={styles.focusBulletRow}>
-                        <Text style={styles.focusBulletNum}>{idx + 1}</Text>
-                        <Text style={styles.focusItem}>{normalizeZiText(item)}</Text>
-                      </View>
-                    )
-                  ))}
-                  <TouchableOpacity style={styles.focusChatBtn} onPress={goActionPlanChat}>
-                    <Text style={styles.focusChatBtnText}>{tx('💬 去对话里执行行动计划', '💬 Execute action plan in chat', '💬 去對話裡執行行動計畫')}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
             {!!result.interpretation.premiumHint && (
               <View style={styles.section}>
                 <TouchableOpacity
@@ -1780,147 +1812,199 @@ export default function ZiScreen() {
                     <Text style={styles.guaDetailIcon}>🧭</Text>
                     <Text style={styles.guaDetailItem}>{guaDetail.core}</Text>
                   </View>
+                  {!!guaDetail.reminder && (
                   <View style={styles.guaDetailItemRow}>
                     <Text style={styles.guaDetailIcon}>⚠️</Text>
                     <Text style={styles.guaDetailItem}>{guaDetail.reminder}</Text>
                   </View>
+                  )}
+                  {!!guaDetail.action && (
                   <View style={styles.guaDetailItemRow}>
                     <Text style={styles.guaDetailIcon}>✅</Text>
                     <Text style={styles.guaDetailItem}>{guaDetail.action}</Text>
                   </View>
+                  )}
                 </View>
               </View>
             </View>
 
             {!isPreviewStage && (
               <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{tx('✍️ 笔迹心理学', '✍️ Handwriting Psychology', '✍️ 筆跡心理學')}</Text>
-                <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                  <View style={styles.handwritingItem}>
-                    <Text style={styles.handwritingLabel}>{tx('力度', 'Pressure', '力度')}</Text>
-                    <Text style={styles.handwritingValue}>
-                      {result.handwriting.pressure === 'heavy'
-                        ? tx('较重', 'Heavy', '較重')
-                        : result.handwriting.pressure === 'light'
-                        ? tx('较轻', 'Light', '較輕')
-                        : tx('适中', 'Balanced', '適中')}
+                <TouchableOpacity
+                  style={[styles.collapseHeader, { backgroundColor: theme.dark.card }]}
+                  onPress={() => setShowHandwritingProfile((v) => !v)}
+                >
+                  <Text style={styles.collapseTitle}>{tx('✍️ 笔迹与性格', '✍️ Handwriting & personality', '✍️ 筆跡與性格')}</Text>
+                  <Text style={styles.collapseIcon}>{showHandwritingProfile ? '▼' : '▶'}</Text>
+                </TouchableOpacity>
+                {showHandwritingProfile ? (
+                  <View style={[styles.collapseContent, { backgroundColor: theme.dark.card }]}>
+                    <View style={styles.handwritingItem}>
+                      <Text style={styles.handwritingLabel}>{tx('力度', 'Pressure', '力度')}</Text>
+                      <Text style={styles.handwritingValue}>
+                        {result.handwriting.pressure === 'heavy'
+                          ? tx('较重', 'Heavy', '較重')
+                          : result.handwriting.pressure === 'light'
+                          ? tx('较轻', 'Light', '較輕')
+                          : tx('适中', 'Balanced', '適中')}
+                      </Text>
+                    </View>
+                    <Text style={styles.handwritingInterpretation}>
+                      {normalizeZiText(result.handwriting.pressureInterpretation)}
                     </Text>
-                  </View>
-                  <Text style={styles.handwritingInterpretation}>
-                    {normalizeZiText(result.handwriting.pressureInterpretation)}
-                  </Text>
-
-                  <View style={styles.handwritingItem}>
-                    <Text style={styles.handwritingLabel}>{tx('稳定性', 'Stability', '穩定性')}</Text>
-                    <Text style={styles.handwritingValue}>
-                      {result.handwriting.stability === 'stable'
-                        ? tx('稳定', 'Stable', '穩定')
-                        : result.handwriting.stability === 'shaky'
-                        ? tx('波动', 'Shaky', '波動')
-                        : tx('一般', 'Average', '一般')}
+                    <View style={styles.handwritingItem}>
+                      <Text style={styles.handwritingLabel}>{tx('稳定性', 'Stability', '穩定性')}</Text>
+                      <Text style={styles.handwritingValue}>
+                        {result.handwriting.stability === 'stable'
+                          ? tx('稳定', 'Stable', '穩定')
+                          : result.handwriting.stability === 'shaky'
+                          ? tx('波动', 'Shaky', '波動')
+                          : tx('一般', 'Average', '一般')}
+                      </Text>
+                    </View>
+                    <Text style={styles.handwritingInterpretation}>
+                      {normalizeZiText(result.handwriting.stabilityInterpretation)}
                     </Text>
-                  </View>
-                  <Text style={styles.handwritingInterpretation}>
-                    {normalizeZiText(result.handwriting.stabilityInterpretation)}
-                  </Text>
-
-                  <View style={styles.handwritingItem}>
-                    <Text style={styles.handwritingLabel}>{tx('结构', 'Structure', '結構')}</Text>
-                    <Text style={styles.handwritingValue}>
-                      {result.handwriting.structure === 'compact'
-                        ? tx('紧凑', 'Compact', '緊湊')
-                        : result.handwriting.structure === 'loose'
-                        ? tx('松散', 'Loose', '鬆散')
-                        : tx('均衡', 'Balanced', '均衡')}
+                    <View style={styles.handwritingItem}>
+                      <Text style={styles.handwritingLabel}>{tx('结构', 'Structure', '結構')}</Text>
+                      <Text style={styles.handwritingValue}>
+                        {result.handwriting.structure === 'compact'
+                          ? tx('紧凑', 'Compact', '緊湊')
+                          : result.handwriting.structure === 'loose'
+                          ? tx('松散', 'Loose', '鬆散')
+                          : tx('均衡', 'Balanced', '均衡')}
+                      </Text>
+                    </View>
+                    <Text style={styles.handwritingInterpretation}>
+                      {normalizeZiText(result.handwriting.structureInterpretation)}
                     </Text>
+                    <View style={styles.traitsRow}>
+                      {result.handwriting.personalityInsights.map((trait, index) => (
+                        <View key={index} style={[styles.traitTag, { backgroundColor: '#FFD700' }]}>
+                          <Text style={[styles.traitText, { color: '#1a1a2e' }]}>{normalizeZiText(trait)}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
-                  <Text style={styles.handwritingInterpretation}>
-                    {normalizeZiText(result.handwriting.structureInterpretation)}
-                  </Text>
-                </View>
+                ) : null}
               </View>
             )}
 
-            {!isPreviewStage && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{tx('👤 性格画像', '👤 Personality Profile', '👤 性格畫像')}</Text>
-                <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                  <View style={styles.traitsRow}>
-                    {result.handwriting.personalityInsights.map((trait, index) => (
-                      <View key={index} style={[styles.traitTag, { backgroundColor: '#FFD700' }]}>
-                        <Text style={[styles.traitText, { color: '#1a1a2e' }]}>{normalizeZiText(trait)}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* 运势解读 */}
+            {/* 运势解读：与结论重复的方向不重复展示 */}
+            {(() => {
+                  const focusNow = result.interpretation.focusReading?.focus || selectedAspect || '';
+                  const blocks = [
+                    { key: '事业', label: tx('💼 事业', '💼 Career', '💼 事業'), text: result.interpretation.career },
+                    { key: '感情', label: tx('💕 感情', '💕 Love', '💕 感情'), text: result.interpretation.love },
+                    { key: '财运', label: tx('💰 财运', '💰 Wealth', '💰 財運'), text: result.interpretation.wealth },
+                    { key: '健康', label: tx('🏥 健康', '🏥 Health', '🏥 健康'), text: result.interpretation.health },
+                  ];
+                  const primaryKey = /财/.test(focusNow)
+                    ? '财运'
+                    : /健康/.test(focusNow)
+                    ? '健康'
+                    : /婚|爱|情|人际/.test(focusNow)
+                    ? '感情'
+                    : /学/.test(focusNow)
+                    ? '事业'
+                    : /事业|工作/.test(focusNow)
+                    ? '事业'
+                    : blocks[0].key;
+                  const isUsefulFortune = (text?: string) => {
+                    const normalized = normalizeZiText(text).replace(/\s+/g, '');
+                    if (!normalized || isPlaceholderLine(text)) return false;
+                    if (normalized.length < 12) return false;
+                    if (isSimilarText(text, focusSummaryText)) return false;
+                    return true;
+                  };
+                  const uniqueBlocks = blocks.filter((item) => isUsefulFortune(item.text));
+                  const visible = showAllFortunes
+                    ? uniqueBlocks
+                    : uniqueBlocks.filter((item) => item.key === primaryKey);
+                  if (!uniqueBlocks.length) return null;
+                  return (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{tx('🌟 运势解读', '🌟 Fortune Reading', '🌟 運勢解讀')}</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                <View style={styles.fortuneItem}>
-                  <Text style={styles.fortuneLabel}>{tx('💼 事业', '💼 Career', '💼 事業')}</Text>
-                  <Text style={styles.fortuneText}>
-                    {isPlaceholderLine(result.interpretation.career)
-                      ? tx('事业向正在补全…', 'Career reading is completing…', '事業向正在補全…')
-                      : normalizeZiText(result.interpretation.career)}
-                  </Text>
-                </View>
-                <View style={styles.fortuneItem}>
-                  <Text style={styles.fortuneLabel}>{tx('💕 感情', '💕 Love', '💕 感情')}</Text>
-                  <Text style={styles.fortuneText}>{normalizeZiText(result.interpretation.love)}</Text>
-                </View>
-                <View style={styles.fortuneItem}>
-                  <Text style={styles.fortuneLabel}>{tx('💰 财运', '💰 Wealth', '💰 財運')}</Text>
-                  <Text style={styles.fortuneText}>{normalizeZiText(result.interpretation.wealth)}</Text>
-                </View>
-                <View style={[styles.fortuneItem, styles.fortuneItemLast]}>
-                  <Text style={styles.fortuneLabel}>{tx('🏥 健康', '🏥 Health', '🏥 健康')}</Text>
-                  <Text style={styles.fortuneText}>{normalizeZiText(result.interpretation.health)}</Text>
-                </View>
+                    <>
+                      {visible.length
+                        ? visible.map((item, index) => (
+                        <View
+                          key={item.key}
+                          style={[styles.fortuneItem, index === visible.length - 1 && !showAllFortunes ? styles.fortuneItemLast : null]}
+                        >
+                          <Text style={styles.fortuneLabel}>{item.label}</Text>
+                          <Text style={styles.fortuneText}>
+                            {isPlaceholderLine(item.text)
+                              ? tx('这一向正在补全…', 'This direction is completing…', '這一向正在補全…')
+                              : normalizeZiText(item.text)}
+                          </Text>
+                        </View>
+                          ))
+                        : null}
+                      {uniqueBlocks.length > 1 ? (
+                      <TouchableOpacity onPress={() => setShowAllFortunes((v) => !v)} activeOpacity={0.8}>
+                        <Text style={styles.oracleMoreToggle}>
+                          {showAllFortunes
+                            ? tx('只看本次方向', 'Show this focus only', '只看本次方向')
+                            : tx('查看其余方向', 'Show other directions', '查看其餘方向')}
+                        </Text>
+                      </TouchableOpacity>
+                      ) : null}
+                    </>
               </View>
             </View>
+                  );
+                })()}
 
-            {/* 建议 */}
+            {uniqueAdvice.length ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{tx('💡 建议', '💡 Suggestions', '💡 建議')}</Text>
               <View style={[styles.card, { backgroundColor: theme.dark.card }]}>
-                {result.interpretation.advice.map((advice, index) => (
+                {uniqueAdvice.map((advice, index) => (
                   <Text key={index} style={styles.adviceText}>
-                    {index + 1}. {normalizeZiText(advice)}
+                    {index + 1}. {advice}
                   </Text>
                 ))}
               </View>
             </View>
+            ) : null}
 
             <DeliveryNextStepCard
               title={tx('接下来做什么', 'Next step', '接下來做什麼')}
-              summary={normalizeZiText(result.interpretation.advice?.[0]) || tx('先把这次解读落到一个具体问题上。', 'Turn this reading into one concrete question.', '先把這次解讀落到一個具體問題上。')}
+              summary={deliveryAnchors[0] || uniqueAdvice[0] || tx('先把这次解读落到一个具体问题上。', 'Turn this reading into one concrete question.', '先把這次解讀落到一個具體問題上。')}
               primary={{
                 label: tx('去对话里继续问', 'Continue in chat', '去對話裡繼續問'),
                 onPress: () => handleFollowUpQuestion(''),
               }}
               secondary={
-                !user
-                  ? {
-                      label: tx('登录保存结果', 'Log in to save', '登入保存結果'),
-                      onPress: () => router.push('/login'),
-                    }
-                  : !isVip
+                user && !isVip
                   ? {
                       label: tx('升级深度版', 'Upgrade deep tier', '升級深度版'),
                       onPress: () => router.push({ pathname: '/(tabs)/points', params: { focus: 'vip' } }),
                     }
                   : null
               }
-              tertiary={{
-                label: tx('按方向重解读', 'Re-read by focus', '按方向重解讀'),
-                onPress: handleFocusedReanalyze,
-                disabled: isLoading,
-              }}
             />
+
+            <View style={styles.section}>
+              <TouchableOpacity
+                style={[styles.collapseHeader, { backgroundColor: theme.dark.card }]}
+                onPress={() => setShowColdReading(!showColdReading)}
+              >
+                <Text style={styles.collapseTitle}>{tx('💫 AI直觉解读', '💫 AI Intuitive Reading', '💫 AI直覺解讀')}</Text>
+                <Text style={styles.collapseIcon}>{showColdReading ? '▼' : '▶'}</Text>
+              </TouchableOpacity>
+              {showColdReading && (
+                <View style={[styles.collapseContent, { backgroundColor: theme.dark.card }]}>
+                  {result.coldReadings.map((reading, index) => (
+                    <Text key={index} style={styles.coldReadingText}>
+                      {normalizeZiText(reading)}
+                    </Text>
+                  ))}
+                </View>
+              )}
+            </View>
 
             {!isPreviewStage && (
               <ResultShareCard
@@ -1968,6 +2052,32 @@ export default function ZiScreen() {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+      {showHandwritingSticky ? (
+        <View style={[styles.handwritingStickyBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          <TouchableOpacity
+            style={styles.handwritingStickyClear}
+            onPress={() => {
+              handwritingCanvasRef.current?.clear();
+              setHandwritingPreview(null);
+              setHandwritingStage('idle');
+              setIsHandwritingDrawing(false);
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.handwritingStickyClearText}>{tx('清空', 'Clear', '清空')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.handwritingStickyRecognize, isLoading && styles.handwritingStickyRecognizeDisabled]}
+            onPress={() => handwritingCanvasRef.current?.recognize()}
+            disabled={isLoading}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.handwritingStickyRecognizeText}>
+              {isLoading ? tx('识别中…', 'Recognizing…', '識別中…') : tx('开始识别', 'Recognize', '開始識別')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1989,10 +2099,17 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
   },
+  headerCompact: {
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  titleCompact: {
+    fontSize: 20,
   },
   subtitle: {
     fontSize: 14,
@@ -2021,6 +2138,75 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
+  },
+  previewBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  previewBannerTextFlex: {
+    flex: 1,
+    textAlign: 'left',
+  },
+  previewBannerBtn: {
+    backgroundColor: '#F8D05F',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  previewBannerBtnText: {
+    color: '#1A1026',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  retakeBar: {
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.42)',
+  },
+  retakeBarText: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  ziChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  ziChip: {
+    color: '#E6EDF7',
+    backgroundColor: 'rgba(16, 24, 39, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 208, 95, 0.22)',
+    borderRadius: 999,
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  tierCardCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#1B1430',
+    borderWidth: 1,
+    borderColor: '#5A417F',
+  },
+  tierCompactLink: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '800',
   },
   deliveryCompanion: {
     marginBottom: 14,
@@ -2070,6 +2256,12 @@ const styles = StyleSheet.create({
   deliveryAnchorList: {
     marginTop: 12,
     gap: 8,
+  },
+  deliveryAnchorLabel: {
+    color: '#F8D05F',
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 2,
   },
   deliveryAnchorRow: {
     flexDirection: 'row',
@@ -2189,6 +2381,9 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 16,
   },
+  handwritingScrollContent: {
+    paddingBottom: 24,
+  },
   ritualHintCard: {
     backgroundColor: '#1A2238',
     borderWidth: 1,
@@ -2214,6 +2409,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 4,
     marginBottom: 20,
+  },
+  modeSwitchRowCompact: {
+    marginBottom: 10,
   },
   modeButton: {
     flex: 1,
@@ -2357,7 +2555,7 @@ const styles = StyleSheet.create({
   },
   handwritingSection: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 6,
   },
   ritualCountdownCard: {
     width: '92%',
@@ -2366,7 +2564,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334B7C',
     padding: 12,
-    marginTop: 12,
+    marginBottom: 10,
   },
   ritualCountdownTitle: {
     color: '#FFD700',
@@ -2419,6 +2617,46 @@ const styles = StyleSheet.create({
   handwritingCanvasWrap: {
     width: '100%',
     alignItems: 'center',
+  },
+  handwritingStickyBar: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    backgroundColor: 'rgba(16, 16, 32, 0.96)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(248, 208, 95, 0.22)',
+  },
+  handwritingStickyClear: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2a2a4e',
+    borderWidth: 1,
+    borderColor: '#3a3a5e',
+  },
+  handwritingStickyClearText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  handwritingStickyRecognize: {
+    flex: 1.4,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFD700',
+  },
+  handwritingStickyRecognizeDisabled: {
+    backgroundColor: '#999',
+  },
+  handwritingStickyRecognizeText: {
+    color: '#1a1a2e',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   progressWrap: {
     marginTop: 10,
@@ -2906,6 +3144,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 23,
     marginTop: 12,
+  },
+  oracleMoreToggle: {
+    color: '#C8A6FF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 10,
   },
   oracleEmptyHint: {
     backgroundColor: 'rgba(255,255,255,0.04)',
