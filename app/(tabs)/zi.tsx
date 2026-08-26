@@ -130,6 +130,7 @@ export default function ZiScreen() {
   const [customAspect, setCustomAspect] = useState('');
   const [userQuestion, setUserQuestion] = useState('');
   const [englishSymbolSeed, setEnglishSymbolSeed] = useState('');
+  const [ziStateHydrated, setZiStateHydrated] = useState(false);
   const oracleUnlockAnim = useRef(new Animated.Value(0)).current;
   
   // 可选的测字方面
@@ -486,14 +487,45 @@ export default function ZiScreen() {
     }
 
     const previousResult = result;
+    const previewResult = buildPreviewResult(zi, focusAspect);
     setActionError('');
     setIsLoading(true);
-    setResult(buildPreviewResult(zi, focusAspect));
+    setResult(previewResult);
     setResultStage('preview');
+    AsyncStorage.setItem(
+      ziStateStorageKey,
+      JSON.stringify({
+        inputZi: zi,
+        result: previewResult,
+        resultStage: 'preview',
+        handwritingPreview,
+        selectedAspect,
+        customAspect,
+        userQuestion: normalizedQuestion,
+        englishSymbolSeed,
+        isHandwritingMode,
+        showColdReading,
+      }),
+    ).catch(() => null);
     try {
       const data = await ziApi.analyze(zi, focusAspect, undefined, normalizedQuestion || undefined, isInvitePreview);
       setResult(data);
       setResultStage('full');
+      AsyncStorage.setItem(
+        ziStateStorageKey,
+        JSON.stringify({
+          inputZi: zi,
+          result: data,
+          resultStage: 'full',
+          handwritingPreview: null,
+          selectedAspect,
+          customAspect,
+          userQuestion: normalizedQuestion,
+          englishSymbolSeed,
+          isHandwritingMode,
+          showColdReading,
+        }),
+      ).catch(() => null);
       setShowLanguageRefreshHint(false);
       setActionError('');
       trackFeature('zi_analyze_complete', { zi: data?.zi?.zi, aspect: focusAspect || null });
@@ -602,8 +634,12 @@ export default function ZiScreen() {
 
   React.useEffect(() => {
     const prefill = (params.prefillZi || '').trim();
-    if (prefill) return;
     let cancelled = false;
+    setZiStateHydrated(false);
+    if (prefill) {
+      setZiStateHydrated(true);
+      return;
+    }
     const loadState = async () => {
       try {
         const raw = await AsyncStorage.getItem(ziStateStorageKey);
@@ -611,6 +647,7 @@ export default function ZiScreen() {
         const parsed = JSON.parse(raw) as {
           inputZi?: string;
           result?: ZiResult | null;
+          resultStage?: 'idle' | 'preview' | 'full';
           handwritingPreview?: { zi: string; confidence: number } | null;
           selectedAspect?: string;
           customAspect?: string;
@@ -620,7 +657,10 @@ export default function ZiScreen() {
           showColdReading?: boolean;
         };
         if (parsed.inputZi) setInputZi(parsed.inputZi);
-        if (parsed.result) setResult(parsed.result);
+        if (parsed.result) {
+          setResult(parsed.result);
+          setResultStage(parsed.resultStage === 'preview' || parsed.resultStage === 'full' ? parsed.resultStage : 'full');
+        }
         if (parsed.handwritingPreview?.zi) setHandwritingPreview(parsed.handwritingPreview);
         if (parsed.selectedAspect) setSelectedAspect(parsed.selectedAspect);
         if (parsed.customAspect) setCustomAspect(parsed.customAspect);
@@ -632,17 +672,20 @@ export default function ZiScreen() {
         // ignore restore failure
       }
     };
-    loadState();
+    loadState().finally(() => {
+      if (!cancelled) setZiStateHydrated(true);
+    });
     return () => {
       cancelled = true;
     };
   }, [params.prefillZi, ziStateStorageKey]);
 
   React.useEffect(() => {
-    const persistedResult = resultStage === 'preview' ? null : result;
+    if (!ziStateHydrated) return;
     const payload = {
       inputZi,
-      result: persistedResult,
+      result,
+      resultStage,
       handwritingPreview,
       selectedAspect,
       customAspect,
@@ -652,7 +695,7 @@ export default function ZiScreen() {
       showColdReading,
     };
     AsyncStorage.setItem(ziStateStorageKey, JSON.stringify(payload)).catch(() => null);
-  }, [ziStateStorageKey, inputZi, result, resultStage, handwritingPreview, selectedAspect, customAspect, userQuestion, englishSymbolSeed, isHandwritingMode, showColdReading]);
+  }, [ziStateHydrated, ziStateStorageKey, inputZi, result, resultStage, handwritingPreview, selectedAspect, customAspect, userQuestion, englishSymbolSeed, isHandwritingMode, showColdReading]);
 
   React.useEffect(() => {
     if (!isHandwritingMode) return;
@@ -1207,9 +1250,9 @@ export default function ZiScreen() {
           {isLoading ? (
             <Text style={styles.loadingHint}>
               {tx(
-                'AI 深度解读约需 30 秒～2 分钟，请保持网络畅通、勿关闭页面',
-                'Deep guidance usually takes 30s-2min. Keep the page open.',
-                'AI 深度解讀約需 30 秒～2 分鐘，請保持網路暢通、勿關閉頁面',
+                '首轮结果会马上出来。深度解读大约十几秒，请先看上面的结论。',
+                'First-pass appears immediately. Deep reading usually takes about 10–20s.',
+                '首輪結果會馬上出來。深度解讀大約十幾秒，請先看上面的結論。',
               )}
             </Text>
           ) : null}
@@ -1220,7 +1263,11 @@ export default function ZiScreen() {
           <>
             {isPreviewStage && (
               <View style={styles.previewBanner}>
-                <Text style={styles.previewBannerText}>{tx('已为你先展示首轮结果，深度解读正在补全中…', 'First-pass result is ready. Deep reading is still completing…', '已先為你展示首輪結果，深度解讀正在補全中…')}</Text>
+                <Text style={styles.previewBannerText}>
+                  {isLoading
+                    ? tx('已为你先展示首轮结果，深度解读正在补全中…', 'First-pass result is ready. Deep reading is still completing…', '已先為你展示首輪結果，深度解讀正在補全中…')
+                    : tx('首轮结果还在。刷新中断了深度解读，再点一次「开始测字」即可补全。', 'First-pass is saved. Refresh stopped the deep reading — tap Read Symbol again to finish.', '首輪結果還在。刷新中斷了深度解讀，再點一次「開始測字」即可補全。')}
+                </Text>
               </View>
             )}
             <CompanionPresence

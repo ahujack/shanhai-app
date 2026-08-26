@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import theme from '../../constants/Colors';
 import { readingApi, CreateReadingDto, DivinationResult, pointsApi } from '../../src/services/api';
 import { trackFeature, trackNamedEvent } from '../../src/services/analytics';
@@ -49,12 +50,14 @@ export default function ReadingScreen() {
     t('reading.loading.3', '收成一句结论'),
     t('reading.loading.4', '写下今天能做的一步'),
   ];
-  const { lastFortune, lastReading } = useDivinationStore();
+  const { lastFortune, lastReading, setLastReading } = useDivinationStore();
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState<CreateReadingDto['category']>('general');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DivinationResult | null>(null);
+  const [readingHydrated, setReadingHydrated] = useState(false);
+  const [pendingInterrupted, setPendingInterrupted] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showFortuneSource, setShowFortuneSource] = useState(true);
   const [readingPointsCost, setReadingPointsCost] = useState(15);
@@ -69,6 +72,7 @@ export default function ReadingScreen() {
   const fromChatReading = toSingle(params.fromChatReading) === '1';
   const suggestedQuestion = toSingle(params.suggestedQuestion);
   const suggestedCategory = toSingle(params.suggestedCategory) as CreateReadingDto['category'] | undefined;
+  const readingStateStorageKey = `reading_screen_state_${user?.id || 'guest'}`;
 
   const inferCategoryFromFortuneTheme = (): CreateReadingDto['category'] => {
     const theme = lastFortune?.fortuneTheme;
@@ -181,6 +185,55 @@ export default function ReadingScreen() {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setReadingHydrated(false);
+    if (fromFortune || fromChatReading) {
+      setReadingHydrated(true);
+      return;
+    }
+    const loadState = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(readingStateStorageKey);
+        if (!raw || cancelled) return;
+        const parsed = JSON.parse(raw) as {
+          question?: string;
+          category?: CreateReadingDto['category'];
+          result?: DivinationResult | null;
+          pending?: boolean;
+        };
+        if (parsed.question && !suggestedQuestion) setQuestion(parsed.question);
+        if (parsed.category) setCategory(parsed.category);
+        if (parsed.result && !suggestedQuestion) {
+          setResult(parsed.result);
+          setLastReading(parsed.result);
+        }
+        if (parsed.pending && !parsed.result) {
+          setPendingInterrupted(true);
+        }
+      } catch {
+        // ignore restore failure
+      }
+    };
+    loadState().finally(() => {
+      if (!cancelled) setReadingHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fromChatReading, fromFortune, readingStateStorageKey, setLastReading, suggestedQuestion]);
+
+  useEffect(() => {
+    if (!readingHydrated || fromFortune || fromChatReading) return;
+    const payload = {
+      question,
+      category,
+      result,
+      pending: isLoading || pendingInterrupted,
+    };
+    AsyncStorage.setItem(readingStateStorageKey, JSON.stringify(payload)).catch(() => null);
+  }, [category, fromChatReading, fromFortune, isLoading, pendingInterrupted, question, readingHydrated, readingStateStorageKey, result]);
+
   const refreshPointsBalance = async () => {
     if (!user) return;
     try {
@@ -229,6 +282,8 @@ export default function ReadingScreen() {
         category: inferCategoryFromFortuneTheme(),
       });
       setResult(deepReading);
+      setLastReading(deepReading);
+      setPendingInterrupted(false);
       trackFeature('reading_complete', { source: 'fortune', category: inferCategoryFromFortuneTheme() });
       const tip =
         String(deepReading.conclusion?.nextStep || '').trim() ||
@@ -292,6 +347,16 @@ export default function ReadingScreen() {
     setIsLoading(true);
     setResult(null);
     setError(null);
+    setPendingInterrupted(false);
+    AsyncStorage.setItem(
+      readingStateStorageKey,
+      JSON.stringify({
+        question: q,
+        category,
+        result: null,
+        pending: true,
+      }),
+    ).catch(() => null);
     const startedAt = Date.now();
     
     try {
@@ -301,6 +366,17 @@ export default function ReadingScreen() {
       };
       const reading = await readingApi.create(dto);
       setResult(reading);
+      setLastReading(reading);
+      setPendingInterrupted(false);
+      AsyncStorage.setItem(
+        readingStateStorageKey,
+        JSON.stringify({
+          question: q,
+          category,
+          result: reading,
+          pending: false,
+        }),
+      ).catch(() => null);
       trackFeature('reading_complete', { source: 'form', category });
       const tip =
         String(reading.conclusion?.nextStep || '').trim() ||
@@ -341,6 +417,7 @@ export default function ReadingScreen() {
   const handleReset = () => {
     setQuestion('');
     setResult(null);
+    setPendingInterrupted(false);
     setShowDetails(false);
   };
 
@@ -741,6 +818,14 @@ export default function ReadingScreen() {
         <Text style={styles.hint}>
           {t('reading.form.inputHint', '把时间、人物、担心点写出来，结果会更贴近真实处境。')}
         </Text>
+        {pendingInterrupted ? (
+          <Text style={styles.hint}>
+            {t(
+              'reading.form.pendingInterrupted',
+              '刷新中断了上次等待。问题还在，再点一次开始解读即可。若刚才已扣积分，结果通常会在历史里，不必连点。',
+            )}
+          </Text>
+        ) : null}
 
         <TextInput
           style={styles.textInput}
