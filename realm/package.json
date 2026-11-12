@@ -1,0 +1,27 @@
+{
+  "name": "shanhai-realm",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "realtime:dev": "wrangler dev --config realtime/wrangler.toml",
+    "realtime:deploy": "wrangler deploy --config realtime/wrangler.toml"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261112.1",
+    "@types/three": "^0.187.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "wrangler": "^4.160.1"
+  }
+}

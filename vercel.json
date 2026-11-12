@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export --platform web && node scripts/inject-seo-meta.js && node scripts/verify-seo-dist.js",
+  "buildCommand": "npx expo export --platform web && node scripts/inject-seo-meta.js && node scripts/verify-seo-dist.js && npm run build:realm",
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "cleanUrls": true,
@@ -16,12 +16,24 @@
     {
       "source": "/sitemap.xml",
       "headers": [{ "key": "Content-Type", "value": "application/xml; charset=utf-8" }]
+    },
+    {
+      "source": "/realm/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     }
   ],
   "rewrites": [
     {
       "source": "/api/:path*",
       "destination": "https://shanhai-production.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/realm",
+      "destination": "/realm/index.html"
+    },
+    {
+      "source": "/realm/",
+      "destination": "/realm/index.html"
     }
   ]
 }

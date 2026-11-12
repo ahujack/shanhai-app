@@ -1,0 +1,14 @@
+name = "shanhai-realm-presence"
+main = "src/index.ts"
+compatibility_date = "2025-10-01"
+
+[[durable_objects.bindings]]
+name = "REALM"
+class_name = "RealmRoom"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RealmRoom"]
+
+[vars]
+ROOM_ID = "courtyard"

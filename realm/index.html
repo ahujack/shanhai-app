@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"
+    />
+    <meta name="theme-color" content="#0B0D14" />
+    <meta name="description" content="山海灵境 · 云游道观。静坐、点香、击磬、抽签。不是判决，是下一步的坐标。" />
+    <title>山海灵境 · 云游道观</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="boot" class="boot" role="status">
+      <div class="boot-mark" aria-hidden="true">☰</div>
+      <h1>云游道观</h1>
+      <p id="boot-msg">正在整理山门与香火…</p>
+      <div class="boot-bar"><i id="boot-fill"></i></div>
+    </div>
+
+    <div id="hud" class="hud hidden" aria-live="polite">
+      <header class="topbar">
+        <div class="brand">
+          <strong>山海灵境</strong>
+          <span>云游道观</span>
+        </div>
+        <div class="meta">
+          <span id="phase-label">昼</span>
+          <span id="presence-label">独处</span>
+        </div>
+      </header>
+
+      <div id="prompt" class="prompt hidden">
+        <button type="button" id="prompt-btn">靠近互动</button>
+      </div>
+
+      <div class="hint" id="hint">
+        点击地面走动 · 靠近器物可互动 · 拖动旋转视角
+      </div>
+
+      <nav class="dock" aria-label="快捷互动">
+        <button type="button" data-go="incense">上香</button>
+        <button type="button" data-go="moktak">木鱼</button>
+        <button type="button" data-go="qing">击磬</button>
+        <button type="button" data-go="cushion">静坐</button>
+        <button type="button" data-go="draw">抽签</button>
+        <button type="button" data-go="wish">祈福</button>
+        <button type="button" data-go="companion">问灵伴</button>
+      </nav>
+    </div>
+
+    <div id="panel" class="panel hidden" role="dialog" aria-modal="true">
+      <div class="panel-card">
+        <button type="button" class="panel-close" id="panel-close" aria-label="关闭">×</button>
+        <h2 id="panel-title"></h2>
+        <div id="panel-body"></div>
+        <div id="panel-actions" class="panel-actions"></div>
+      </div>
+    </div>
+
+    <canvas id="c"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
