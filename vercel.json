@@ -22,6 +22,20 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     }
   ],
+  "redirects": [
+    {
+      "source": "/",
+      "missing": [{ "type": "query", "key": "persona" }],
+      "destination": "/realm",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "query", "key": "persona" }],
+      "destination": "/chat",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",

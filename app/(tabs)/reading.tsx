@@ -886,7 +886,7 @@ export default function ReadingScreen() {
               style={styles.smartCtaGhost}
               onPress={() => {
                 trackNamedEvent('plan_select', { plan: 'chat_first', source: 'reading_paywall' });
-                router.push('/');
+                router.push('/chat');
               }}
             >
               <Text style={styles.smartCtaGhostText}>{t('reading.paywall.chatFirst', '先回首页聊聊，不立即解锁')}</Text>

@@ -183,7 +183,7 @@ export default function PaymentSuccessScreen() {
     };
   }, [paymentId, loadUser, retryTick]);
 
-  const goHome = () => router.replace('/' as any);
+  const goHome = () => router.replace('/chat' as any);
   const retryCheck = () => {
     setPhase('polling');
     setMessage(t('payment.success.rechecking', '正在重新确认支付结果…'));

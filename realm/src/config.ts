@@ -2,8 +2,21 @@
 
 export const APP_NAME = '山海灵境 · 云游道观';
 
-/** 主站入口（登录、八字、测字、对话） */
-export const MAIN_SITE = 'https://www.shanhai.app';
+/**
+ * 主站同源根。
+ * 本地 Vite(5273) 仍指向线上；线上道观与对话同域，用相对路径。
+ */
+export const MAIN_SITE =
+  (import.meta.env.VITE_MAIN_SITE as string | undefined)?.replace(/\/$/, '') ||
+  (typeof location !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+    ? 'https://www.shanhai.app'
+    : '');
+
+/** 对话页（带灵伴） */
+export function chatPath(personaId?: string) {
+  const q = personaId ? `?persona=${encodeURIComponent(personaId)}` : '';
+  return `${MAIN_SITE}/chat${q}`;
+}
 
 /**
  * API 根路径。
@@ -28,7 +41,7 @@ export const COMPANIONS = [
     title: '断事老师',
     blurb: '关系取舍、事业方向：先给判断，再拆依据。',
     greeting: '先把卡住你的那件事说出来。',
-    path: `${MAIN_SITE}/?persona=elder`,
+    path: chatPath('elder'),
     robe: 0x5f6460,
     aura: 0xc9a85a,
   },
@@ -38,7 +51,7 @@ export const COMPANIONS = [
     title: '清醒同频',
     blurb: '压力、说不清的日常：语气轻一点，建议实一点。',
     greeting: '我在。先给我一个字或一句话就好。',
-    path: `${MAIN_SITE}/?persona=youth`,
+    path: chatPath('youth'),
     robe: 0x4d6478,
     aura: 0xa8b8c8,
   },
@@ -48,7 +61,7 @@ export const COMPANIONS = [
     title: '情绪陪伴',
     blurb: '感情、夜里反复想的事：先接住，再慢慢拆开。',
     greeting: '你可以慢慢说。今晚先不用做决定。',
-    path: `${MAIN_SITE}/?persona=oracle`,
+    path: chatPath('oracle'),
     robe: 0x6e5f72,
     aura: 0xc4b4c8,
   },

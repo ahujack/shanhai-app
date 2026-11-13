@@ -1,5 +1,10 @@
 import * as THREE from 'three';
-import { COMPANIONS, MAIN_SITE } from '../config';
+import { COMPANIONS, MAIN_SITE, chatPath } from '../config';
+
+function go(path: string) {
+  const url = path.startsWith('http') ? path : path;
+  window.location.assign(url);
+}
 import { drawFortune, track } from '../api/fortune';
 import { sounds } from '../audio/sounds';
 import { openPanel, closePanel } from './panel';
@@ -152,11 +157,9 @@ export async function runInteraction(hotspot: Hotspot, ctx: InteractionContext =
            <p class="muted">${slip.mission || slip.funTip || (slip.advice || []).slice(0, 2).join(' · ')}</p>`,
           [
             {
-              label: '去主站深聊',
+              label: '去殿内深聊',
               primary: true,
-              onClick: () => {
-                window.open(`${MAIN_SITE}/`, '_blank');
-              },
+              onClick: () => go(chatPath('elder')),
             },
             { label: '收起', onClick: closePanel },
           ],
@@ -165,9 +168,9 @@ export async function runInteraction(hotspot: Hotspot, ctx: InteractionContext =
       } catch {
         openPanel('抽签未成', `<p>签筒暂时安静。请稍后再试，或到主站抽今日签。</p>`, [
           {
-            label: '打开主站',
+            label: '打开今日签',
             primary: true,
-            onClick: () => window.open(`${MAIN_SITE}/daily-fortune`, '_blank'),
+            onClick: () => go(`${MAIN_SITE}/daily-fortune`),
           },
           { label: '关闭', onClick: closePanel },
         ]);
@@ -234,28 +237,28 @@ export async function runInteraction(hotspot: Hotspot, ctx: InteractionContext =
         c.name,
         `<p class="poem">${c.greeting}</p>
          <p><strong>${c.title}</strong> · ${c.blurb}</p>
-         <p class="muted">道观里先认门；深聊、测字、八字仍在主站完成。</p>`,
+         <p class="muted">在道观里先认门；要深聊时再进殿内对话。</p>`,
         [
           {
             label: `去问${c.name}`,
             primary: true,
             onClick: () => {
               ctx.player?.clearFocus();
-              window.open(c.path, '_blank');
+              go(c.path);
             },
           },
           {
             label: '测字',
             onClick: () => {
               ctx.player?.clearFocus();
-              window.open(`${MAIN_SITE}/character-divination`, '_blank');
+              go(`${MAIN_SITE}/zi`);
             },
           },
           {
             label: '八字',
             onClick: () => {
               ctx.player?.clearFocus();
-              window.open(`${MAIN_SITE}/bazi-calculator`, '_blank');
+              go(`${MAIN_SITE}/bazi`);
             },
           },
           {
@@ -279,9 +282,13 @@ export async function runInteraction(hotspot: Hotspot, ctx: InteractionContext =
          <p class="muted">内容仅供娱乐与自我反思。</p>`,
         [
           {
-            label: '回到主站',
+            label: '进入对话',
             primary: true,
-            onClick: () => window.open(MAIN_SITE, '_blank'),
+            onClick: () => go(chatPath()),
+          },
+          {
+            label: '去测字',
+            onClick: () => go(`${MAIN_SITE}/zi`),
           },
           { label: '继续逛', onClick: closePanel },
         ],

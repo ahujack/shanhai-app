@@ -541,7 +541,7 @@ export default function BaziScreen() {
     useChatStore.setState((state) => ({
       messages: [...state.messages, chatMessage],
     }));
-    router.push('/');
+    router.push('/chat');
   };
 
   const handleGenerate = async () => {

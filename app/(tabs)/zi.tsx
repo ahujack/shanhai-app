@@ -996,7 +996,7 @@ export default function ZiScreen() {
   const goChatWithZiCooldown = () => {
     const cooldownUntil = Date.now() + 15 * 60 * 1000;
     router.push({
-      pathname: '/',
+      pathname: '/chat',
       params: { skipZiNudgeUntil: String(cooldownUntil) },
     });
   };

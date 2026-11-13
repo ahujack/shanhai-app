@@ -175,6 +175,21 @@ body::after {
   color: #5a5348;
 }
 
+.meta-link {
+  color: #6b4e2e;
+  text-decoration: none;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  border-left: 1px solid rgba(90, 70, 40, 0.22);
+  padding-left: 10px;
+  margin-left: 2px;
+}
+
+.meta-link:hover {
+  color: #8a6328;
+}
+
 .hint {
   position: absolute;
   left: 50%;

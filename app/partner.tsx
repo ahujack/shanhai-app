@@ -109,7 +109,7 @@ export default function PartnerPortalScreen() {
       />
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.topBar}>
-          <TouchableOpacity style={[styles.backBtn, webPointer]} onPress={() => router.replace('/')}>
+          <TouchableOpacity style={[styles.backBtn, webPointer]} onPress={() => router.replace('/chat')}>
             <Text style={styles.backText}>山海灵境</Text>
           </TouchableOpacity>
           <Text style={styles.topTitle}>推广看板</Text>
