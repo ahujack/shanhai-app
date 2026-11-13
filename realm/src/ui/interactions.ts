@@ -157,8 +157,23 @@ export async function runInteraction(hotspot: Hotspot, ctx: InteractionContext =
            <p class="muted">${slip.mission || slip.funTip || (slip.advice || []).slice(0, 2).join(' · ')}</p>`,
           [
             {
-              label: '去殿内深聊',
+              label: '画成命书',
               primary: true,
+              onClick: () => {
+                try {
+                  sessionStorage.setItem('shanhai_realm_comic_slip_v1', JSON.stringify(slip));
+                  sessionStorage.removeItem('shanhai_realm_comic_cache_v1');
+                } catch {
+                  /* ignore quota */
+                }
+                void track('realm_comic_open', { id: slip.id, rank: slip.fortuneRank });
+                // 保证从 /realm（无尾斜杠）进入时仍落到 /realm/comic.html
+                const comicUrl = new URL('comic.html', `${window.location.href.replace(/\/?$/, '/')}`);
+                go(comicUrl.href);
+              },
+            },
+            {
+              label: '去殿内深聊',
               onClick: () => go(chatPath('elder')),
             },
             { label: '收起', onClick: closePanel },

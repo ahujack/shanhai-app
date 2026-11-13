@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"
+    />
+    <meta name="theme-color" content="#1c1f24" />
+    <meta name="description" content="山海灵境 · 今日签漫画。竖屏条漫，把签诗讲成你的故事。" />
+    <title>今日签漫画 · 山海灵境</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/comic/comic.css" />
+  </head>
+  <body>
+    <div id="boot" class="boot">
+      <p id="boot-msg">灵伴正在铺纸起稿…</p>
+      <div class="boot-bar"><i id="boot-fill"></i></div>
+    </div>
+
+    <main id="reader" class="reader hidden">
+      <header class="comic-top">
+        <a class="back" href="./">回道观</a>
+        <div class="comic-brand">
+          <strong id="comic-title">今日签漫画</strong>
+          <span id="comic-sub"></span>
+        </div>
+        <button type="button" id="share-btn" class="share">分享</button>
+      </header>
+
+      <article id="strip" class="strip" aria-label="条漫"></article>
+
+      <footer class="comic-foot">
+        <p id="closing" class="closing"></p>
+        <div class="foot-actions">
+          <button type="button" id="again-btn">再抽一支</button>
+          <a id="chat-link" href="/chat">去问灵伴</a>
+        </div>
+        <p class="disclaimer">内容仅供娱乐与自我反思，非决策建议。</p>
+      </footer>
+    </main>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+    <script type="module" src="/src/comic/main.ts"></script>
+  </body>
+</html>

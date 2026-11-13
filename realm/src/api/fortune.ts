@@ -30,6 +30,19 @@ export async function drawFortune(): Promise<FortuneSlip> {
   return res.json();
 }
 
+export async function composeFortuneComic(
+  slip?: FortuneSlip,
+  companionId: 'elder' | 'youth' | 'oracle' = 'elder',
+) {
+  const res = await fetch(`${API_BASE}/fortunes/comic`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slip, companionId }),
+  });
+  if (!res.ok) throw new Error(`条漫失败 (${res.status})`);
+  return res.json();
+}
+
 export async function track(name: string, props?: Record<string, unknown>) {
   try {
     await fetch(`${API_BASE}/analytics/track`, {

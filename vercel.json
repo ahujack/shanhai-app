@@ -48,6 +48,14 @@
     {
       "source": "/realm/",
       "destination": "/realm/index.html"
+    },
+    {
+      "source": "/realm/comic",
+      "destination": "/realm/comic.html"
+    },
+    {
+      "source": "/realm/comic/",
+      "destination": "/realm/comic.html"
     }
   ]
 }
