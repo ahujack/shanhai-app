@@ -38,16 +38,23 @@ function readSlip(): FortuneSlip | null {
 }
 
 async function fetchComic(slip: FortuneSlip | null): Promise<FortuneComic> {
-  const res = await fetch(`${API_BASE}/fortunes/comic`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      slip: slip || undefined,
-      companionId: 'elder',
-    }),
-  });
-  if (!res.ok) throw new Error(`comic ${res.status}`);
-  return res.json();
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 120000);
+  try {
+    const res = await fetch(`${API_BASE}/fortunes/comic`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slip: slip || undefined,
+        companionId: 'elder',
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`comic ${res.status}`);
+    return res.json();
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 function renderComic(comic: FortuneComic) {
@@ -59,6 +66,10 @@ function renderComic(comic: FortuneComic) {
   const cover = document.createElement('section');
   cover.className = 'panel cover';
   cover.dataset.visual = 'hall';
+  if (comic.coverImageUrl) {
+    cover.classList.add('has-art');
+    cover.style.setProperty('--art', `url("${comic.coverImageUrl}")`);
+  }
   cover.innerHTML = `
     <div class="rank">${escapeHtml(comic.rank)}</div>
     <h1>${escapeHtml(comic.poemTitle || comic.title)}</h1>
@@ -72,6 +83,10 @@ function renderComic(comic: FortuneComic) {
     const el = document.createElement('section');
     el.className = 'panel';
     el.dataset.visual = panel.visual || 'path';
+    if (panel.imageUrl) {
+      el.classList.add('has-art');
+      el.style.setProperty('--art', `url("${panel.imageUrl}")`);
+    }
     el.innerHTML = `
       <div class="panel-index">${String(i + 1).padStart(2, '0')}</div>
       ${panel.poemLine ? `<p class="poem-line">${escapeHtml(panel.poemLine)}</p>` : ''}
@@ -123,7 +138,8 @@ function escapeHtml(s: string) {
 async function main() {
   setBoot(0.2, '展开签诗…');
   const slip = readSlip();
-  setBoot(0.45, slip ? '灵伴正在分镜…' : '没有签底，改用观中常签起稿…');
+  setBoot(0.35, slip ? '灵伴正在分镜…' : '没有签底，改用观中常签起稿…');
+  setBoot(0.55, '若已开启配图，正在晕染水墨场景…');
 
   try {
     const cached = sessionStorage.getItem(COMIC_CACHE_KEY);

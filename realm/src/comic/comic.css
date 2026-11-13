@@ -152,6 +152,12 @@ body {
   opacity: 1;
 }
 
+.panel.has-art::before {
+  background:
+    linear-gradient(180deg, rgba(12, 14, 18, 0.15) 10%, rgba(12, 14, 18, 0.82) 100%),
+    var(--art) center / cover no-repeat;
+}
+
 .panel > * {
   position: relative;
   z-index: 1;

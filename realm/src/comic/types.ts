@@ -4,6 +4,7 @@ export interface ComicPanel {
   caption: string;
   bubble: string;
   poemLine?: string;
+  imageUrl?: string;
 }
 
 export interface FortuneComic {
@@ -18,6 +19,7 @@ export interface FortuneComic {
   closing: string;
   shareText: string;
   createdAt: string;
+  coverImageUrl?: string;
 }
 
 export const COMIC_SLIP_KEY = 'shanhai_realm_comic_slip_v1';
